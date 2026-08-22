@@ -12,7 +12,7 @@ export async function POST(req: NextRequest) {
     // For now, let's use a simple fetch if it's a standard HTTP proxy
     // Or we can just spawn a quick check script
     
-    return new Promise((resolve) => {
+    return new Promise<NextResponse>((resolve) => {
       const scriptPath = path.join(process.cwd(), 'scripts/proxy_check.py');
       const { exec } = require('child_process');
       
