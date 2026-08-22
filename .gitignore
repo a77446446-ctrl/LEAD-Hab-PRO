@@ -9,3 +9,5 @@ node_modules
 sessions/
 debug_screenshots/
 last_error.txt
+
+.next
