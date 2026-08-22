@@ -75,7 +75,7 @@ export async function GET(request: Request) {
     const categoryIds = Array.from(new Set(leads.map((l) => l.categoryId)));
     const categories = categoryIds.length
       ? await withRetry(() =>
-          prisma.$queryRawUnsafe(`SELECT id, name, slug, paymentMode, imageUrl FROM Category WHERE id IN (${categoryIds.map(id => `'${id}'`).join(',')})`) as Promise<any[]>
+          prisma.$queryRawUnsafe(`SELECT id, name, slug, "paymentMode", "imageUrl" FROM "Category" WHERE id IN (${categoryIds.map(id => `'${id}'`).join(',')})`) as Promise<any[]>
       )
       : [];
     const categoryMap = new Map(categories.map((c) => [c.id, c]));

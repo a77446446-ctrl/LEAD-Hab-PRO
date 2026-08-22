@@ -5,7 +5,7 @@ import { prisma } from '@/lib/prisma';
 export async function GET() {
   try {
     // Use raw query to bypass stale Prisma Client cache which strips unknown fields
-    const rawCategories: any[] = await prisma.$queryRawUnsafe(`SELECT * FROM Category ORDER BY name ASC`);
+    const rawCategories: any[] = await prisma.$queryRawUnsafe(`SELECT * FROM "Category" ORDER BY name ASC`);
     const categories = rawCategories.map(c => ({
       ...c,
       active: Boolean(c.active)
@@ -45,7 +45,7 @@ export async function POST(request: Request) {
         data: payload,
       });
       // Raw update for ttlMinutes and imageUrl to bypass stale Prisma client cache
-      await prisma.$executeRawUnsafe(`UPDATE Category SET ttlMinutes = ${ttlVal}, imageUrl = ${safeImageUrl} WHERE id = '${id}'`);
+      await prisma.$executeRawUnsafe(`UPDATE "Category" SET "ttlMinutes" = ${ttlVal}, "imageUrl" = ${safeImageUrl} WHERE id = '${id}'`);
     } else {
       const slug = name.toLowerCase()
         .trim()
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
           slug: slug || `cat-${Date.now()}`,
         },
       });
-      await prisma.$executeRawUnsafe(`UPDATE Category SET ttlMinutes = ${ttlVal}, imageUrl = ${safeImageUrl} WHERE id = '${category.id}'`);
+      await prisma.$executeRawUnsafe(`UPDATE "Category" SET "ttlMinutes" = ${ttlVal}, "imageUrl" = ${safeImageUrl} WHERE id = '${category.id}'`);
     }
 
     return NextResponse.json(category);
