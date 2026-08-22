@@ -1,0 +1,1 @@
+{"kind":"FETCH","data":{"headers":{"cf-cache-status":"DYNAMIC","cf-ray":"a2f4287a698ef11d-DME","connection":"keep-alive","content-length":"23","content-type":"application/json","date":"Sat, 22 Aug 2026 19:07:02 GMT","server":"cloudflare","vary":"Origin"},"body":"eyJpcCI6IjQ1LjE0My4yMzYuMTE4In0=","status":200,"url":"https://api.ipify.org/?format=json"},"revalidate":600,"tags":[]}

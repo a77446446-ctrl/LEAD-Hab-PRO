@@ -1,0 +1,9 @@
+{
+  "/api/admin/parser/cron/route": "app/api/admin/parser/cron/route.js",
+  "/api/leads/route": "app/api/leads/route.js",
+  "/(dashboard)/my-leads/page": "app/(dashboard)/my-leads/page.js",
+  "/(admin)/admin/page": "app/(admin)/admin/page.js",
+  "/(admin)/admin/settings/page": "app/(admin)/admin/settings/page.js",
+  "/(dashboard)/dashboard/page": "app/(dashboard)/dashboard/page.js",
+  "/(admin)/admin/leads/page": "app/(admin)/admin/leads/page.js"
+}
