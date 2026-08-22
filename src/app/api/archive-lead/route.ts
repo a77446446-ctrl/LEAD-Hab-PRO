@@ -1,1 +1,2 @@
+export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server'; import { prisma } from '@/lib/prisma'; export async function POST(request: Request) { try { const { leadId } = await request.json(); await prisma.lead.update({ where: { id: leadId }, data: { status: 'ARCHIVED' } }); return NextResponse.json({ success: true }); } catch (error: any) { return NextResponse.json({ error: error.message }, { status: 400 }); } }
