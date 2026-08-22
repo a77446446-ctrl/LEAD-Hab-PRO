@@ -1,0 +1,1 @@
+const { PrismaClient } = require('@prisma/client'); const prisma = new PrismaClient({}); async function main() { await prisma.category.upsert({ where: { slug: 'info' }, update: {}, create: { name: '???? / ??????', slug: 'info', leadPrice: 0 } }); console.log('Category created'); } main().finally(() => prisma['$disconnect']());

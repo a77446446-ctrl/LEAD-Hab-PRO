@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id            String        @id @default(uuid())
+  maxId         BigInt        @unique
+  name          String
+  role          String        @default("USER")
+  balance       Float         @default(0)
+  rating        Float         @default(5.0)
+  notifyEnabled Boolean       @default(false)
+  createdAt     DateTime      @default(now())
+  subscriptions Subscription[]
+  purchases    Purchase[]
+  transactions Transaction[]
+}
+
+model Category {
+  id                String        @id @default(uuid())
+  name              String
+  slug              String        @unique
+  plusKeywords      String?
+  minusKeywords     String?
+  paymentMode       String        @default("LEAD")
+  leadPrice         Float         @default(0)
+  subscriptionPrice Float         @default(0)
+  days              Int           @default(30)
+  ttlMinutes        Int           @default(1440) // Default 24 hours (1440 mins)
+  active            Boolean       @default(true)
+  imageUrl          String?
+  leads             Lead[]
+  subscriptions     Subscription[]
+}
+
+model Subscription {
+  id         String   @id @default(uuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  categoryId String
+  category   Category @relation(fields: [categoryId], references: [id])
+  expiresAt  DateTime
+}
+
+model Lead {
+  id         String     @id @default(uuid())
+  title      String
+  rawText    String
+  phone      String?
+  city       String
+  categoryId String
+  category   Category   @relation(fields: [categoryId], references: [id])
+  sourceChat String?
+  score      Int        @default(0)
+  price      Float      @default(0)
+  status     String     @default("NEW")
+  createdAt  DateTime   @default(now())
+  purchases  Purchase[]
+}
+
+model Purchase {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  leadId    String
+  lead      Lead     @relation(fields: [leadId], references: [id])
+  price     Float
+  createdAt DateTime @default(now())
+}
+
+model Transaction {
+  id        String          @id @default(uuid())
+  userId    String
+  user      User            @relation(fields: [userId], references: [id])
+  type      String
+  amount    Float
+  createdAt DateTime        @default(now())
+}
+
+model Setting {
+  id    String @id @default(uuid())
+  key   String @unique
+  value String
+}
+
+model MaksAccount {
+  id           String   @id @default(uuid())
+  name         String
+  sessionFile  String   @unique
+  proxyString  String?  // format: http://user:password@ip:port
+  active       Boolean  @default(true)
+  lastUsed     DateTime?
+  createdAt    DateTime @default(now())
+}
