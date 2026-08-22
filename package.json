@@ -3,9 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev", "cron": "node scripts/cron.js", "start:all": "start npm run dev && start npm run cron",
-    "build": "next build",
-    "start": "next start",
+    "dev": "next dev",
+    "cron": "node scripts/cron.js",
+    "start:windows": "start npm run dev && start npm run cron",
+    "build": "npx prisma generate && next build",
+    "start": "npx prisma db push && concurrently \"next start\" \"node scripts/cron.js\"",
     "lint": "next lint"
   },
   "dependencies": {
@@ -20,6 +22,7 @@
     "better-sqlite3": "^13.0.3",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
+    "concurrently": "^10.0.5",
     "eslint": "^8",
     "eslint-config-next": "14.1.0",
     "framer-motion": "^11.0.3",
