@@ -7,7 +7,7 @@
     "cron": "node scripts/cron.js",
     "start:windows": "start npm run dev && start npm run cron",
     "build": "prisma generate && next build",
-    "start": "concurrently --kill-others-on-fail \"next start\" \"node scripts/cron.js\"",
+    "start": "prisma migrate deploy && concurrently --kill-others-on-fail \"next start\" \"node scripts/cron.js\"",
     "lint": "node node_modules/eslint/bin/eslint.js src --ext .ts,.tsx --no-cache",
     "typecheck": "tsc --noEmit --incremental false",
     "db:validate": "prisma validate",
