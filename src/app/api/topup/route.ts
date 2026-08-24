@@ -1,39 +1,19 @@
-export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { AuthenticationError, requireCurrentUser } from '@/lib/auth/current-user';
 
-export async function POST(request: Request) {
+export const dynamic = 'force-dynamic';
+
+export async function POST() {
   try {
-    const { userId, amount } = await request.json();
-
-    if (!amount || amount < 100) {
-      return NextResponse.json({ error: 'Minimum topup is 100 RUB' }, { status: 400 });
-    }
-
-    const result = await prisma.$transaction(async (tx) => {
-      // 1. Update balance
-      const user = await tx.user.update({
-        where: { id: userId },
-        data: {
-          balance: { increment: amount },
-        },
-      });
-
-      // 2. Record transaction
-      await tx.transaction.create({
-        data: {
-          userId,
-          type: 'TOPUP',
-          amount,
-        },
-      });
-
-      return user;
-    });
-
-    return NextResponse.json({ success: true, newBalance: result.balance });
+    await requireCurrentUser();
+    return NextResponse.json(
+      { error: 'Прямое пополнение отключено. Используйте подтверждённый платёж ЮKassa.', code: 'PAYMENTS_NOT_CONNECTED' },
+      { status: 501 },
+    );
   } catch (error) {
-    console.error('Topup failed:', error);
-    return NextResponse.json({ error: 'Topup failed' }, { status: 500 });
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
+    return NextResponse.json({ error: 'Не удалось проверить пользователя' }, { status: 500 });
   }
 }

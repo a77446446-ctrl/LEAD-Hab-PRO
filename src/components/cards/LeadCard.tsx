@@ -5,9 +5,10 @@ interface LeadCardProps {
   lead: any;
   onBuy?: (id: string) => void;
   isPurchased?: boolean;
+  highlighted?: boolean;
 }
 
-export const LeadCard = ({ lead, onBuy, isPurchased }: LeadCardProps) => {
+export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProps) => {
   const [expanded, setExpanded] = useState(false);
 
   const isInfo = lead.category?.slug === 'info' || lead.category?.name?.toLowerCase().includes('инфо');
@@ -86,7 +87,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased }: LeadCardProps) => {
   };
 
   return (
-    <div className="bg-white border-2 border-black p-4 md:p-5 flex flex-col h-full relative shadow-[4px_4px_0_0_#000]">
+    <div id={`lead-${lead.id}`} className={`bg-white border-2 border-black p-4 md:p-5 flex flex-col h-full relative shadow-[4px_4px_0_0_#000] ${highlighted ? 'ring-4 ring-accent ring-offset-2' : ''}`}>
       <div className="flex-grow z-10 relative">
         {/* Background Watermark Image */}
         {lead.category?.imageUrl && (

@@ -1,9 +1,12 @@
+import { adminGuard } from '@/lib/auth/admin-guard';
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { maxParser } from '@/services/max-parser';
 
 export async function POST() {
+  const denied = await adminGuard();
+  if (denied) return denied;
   try {
     console.log('Starting manual parser sync...');
     

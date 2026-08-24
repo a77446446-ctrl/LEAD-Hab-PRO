@@ -14,7 +14,7 @@ export default function ArchivePage() {
     if (!user) return;
     const fetchArchive = async () => {
       try {
-        const res = await fetch(`/api/leads?purchasedBy=${user.id}&status=ARCHIVED`);
+        const res = await fetch('/api/leads?owned=true&status=ARCHIVED');
         const data = await res.json();
         setArchivedLeads(data);
       } catch (err) {

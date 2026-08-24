@@ -5,15 +5,19 @@ import { LeadCard } from '@/components/cards/LeadCard';
 import { useUser } from '@/store/useUser';
 import { Loader2, Archive } from 'lucide-react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 
 export default function MyLeadsPage() {
   const { user } = useUser();
+  const searchParams = useSearchParams();
+  const focusedLeadId = searchParams.get('lead');
   const [myLeads, setMyLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user?.id) {
-      fetch(`/api/leads?purchasedBy=${user.id}&take=200`)
+      const leadQuery = focusedLeadId ? `&leadId=${encodeURIComponent(focusedLeadId)}` : '';
+      fetch(`/api/leads?owned=true&take=200${leadQuery}`)
         .then(res => res.json())
         .then(data => {
           setMyLeads(data);
@@ -24,7 +28,7 @@ export default function MyLeadsPage() {
           setLoading(false);
         });
     }
-  }, [user]);
+  }, [user, focusedLeadId]);
 
   if (loading) {
     return <div className="flex justify-center items-center h-[50vh]"><Loader2 className="animate-spin text-accent" size={32} /></div>;
@@ -47,7 +51,7 @@ export default function MyLeadsPage() {
         {myLeads.length > 0 ? (
           myLeads.map((lead) => (
             <div key={lead.id} className="relative">
-              <LeadCard lead={lead} isPurchased={true} />
+              <LeadCard lead={lead} isPurchased={true} highlighted={lead.id === focusedLeadId} />
             </div>
           ))
         ) : (

@@ -1,9 +1,12 @@
+import { adminGuard } from '@/lib/auth/admin-guard';
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
 import path from 'path';
 import fs from 'fs/promises';
 
 export async function POST(req: NextRequest) {
+  const denied = await adminGuard();
+  if (denied) return denied;
   try {
     const sessionPath = path.join(process.cwd(), 'sessions/active_session.json');
     await fs.unlink(sessionPath);

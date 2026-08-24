@@ -2,12 +2,13 @@ export type UserRole = 'user' | 'admin';
 
 export interface User {
   id: string;
-  max_id: number;
+  max_id: string;
   name: string;
   role: UserRole;
   balance: number;
   rating: number;
   notify_enabled: boolean;
+  bot_available: boolean;
   created_at: string;
 }
 

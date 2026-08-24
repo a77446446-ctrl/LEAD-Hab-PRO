@@ -1,13 +1,18 @@
-node_modules
-# Keep environment variables out of version control
+node_modules/
+.next/
 .env
-
-/src/generated/prisma
-
+.env.*
+!.env.example
+/src/generated/prisma/
 *.db
 *.db-journal
 sessions/
 debug_screenshots/
+public/uploads/
+scripts/__pycache__/
+*.pyc
+*.tsbuildinfo
+output.txt
+error.txt
 last_error.txt
-
-.next
+leads_check.json

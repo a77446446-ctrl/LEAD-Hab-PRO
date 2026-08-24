@@ -10,6 +10,7 @@ import {
   Users, 
   CreditCard, 
   Settings,
+  Search,
   ArrowLeft
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
@@ -20,6 +21,7 @@ const adminNav = [
   { icon: Tags, label: 'Категории', href: '/admin/categories' },
   { icon: Users, label: 'Пользователи', href: '/admin/users' },
   { icon: CreditCard, label: 'Платежи', href: '/admin/payments' },
+  { icon: Search, label: 'Детектив', href: '/admin/discovery' },
   { icon: Settings, label: 'Настройки МАКС', href: '/admin/settings' },
 ];
 

@@ -1,8 +1,11 @@
+import { adminGuard } from '@/lib/auth/admin-guard';
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
+  const denied = await adminGuard();
+  if (denied) return denied;
   try {
     const today = new Date();
     today.setHours(0, 0, 0, 0);

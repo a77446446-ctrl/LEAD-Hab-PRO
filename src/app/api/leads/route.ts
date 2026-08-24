@@ -1,24 +1,22 @@
-export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
+import type { Prisma } from '@prisma/client';
+import { AuthenticationError, requireCurrentUser } from '@/lib/auth/current-user';
 import { prisma } from '@/lib/prisma';
+import { redactContactInfo } from '@/lib/redact-contact';
 
-async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
+export const dynamic = 'force-dynamic';
+
+async function withRetry<T>(operation: () => Promise<T>, attempts = 3): Promise<T> {
   let lastError: unknown;
-  for (let i = 0; i < attempts; i++) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
-      return await fn();
+      return await operation();
     } catch (error) {
       lastError = error;
-      const msg = String((error as any)?.message || error || '').toLowerCase();
-      const transient =
-        msg.includes('connection terminated') ||
-        msg.includes('connection timeout') ||
-        msg.includes('tls') ||
-        msg.includes('econnrefused');
-      if (!transient || i === attempts - 1) {
-        throw error;
-      }
-      await new Promise((resolve) => setTimeout(resolve, 500 * (i + 1)));
+      const message = error instanceof Error ? error.message.toLowerCase() : String(error).toLowerCase();
+      const transient = ['connection terminated', 'connection timeout', 'econnrefused'].some((value) => message.includes(value));
+      if (!transient || attempt === attempts - 1) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
     }
   }
   throw lastError;
@@ -26,68 +24,68 @@ async function withRetry<T>(fn: () => Promise<T>, attempts = 3): Promise<T> {
 
 export async function GET(request: Request) {
   try {
+    const user = await requireCurrentUser();
     const { searchParams } = new URL(request.url);
     const categoryId = searchParams.get('categoryId');
-    const purchasedBy = searchParams.get('purchasedBy');
-    const status = searchParams.get('status');
-    const takeParam = Number(searchParams.get('take') || '200');
-    const take = Number.isFinite(takeParam) ? Math.min(Math.max(takeParam, 1), 1000) : 200;
+    const leadId = searchParams.get('leadId');
+    const owned = searchParams.get('owned') === 'true';
+    const requestedStatus = searchParams.get('status');
+    const takeParam = Number(searchParams.get('take') || '100');
+    const take = Number.isInteger(takeParam) ? Math.min(Math.max(takeParam, 1), 200) : 100;
 
-    let whereClause: any = {};
-    if (categoryId && categoryId !== 'all') {
-      whereClause.categoryId = categoryId;
-    }
-    
-    if (purchasedBy) {
-      whereClause.purchases = {
-        some: { userId: purchasedBy }
-      };
-      if (!status) {
-        whereClause.status = 'SOLD';
+    const where: Prisma.LeadWhereInput = {};    if (leadId) {
+      if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(leadId)) {
+        return NextResponse.json({ error: 'Некорректный идентификатор лида' }, { status: 400 });
       }
+      where.id = leadId;
+    }
+    if (categoryId && categoryId !== 'all' && categoryId.length <= 100) where.categoryId = categoryId;
+
+    if (owned) {
+      where.purchases = { some: { userId: user.id } };
+      where.status = requestedStatus === 'ARCHIVED' ? 'ARCHIVED' : { not: 'ARCHIVED' };
+    } else {
+      where.status = 'NEW';
     }
 
-    if (status) {
-      whereClause.status = status;
-    }
-
-    const leads = await withRetry(() =>
-      prisma.lead.findMany({
-        where: whereClause,
-        take,
-        orderBy: { createdAt: 'desc' },
-        select: {
-          id: true,
-          title: true,
-          rawText: true,
-          phone: true,
-          city: true,
-          categoryId: true,
-          sourceChat: true,
-          score: true,
-          price: true,
-          status: true,
-          createdAt: true,
+    const leads = await withRetry(() => prisma.lead.findMany({
+      where,
+      take,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        rawText: true,
+        phone: true,
+        city: true,
+        categoryId: true,
+        sourceChat: true,
+        score: true,
+        price: true,
+        status: true,
+        createdAt: true,
+        category: {
+          select: { id: true, name: true, slug: true, paymentMode: true, imageUrl: true },
         },
-      })
-    );
-
-    const categoryIds = Array.from(new Set(leads.map((l) => l.categoryId)));
-    const categories = categoryIds.length
-      ? await withRetry(() =>
-          prisma.$queryRawUnsafe(`SELECT id, name, slug, "paymentMode", "imageUrl" FROM "Category" WHERE id IN (${categoryIds.map(id => `'${id}'`).join(',')})`) as Promise<any[]>
-      )
-      : [];
-    const categoryMap = new Map(categories.map((c) => [c.id, c]));
-
-    const enriched = leads.map((lead) => ({
-      ...lead,
-      category: categoryMap.get(lead.categoryId) || null,
+      },
     }));
 
-    return NextResponse.json(enriched);
+    return NextResponse.json(leads.map((lead) => owned ? {
+      ...lead,
+      isPurchased: true,
+    } : {
+      ...lead,
+      title: redactContactInfo(lead.title),
+      rawText: redactContactInfo(lead.rawText),
+      phone: null,
+      sourceChat: null,
+      isPurchased: false,
+    }));
   } catch (error) {
-    console.error('Failed to fetch leads:', error);
-    return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 });
+    if (error instanceof AuthenticationError) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
+    }
+    console.error('[LEADS]', error);
+    return NextResponse.json({ error: 'Не удалось загрузить лиды' }, { status: 500 });
   }
 }

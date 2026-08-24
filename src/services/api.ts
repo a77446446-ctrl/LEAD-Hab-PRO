@@ -7,11 +7,11 @@ export const api = {
       const res = await fetch(url);
       return res.json();
     },
-    buy: async (userId: string, leadId: string) => {
+    buy: async (leadId: string) => {
       const res = await fetch('/api/buy-lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId, leadId }),
+        body: JSON.stringify({ leadId }),
       });
       return res.json();
     }

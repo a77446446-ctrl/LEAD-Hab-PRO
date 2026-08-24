@@ -42,9 +42,25 @@ interface MaksSession {
   id: string;
   name: string;
   active: boolean;
-  lastUsed?: string;
+  status?: 'AUTHORIZING' | 'ACTIVE' | 'COOLDOWN' | 'AUTH_REQUIRED' | 'PROXY_ERROR' | 'DISABLED';
+  lastUsed?: string | null;
+  lastSuccessAt?: string | null;
+  cooldownUntil?: string | null;
+  consecutiveFailures?: number;
+  totalRuns?: number;
+  totalErrors?: number;
+  lastError?: string | null;
   proxy?: string;
 }
+
+const SESSION_STATUS_LABELS: Record<string, string> = {
+  AUTHORIZING: 'ОЖИДАЕТ QR',
+  ACTIVE: 'ГОТОВ',
+  COOLDOWN: 'ПАУЗА',
+  AUTH_REQUIRED: 'НУЖЕН ВХОД',
+  PROXY_ERROR: 'ОШИБКА ПРОКСИ',
+  DISABLED: 'ВЫКЛЮЧЕН',
+};
 
 interface Chat {
   name: string;
@@ -160,7 +176,9 @@ export default function SettingsPage() {
       setProxyIP(localStorage.getItem('maks_proxyIP') || '');
       setProxyPort(localStorage.getItem('maks_proxyPort') || '');
       setProxyUser(localStorage.getItem('maks_proxyUser') || '');
-      setProxyPass(localStorage.getItem('maks_proxyPass') || '');
+      // Пароль прокси не должен сохраняться в браузере.
+      localStorage.removeItem('maks_proxyPass');
+      setProxyPass('');
       setProxyLoaded(true);
     }
   }, []);
@@ -172,7 +190,6 @@ export default function SettingsPage() {
       localStorage.setItem('maks_proxyIP', proxyIP);
       localStorage.setItem('maks_proxyPort', proxyPort);
       localStorage.setItem('maks_proxyUser', proxyUser);
-      localStorage.setItem('maks_proxyPass', proxyPass);
     }
     // Reset proxy status if user edits proxy fields
     setProxyStatus('idle');
@@ -565,10 +582,24 @@ export default function SettingsPage() {
   const handleDeleteSession = async (id: string) => {
     if (!confirm('Удалить этот аккаунт?')) return;
     try {
-      await fetch(`/api/admin/auth/sessions?id=${id}`, { method: 'DELETE' });
-      setSessions(sessions.filter(s => s.id !== id));
+      const response = await fetch(`/api/admin/auth/sessions?id=${id}`, { method: 'DELETE' });
+      if (!response.ok) throw new Error('Удаление отклонено сервером');
+      setSessions((current) => current.filter((session) => session.id !== id));
       addLog('Аккаунт удален', 'info');
     } catch (error) { addLog('Ошибка удаления', 'error'); }
+  };
+
+  const handleToggleSession = async (session: MaksSession) => {
+    try {
+      const response = await fetch('/api/admin/auth/sessions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: session.id, active: !session.active }),
+      });
+      if (!response.ok) throw new Error('Изменение отклонено сервером');
+      await fetchSessions(true);
+      addLog(session.active ? 'Аккаунт поставлен на паузу' : 'Аккаунт включен', 'info');
+    } catch { addLog('Не удалось изменить состояние аккаунта', 'error'); }
   };
 
   const inputClasses = "w-full bg-zinc-900 border border-zinc-700 py-3.5 pl-11 pr-4 text-[10px] font-black uppercase tracking-widest focus:ring-1 focus:ring-black transition-all text-white placeholder:text-zinc-500 outline-none";
@@ -746,12 +777,26 @@ export default function SettingsPage() {
                     <div className="w-8 h-8 bg-zinc-950 flex items-center justify-center text-white"><UserIcon size={14} /></div>
                     <div className={cn("absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-zinc-700", session.active ? "bg-green-500" : "bg-red-500")} />
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <h4 className="text-[10px] font-black text-white uppercase tracking-tight leading-none">{session.name}</h4>
-                    <p className="text-[7px] text-zinc-400 font-bold uppercase mt-1 truncate max-w-[150px]">{session.proxy || 'VPN'}</p>
+                    <p className="text-[7px] text-zinc-400 font-bold uppercase mt-1 truncate max-w-[190px]">{session.proxy || 'Прямое подключение'}</p>
+                    <p className={cn("text-[7px] font-black uppercase mt-1", session.status === 'ACTIVE' ? 'text-green-400' : session.status === 'COOLDOWN' ? 'text-amber-400' : 'text-red-400')}>
+                      {SESSION_STATUS_LABELS[session.status || 'DISABLED'] || session.status}
+                      {session.consecutiveFailures ? ` · ошибок подряд: ${session.consecutiveFailures}` : ''}
+                    </p>
                   </div>
                 </div>
-                <button onClick={() => handleDeleteSession(session.id)} className="text-zinc-500 hover:text-red-500 transition-colors p-1.5"><Trash2 size={12} /></button>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleToggleSession(session)}
+                    disabled={session.status === 'AUTHORIZING' || session.status === 'AUTH_REQUIRED'}
+                    title={session.active ? 'Поставить на паузу' : 'Включить аккаунт'}
+                    className="text-zinc-500 hover:text-amber-400 disabled:opacity-30 transition-colors p-1.5"
+                  >
+                    <Activity size={12} />
+                  </button>
+                  <button onClick={() => handleDeleteSession(session.id)} title="Удалить аккаунт" className="text-zinc-500 hover:text-red-500 transition-colors p-1.5"><Trash2 size={12} /></button>
+                </div>
               </div>
             ))}
           </div>

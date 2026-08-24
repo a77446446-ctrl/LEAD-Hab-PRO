@@ -33,6 +33,16 @@ interface Category {
   active: boolean;
   ttlMinutes: number;
   imageUrl?: string | null;
+  showcaseChatId?: string | null;
+  showcaseEnabled: boolean;
+  showcaseKind: 'PUBLIC' | 'PRIVATE';
+}
+
+interface MaxBotChat {
+  chatId: string;
+  title: string | null;
+  kind: string;
+  active: boolean;
 }
 
 const initialFormData = {
@@ -44,7 +54,10 @@ const initialFormData = {
   paymentMode: 'LEAD' as const,
   active: true,
   ttlMinutes: 1440,
-  imageUrl: ''
+  imageUrl: '',
+  showcaseChatId: '',
+  showcaseEnabled: false,
+  showcaseKind: 'PUBLIC' as const
 };
 
 export default function AdminCategoriesPage() {
@@ -53,6 +66,7 @@ export default function AdminCategoriesPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [maxBotChats, setMaxBotChats] = useState<MaxBotChat[]>([]);
   
   // Tag Inputs State
   const [plusTags, setPlusTags] = useState<string[]>([]);
@@ -66,11 +80,20 @@ export default function AdminCategoriesPage() {
     paymentMode: 'LEAD',
     leadPrice: 0,
     subscriptionPrice: 0,
-    active: true
+    active: true,
+    showcaseChatId: '',
+    showcaseEnabled: false,
+    showcaseKind: 'PUBLIC'
   });
 
   useEffect(() => {
     fetchCategories();
+
+
+    fetch('/api/admin/bot/chats')
+      .then((response) => response.ok ? response.json() : [])
+      .then((data) => setMaxBotChats(Array.isArray(data) ? data : []))
+      .catch(() => setMaxBotChats([]));
   }, []);
 
   const fetchCategories = async () => {
@@ -102,7 +125,10 @@ export default function AdminCategoriesPage() {
       subscriptionPrice: 0,
       active: true,
       ttlMinutes: 1440,
-      imageUrl: ''
+      imageUrl: '',
+      showcaseChatId: '',
+      showcaseEnabled: false,
+      showcaseKind: 'PUBLIC'
     });
     setPlusTags([]);
     setMinusTags([]);
@@ -358,6 +384,48 @@ export default function AdminCategoriesPage() {
               )}
             </div>
           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-zinc-950 border border-zinc-700 rounded-lg p-5">
+          <label className="md:col-span-3 flex items-center gap-3 text-xs font-black text-white uppercase cursor-pointer">
+            <input
+              type="checkbox"
+              checked={Boolean(formData.showcaseEnabled)}
+              onChange={(event) => setFormData({ ...formData, showcaseEnabled: event.target.checked })}
+              className="h-5 w-5 accent-lime-300"
+            />
+            Публиковать в MAX
+          </label>
+          <div className="md:col-span-6 space-y-2">
+            <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Числовой chat_id канала</label>
+            <input
+              inputMode="numeric"
+              list="max-bot-chats"
+              value={formData.showcaseChatId || ''}
+              onChange={(event) => setFormData({ ...formData, showcaseChatId: event.target.value.replace(/\D/g, '') })}
+              disabled={!formData.showcaseEnabled}
+              placeholder="Например: 1234567890"
+              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg py-3 px-4 text-sm font-black text-white disabled:opacity-40"
+            />
+            <datalist id="max-bot-chats">
+              {maxBotChats.filter((chat) => chat.active).map((chat) => (
+                <option key={chat.chatId} value={chat.chatId}>{chat.title || `${chat.kind} ${chat.chatId}`}</option>
+              ))}
+            </datalist>
+          </div>
+          <div className="md:col-span-3 space-y-2">
+            <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Тип витрины</label>
+            <select
+              value={formData.showcaseKind || 'PUBLIC'}
+              onChange={(event) => setFormData({ ...formData, showcaseKind: event.target.value as 'PUBLIC' | 'PRIVATE' })}
+              disabled={!formData.showcaseEnabled}
+              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg py-3 px-4 text-sm font-black text-white disabled:opacity-40"
+            >
+              <option value="PUBLIC">ПУБЛИЧНАЯ</option>
+              <option value="PRIVATE">ПРИВАТНАЯ</option>
+            </select>
+          </div>
+          <p className="md:col-span-12 text-[10px] text-zinc-500">Добавьте бота администратором канала. После события bot_added найденный chat_id появится в подсказках.</p>
         </div>
 
         {/* TAG INPUTS */}

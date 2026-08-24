@@ -1,44 +1,71 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { LeadCard } from '@/components/cards/LeadCard';
 import { useUser } from '@/store/useUser';
 import { Search, Filter, Loader2 } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
+interface CategoryPreference {
+  id: string;
+  name: string;
+  notifyEnabled: boolean;
+}
 
 export default function DashboardPage() {
-  const { user } = useUser();
+  const { user, setBalance, setNotifyEnabled } = useUser();
+  const searchParams = useSearchParams();
+  const focusedLeadId = searchParams.get('lead');
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeCity, setActiveCity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryPreferences, setCategoryPreferences] = useState<CategoryPreference[]>([]);
 
-  useEffect(() => {
-    fetchLeads();
-    
-    // Auto-refresh feed every 15 seconds
-    const intervalId = setInterval(() => {
-      fetchLeads(false); // don't show loading spinner for auto-refreshes
-    }, 15000);
-    
-    return () => clearInterval(intervalId);
-  }, []);
-
-  const fetchLeads = async (showLoading = true) => {
+  const fetchLeads = useCallback(async (showLoading = true) => {
     try {
       if (showLoading) setLoading(true);
-      const res = await fetch('/api/leads?status=NEW&take=200');
-      const data = await res.json();
+      const leadQuery = focusedLeadId ? `&leadId=${encodeURIComponent(focusedLeadId)}` : '';
+      const response = await fetch(`/api/leads?status=NEW&take=200${leadQuery}`);
+      const data = await response.json();
       if (Array.isArray(data)) {
         setLeads(data);
       } else {
         console.error('API returned non-array:', data);
       }
-    } catch (err) {
-      console.error('Failed to fetch leads', err);
+    } catch (error) {
+      console.error('Failed to fetch leads', error);
     } finally {
       if (showLoading) setLoading(false);
     }
+  }, [focusedLeadId]);
+
+  useEffect(() => {
+    fetchLeads();
+    fetch('/api/preferences/categories', { cache: 'no-store' })
+      .then((response) => response.ok ? response.json() : [])
+      .then((data) => setCategoryPreferences(Array.isArray(data) ? data : []))
+      .catch(() => setCategoryPreferences([]));
+
+    const intervalId = setInterval(() => fetchLeads(false), 15_000);
+    return () => clearInterval(intervalId);
+  }, [fetchLeads]);
+
+  const toggleCategoryNotifications = async (category: CategoryPreference) => {
+    const enabled = !category.notifyEnabled;
+    const response = await fetch('/api/preferences/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoryId: category.id, enabled }),
+    });
+    const data = await response.json() as { error?: string; code?: string; botUrl?: string };
+    if (!response.ok) {
+      if (data.code === 'BOT_NOT_STARTED' && data.botUrl) window.WebApp?.openMaxLink?.(data.botUrl);
+      alert(data.error || 'Не удалось изменить подписку');
+      return;
+    }
+    setCategoryPreferences((items) => items.map((item) => item.id === category.id ? { ...item, notifyEnabled: enabled } : item));
+    if (enabled) setNotifyEnabled(true);
   };
 
   const [modal, setModal] = useState<{show: boolean, type: 'balance' | 'sub' | 'success' | null, msg: string}>({show: false, type: null, msg: ''});
@@ -49,21 +76,22 @@ export default function DashboardPage() {
       const res = await fetch('/api/buy-lead', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: user.id, leadId })
+        body: JSON.stringify({ leadId })
       });
       const data = await res.json();
       if (data.error) {
-        if (data.error.includes('Insufficient balance')) {
+        if (data.code === 'INSUFFICIENT_BALANCE') {
           setModal({ show: true, type: 'balance', msg: 'Недостаточно средств. Пополните кошелек, чтобы забрать этот лид.' });
-        } else if (data.error.includes('Requires subscription')) {
+        } else if (data.code === 'SUBSCRIPTION_REQUIRED') {
           setModal({ show: true, type: 'sub', msg: 'Этот лид доступен только по подписке. Оформите PRO-доступ к категории.' });
         } else {
           setModal({ show: true, type: null, msg: data.error });
         }
         return;
       }
+      if (typeof data.newBalance === 'number') setBalance(data.newBalance);
       setModal({ show: true, type: 'success', msg: 'Контакт успешно забран! Он теперь находится в разделе "Мои лиды".' });
-      setLeads(leads.filter(l => l.id !== leadId));
+      setLeads((currentLeads) => currentLeads.filter((lead) => lead.id !== leadId));
     } catch (err) {
       console.error(err);
       setModal({ show: true, type: null, msg: 'Произошла ошибка при покупке' });
@@ -145,6 +173,26 @@ export default function DashboardPage() {
         </div>
       </div>
 
+      {categoryPreferences.length > 0 && (
+        <div className="bg-white border border-black p-4 space-y-3">
+          <div>
+            <div className="text-xs font-black uppercase">Новые лиды в MAX</div>
+            <div className="text-[11px] text-[#666] font-medium">Выберите категории, по которым бот будет присылать тизеры.</div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {categoryPreferences.map((category) => (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => toggleCategoryNotifications(category)}
+                className={`px-3 py-2 text-[10px] font-black uppercase border border-black transition-colors ${category.notifyEnabled ? 'bg-accent text-black' : 'bg-white text-black hover:bg-gray-100'}`}
+              >
+                {category.notifyEnabled ? '🔔 ' : '🔕 '}{category.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {/* Leads List */}
       <div className="space-y-4">
         <div className="flex justify-between items-center px-1">
@@ -159,7 +207,7 @@ export default function DashboardPage() {
           <div className="flex justify-center py-20"><Loader2 className="animate-spin text-accent" size={32} /></div>
         ) : filteredLeads.length > 0 ? (
           filteredLeads.map((lead) => (
-            <LeadCard key={lead.id} lead={lead} onBuy={handleBuyLead} />
+            <LeadCard key={lead.id} lead={lead} onBuy={handleBuyLead} highlighted={lead.id === focusedLeadId} />
           ))
         ) : (
           <div className="text-center py-20 text-white/20">

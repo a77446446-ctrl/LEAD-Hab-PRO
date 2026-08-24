@@ -1,52 +1,53 @@
-export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { aiService } from '@/services/ai';
+import { prisma } from '@/lib/prisma';
+import { verifyBearerSecret } from '@/lib/security/api-secret';
+import { createLeadWithDeliveries } from '@/services/bot-outbox';
+
+export const dynamic = 'force-dynamic';
 
 export async function POST(request: Request) {
-  try {
-    const { rawText, source } = await request.json();
+  if (!verifyBearerSecret(request.headers.get('authorization'), process.env.INGEST_SECRET)) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
 
-    if (!rawText) {
-      return NextResponse.json({ error: 'Raw text is required' }, { status: 400 });
+  try {
+    const parsedBody = await request.json() as unknown;
+    if (typeof parsedBody !== 'object' || parsedBody === null || Array.isArray(parsedBody)) {
+      return NextResponse.json({ error: 'Некорректное тело запроса' }, { status: 400 });
     }
 
-    // 1. AI Processing
-    const processed = await aiService.processLead(rawText);
+    const body = parsedBody as Record<string, unknown>;
+    const rawText = typeof body.rawText === 'string' ? body.rawText.trim() : '';
+    const source = typeof body.source === 'string' ? body.source.trim().slice(0, 500) : null;
+    if (!rawText || rawText.length > 20_000) {
+      return NextResponse.json({ error: 'Текст лида должен содержать от 1 до 20000 символов' }, { status: 400 });
+    }
 
+    const processed = await aiService.processLead(rawText);
     if (processed.isSpam) {
       return NextResponse.json({ status: 'ignored', reason: 'spam' });
     }
 
-    // 2. Find Category
-    const category = await prisma.category.findUnique({
-      where: { slug: processed.category },
-    });
-
+    const category = await prisma.category.findUnique({ where: { slug: processed.category } });
     if (!category) {
-      // Create category if it doesn't exist or assign to "other"
       return NextResponse.json({ status: 'ignored', reason: 'category_not_found' });
     }
 
-    // 3. Save Lead
-    const lead = await prisma.lead.create({
-      data: {
-        title: processed.title,
-        rawText,
-        city: processed.city,
-        categoryId: category.id,
-        score: processed.score,
-        price: category.leadPrice,
-        status: 'NEW',
-      },
+    const lead = await createLeadWithDeliveries({
+      title: processed.title,
+      rawText,
+      city: processed.city,
+      categoryId: category.id,
+      sourceChat: source,
+      score: processed.score,
+      price: category.leadPrice,
+      status: 'NEW',
     });
-
-    // 4. Trigger Notifications (Mock)
-    console.log(`Push notification: New lead in ${category.name}!`);
 
     return NextResponse.json({ status: 'success', leadId: lead.id });
   } catch (error) {
-    console.error('Ingestion failed:', error);
-    return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
+    console.error('[INGEST]', error);
+    return NextResponse.json({ error: 'Не удалось обработать лид' }, { status: 500 });
   }
 }

@@ -1,33 +1,56 @@
-export const dynamic = 'force-dynamic';
+import { adminGuard } from '@/lib/auth/admin-guard';
+import { safeParserError } from '@/lib/parser-accounts';
+import { normalizeProxyUrl } from '@/lib/proxy';
 import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
 
+export const runtime = 'nodejs';
+const MAX_OUTPUT_BYTES = 16 * 1024;
+const CHECK_TIMEOUT_MS = 30_000;
+
 export async function POST(req: NextRequest) {
+  const denied = await adminGuard();
+  if (denied) return denied;
   try {
-    const { proxy } = await req.json();
+    const body = await req.json() as { proxy?: unknown };
+    if (body.proxy === 'direct' || body.proxy === '' || body.proxy == null) return NextResponse.json({ valid: true });
+    const proxy = normalizeProxyUrl(body.proxy);
     if (!proxy) return NextResponse.json({ valid: true });
 
-    // We check proxy by trying to reach a public URL via python/playwright or a simple fetch
-    // But since Playwright handles the complex auth, we should ideally use a small script
-    // For now, let's use a simple fetch if it's a standard HTTP proxy
-    // Or we can just spawn a quick check script
-    
-    return new Promise<NextResponse>((resolve) => {
-      const scriptPath = path.join(process.cwd(), 'scripts/proxy_check.py');
-      const { exec } = require('child_process');
-      
-      const child = exec(`python "${scriptPath}" "${proxy}"`, (error: any, stdout: string, stderr: string) => {
-        const output = stdout + stderr;
-        if (error) {
-          resolve(NextResponse.json({ valid: false, error: output.trim() || 'Connection failed' }));
-        } else {
-          resolve(NextResponse.json({ valid: true }));
-        }
+    return await new Promise<NextResponse>((resolve) => {
+      const scriptPath = path.join(process.cwd(), 'scripts', 'proxy_check.py');
+      const child = spawn('python', [scriptPath], {
+        cwd: process.cwd(),
+        shell: false,
+        windowsHide: true,
+        stdio: ['ignore', 'pipe', 'pipe'],
+        env: { ...process.env, PYTHONIOENCODING: 'utf-8', TEST_PROXY_URL: proxy },
       });
+      let output = '';
+      let settled = false;
+      let timeout: ReturnType<typeof setTimeout> | undefined;
+      const finish = (response: NextResponse) => {
+        if (settled) return;
+        settled = true;
+        if (timeout) clearTimeout(timeout);
+        resolve(response);
+      };
+      const append = (chunk: Buffer) => {
+        if (output.length < MAX_OUTPUT_BYTES) output += chunk.toString('utf8').slice(0, MAX_OUTPUT_BYTES - output.length);
+      };
+      child.stdout.on('data', append);
+      child.stderr.on('data', append);
+      child.once('error', () => finish(NextResponse.json({ valid: false, error: 'Не удалось запустить проверку прокси' })));
+      child.once('close', (code) => finish(code === 0
+        ? NextResponse.json({ valid: true })
+        : NextResponse.json({ valid: false, error: safeParserError(output) || 'Соединение через прокси не установлено' })));
+      timeout = setTimeout(() => {
+        child.kill('SIGTERM');
+        finish(NextResponse.json({ valid: false, error: 'Истекло время проверки прокси' }));
+      }, CHECK_TIMEOUT_MS);
     });
-
   } catch (error) {
-    return NextResponse.json({ valid: false, error: 'Internal error' }, { status: 500 });
+    return NextResponse.json({ valid: false, error: safeParserError(error) }, { status: 400 });
   }
 }

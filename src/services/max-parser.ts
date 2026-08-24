@@ -1,530 +1,565 @@
-import { prisma } from '@/lib/prisma';
-import { aiService } from './ai';
+import { spawn } from 'child_process';
 import path from 'path';
-import fs from 'fs/promises';
-import { createHash } from 'crypto';
+import { prisma } from '@/lib/prisma';
+import { acquireParserLease, refreshParserLease, releaseParserLease } from '@/lib/parser-lease';
+import {
+  decryptProxyUrl,
+  parserCooldown,
+  safeParserError,
+  sessionFileExists,
+  synchronizeParserSessionFiles,
+} from '@/lib/parser-accounts';
+import { normalizeMaxChatUrl } from '@/lib/max-chat-url';
+import { extractContactInfo } from '@/lib/redact-contact';
+import { createLeadWithDeliveries } from './bot-outbox';
+import { aiService } from './ai';
 
-async function withDbRetry<T>(fn: () => Promise<T>, attempts = 4): Promise<T> {
+type ParserAccount = {
+  id: string;
+  name: string;
+  sessionFile: string;
+  proxyUrl: string | null;
+  consecutiveFailures: number;
+};
+
+type ParserChat = {
+  targetId?: string;
+  name: string;
+  url: string;
+  parseAll: boolean;
+  count: number;
+  lastParsedAt: string | null;
+};
+
+type WorkerStatus = 'OK' | 'EMPTY' | 'AUTH_REQUIRED' | 'RATE_LIMITED' | 'PROXY_ERROR' | 'TIMEOUT' | 'ERROR';
+
+type WorkerResult = {
+  title: string | null;
+  messages: Array<{ text: string; id?: string }>;
+  source_chat: string;
+  status: WorkerStatus;
+  error?: string;
+};
+
+type SyncResult = {
+  success: boolean;
+  skipped?: boolean;
+  leadsCount: number;
+  failedChats?: number;
+  message?: string;
+  logs: string[];
+};
+
+const MAX_UI_LOGS = 500;
+const MAX_CHATS_CONFIG = 1000;
+
+function pushLog(logs: string[], message: string): void {
+  if (logs.length < MAX_UI_LOGS) logs.push(message.slice(0, 500));
+}
+
+function positiveIntEnv(name: string, fallback: number, minimum: number, maximum: number): number {
+  const parsed = Number.parseInt(process.env[name] || '', 10);
+  return Number.isFinite(parsed) ? Math.min(maximum, Math.max(minimum, parsed)) : fallback;
+}
+
+async function withDbRetry<T>(operation: () => Promise<T>, attempts = 4): Promise<T> {
   let lastError: unknown;
-  for (let i = 0; i < attempts; i++) {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
-      return await fn();
+      return await operation();
     } catch (error) {
       lastError = error;
-      const msg = String((error as any)?.message || error || '').toLowerCase();
-      const transient =
-        msg.includes('connection terminated') ||
-        msg.includes('connection timeout') ||
-        msg.includes('tls') ||
-        msg.includes('econnrefused');
-      if (!transient || i === attempts - 1) throw error;
-      await new Promise((resolve) => setTimeout(resolve, 600 * (i + 1)));
+      const message = safeParserError(error).toLowerCase();
+      const transient = ['connection terminated', 'connection timeout', 'tls', 'econnrefused', 'too many clients']
+        .some((marker) => message.includes(marker));
+      if (!transient || attempt === attempts - 1) throw error;
+      await new Promise((resolve) => setTimeout(resolve, 600 * (attempt + 1)));
     }
   }
   throw lastError;
 }
 
-export const maxParser = {
-  sync: async () => {
-    console.log('MAKS Parser: Starting rotation sync...');
-    const uiLogs: string[] = [];
-    
-    try {
-      // 0. Cleanup expired leads
-      uiLogs.push(`Очистка старых лидов...`);
-      try {
-        const categories = await prisma.category.findMany();
-        let deletedCount = 0;
-        
-        // Helper to calculate TTL ignoring night hours (23:00 - 07:00 Moscow Time)
-        const getCutoffDate = (nowMs: number, ttlMinutes: number): Date => {
-          let minutesLeft = ttlMinutes;
-          // Work in Moscow time (UTC+3). 
-          // nowMs is absolute UNIX timestamp. 
-          const MSK_OFFSET = 3 * 60 * 60 * 1000; 
-          let current = new Date(nowMs + MSK_OFFSET); // shifted so getUTCHours() gives Moscow hour
+/** Вычитает рабочие минуты, исключая 23:00–07:00 по Москве. */
+function businessCutoff(nowMs: number, ttlMinutes: number): Date {
+  const moscowOffsetMs = 3 * 60 * 60 * 1000;
+  const cursor = new Date(nowMs + moscowOffsetMs);
+  let remaining = Math.max(1, Math.min(30 * 24 * 60, ttlMinutes));
 
-          while (minutesLeft > 0) {
-            let h = current.getUTCHours();
-            // Night is 23:00 to 06:59
-            if (h >= 23 || h < 7) {
-              if (h >= 23) {
-                current.setUTCHours(22, 59, 59, 999);
-              } else {
-                current.setUTCDate(current.getUTCDate() - 1);
-                current.setUTCHours(22, 59, 59, 999);
-              }
-            } else {
-              // Day time: 07:00 to 22:59
-              let startOfDayMs = new Date(current).setUTCHours(7, 0, 0, 0);
-              let diffMs = current.getTime() - startOfDayMs;
-              let diffMinutes = Math.floor(diffMs / 60000);
-              
-              if (diffMinutes >= minutesLeft) {
-                current.setTime(current.getTime() - minutesLeft * 60000);
-                minutesLeft = 0;
-              } else {
-                current.setTime(startOfDayMs - 1); // jump to night
-                minutesLeft -= diffMinutes;
-              }
-            }
-          }
-          // Shift back from Moscow time to UTC for the database query
-          return new Date(current.getTime() - MSK_OFFSET);
-        };
-
-        for (const cat of categories) {
-           const ttlMinutes = (cat as any).ttlMinutes || 1440; 
-           const cutoffDate = getCutoffDate(Date.now(), ttlMinutes);
-           const res = await prisma.lead.deleteMany({
-              where: {
-                 categoryId: cat.id,
-                 status: { in: ['NEW', 'SPAM'] }, // Only delete unpurchased/spam leads
-                 createdAt: { lt: cutoffDate }
-              }
-           });
-           deletedCount += res.count;
-        }
-        uiLogs.push(`Удалено устаревших лидов: ${deletedCount}`);
-      } catch (err) {
-        console.error('Failed to cleanup leads:', err);
-      }
-
-      // 1. Get all active sessions
-      const sessionDir = path.join(process.cwd(), 'sessions');
-      console.log('Session directory:', sessionDir);
-      let sessionFiles: string[] = [];
-      try {
-        sessionFiles = (await fs.readdir(sessionDir)).filter(f => f.endsWith('.json'));
-        console.log('Found sessions:', sessionFiles);
-        uiLogs.push(`Найдено сессий: ${sessionFiles.length}`);
-      } catch (e) {
-        const errMsg = `Папка сессий не найдена: ${e}`;
-        console.error(errMsg);
-        uiLogs.push(errMsg);
-        return { success: false, message: errMsg, logs: uiLogs };
-      }
-
-      if (sessionFiles.length === 0) {
-        const errMsg = 'Нет активных аккаунтов для парсинга';
-        console.log(errMsg);
-        uiLogs.push(errMsg);
-        return { success: false, message: errMsg, logs: uiLogs };
-      }
-
-      // 2. Get target chats
-      console.log('Fetching parsing chats from database...');
-      const settings = await withDbRetry(() =>
-        prisma.setting.findMany({
-          where: { key: { in: ['maks_parsing_chats'] } }
-        })
-      ) as any[];
-      console.log('Settings found:', settings.length);
-      const config = settings.reduce((acc, s) => { acc[s.key] = s.value; return acc; }, {} as Record<string, string>);
-      let parsingChats: any[] = [];
-      try {
-        const rawChats = JSON.parse(config.maks_parsing_chats || '[]');
-        console.log('Raw chats parsed:', rawChats);
-        parsingChats = rawChats
-          .filter((c: any) => {
-            // Filter out empty/invalid chats
-            const url = typeof c === 'string' ? c : c?.url;
-            return url && String(url).trim().length > 0;
-          })
-          .map((c: any) => {
-            if (typeof c === 'string') {
-              return { name: 'Чат', url: c.trim(), parseAll: true, count: 0 };
-            }
-            return {
-              name: (c.name || 'Чат').substring(0, 100),  // Limit name length
-              url: (c.url || '').trim(),
-              parseAll: typeof c.parseAll === 'boolean' ? c.parseAll : true,
-              count: typeof c.count === 'number' ? Math.max(0, c.count) : 0,
-              lastParsedAt: c.lastParsedAt || null,
-            };
-          });
-        console.log('Normalized chats:', parsingChats.map(c => ({ name: c.name, url: c.url.substring(0, 50) + '...' })));
-        uiLogs.push(`Загружено чатов для парсинга: ${parsingChats.length}`);
-      } catch (e) {
-        const errMsg = `Ошибка парсинга конфигурации чатов: ${e}`;
-        console.error(errMsg);
-        uiLogs.push(errMsg);
-        parsingChats = [];
-      }
-
-      if (parsingChats.length === 0) {
-        const errMsg = 'Список чатов пуст';
-        console.log(errMsg);
-        uiLogs.push(errMsg);
-        return { success: false, message: errMsg, logs: uiLogs };
-      }
-
-      let leadsCount = 0;
-      let currentSessionIndex = 0;
-      let configChanged = false;
-
-    // 3. Process chats with session rotation
-    for (const chat of parsingChats) {
-      const chatUrlOriginal = chat.url || chat;
-      let chatUrl = chatUrlOriginal;
-      const chatDisplayName = chat.name || 'Новый чат';
-      const parseAll = Boolean(chat.parseAll ?? true);
-
-      // Auto-fix URL: ensure it uses web.max.ru
-      if (typeof chatUrl === 'string' && chatUrl.includes('max.ru') && !chatUrl.includes('web.max.ru')) {
-        chatUrl = chatUrl.replace('max.ru', 'web.max.ru');
-        // Update URL in settings immediately
-        const chatIndex = parsingChats.findIndex((c: any) => c.url === chatUrlOriginal);
-        if (chatIndex !== -1) {
-            parsingChats[chatIndex] = { ...parsingChats[chatIndex], url: chatUrl };
-            configChanged = true;
-        }
-      }
-      if (!chatUrl.startsWith('http')) chatUrl = 'https://' + chatUrl;
-
-      // Pick current session
-      const sessionFile = sessionFiles[currentSessionIndex];
-      uiLogs.push(`Начинаю: ${chatDisplayName}...`);
-      console.log(`MAKS Parser: Processing ${chatDisplayName} (${chatUrl}) using ${sessionFile}...`);
-
-      try {
-        const workerResult = await runPlaywrightParse(chatUrl, sessionFile);
-        const { title: fetchedTitle, messages } = workerResult;
-        
-        // Update title if it's "New Chat" or significantly better
-        if (fetchedTitle && !fetchedTitle.includes('Быстрое') && !fetchedTitle.includes('приложение') && (chatDisplayName === 'Новый чат' || fetchedTitle !== chatDisplayName)) {
-           const chatIndex = parsingChats.findIndex((c: any) => (typeof c === 'string' ? c : c.url) === chatUrl);
-           if (chatIndex !== -1) {
-              if (typeof parsingChats[chatIndex] === 'string') {
-                 parsingChats[chatIndex] = { name: fetchedTitle, url: chatUrl, parseAll: true };
-              } else {
-                 (parsingChats[chatIndex] as any).name = fetchedTitle;
-              }
-              configChanged = true;
-              uiLogs.push(`Имя чата обновлено -> ${fetchedTitle}`);
-           }
-        }
-
-        const activeTitle = fetchedTitle || chatDisplayName;
-
-        if (messages.length === 0) {
-          uiLogs.push(`[${activeTitle}] Нет новых сообщений`);
-        } else {
-          uiLogs.push(`[${activeTitle}] Найдено ${messages.length} сообщ.`);
-        }
-
-        // Filter and validate messages
-        const validMessages = messages
-          .filter(msg => {
-            const text = (msg.text || '').trim();
-            // Must be non-empty, not too short, not too long, no obvious spam patterns
-            return text.length > 15 && 
-                   text.length < 2000 && 
-                   !text.match(/^[а-яА-ЯёЁ]+$/);  // Not just repeated letters
-          })
-          .map(msg => {
-            let cleanMsgText = (msg.text || '').trim().substring(0, 1500);
-            
-            // Убираем название канала, если оно приклеилось в самом начале текста
-            if (activeTitle && activeTitle.length > 5) {
-               // Экранируем спецсимволы в названии чата
-               const escapedTitle = activeTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-               const titlePattern = new RegExp('^' + escapedTitle + '\\s*\\n*', 'i');
-               cleanMsgText = cleanMsgText.replace(titlePattern, '').trim();
-            }
-
-            // Убираем плашки пересылки из начала сообщения
-            cleanMsgText = cleanMsgText.replace(/^(Переслано от:|Переслано:|Forwarded from:)\s*\n*.+?\n+/i, '').trim();
-
-            // Убираем SEO-шапки каналов (например: "Работа СПБ Вакансии Халтура Шабашки...")
-            const lines = cleanMsgText.split('\n');
-            if (lines.length > 1) { // Удаляем только если это не единственная строка
-               const firstLine = lines[0].toLowerCase();
-               const seoWords = ['работа', 'ваканси', 'подработк', 'халтур', 'шабашк', 'каждый час', 'москва', 'спб', 'питер', 'жилье', 'область', 'тюмень', 'вахта', 'вахтовик'];
-               let matchCount = 0;
-               for (const w of seoWords) {
-                  if (firstLine.includes(w)) matchCount++;
-               }
-               // Если в первой строке 3 и более слов-тэгов - это 100% название канала
-               if (matchCount >= 3) {
-                  lines.shift(); // Выкидываем эту строку
-                  cleanMsgText = lines.join('\n').trim();
-               }
-            }
-
-            return {
-              ...msg,
-              text: cleanMsgText
-            };
-          });
-
-        for (const msg of validMessages) {
-          try {
-            const shortText = msg.text.substring(0, 40).replace(/\n/g, ' ') + '...';
-            uiLogs.push(`>> Обработка: ${shortText}`);
-            
-            // ALWAYS process with AI to get dynamic categories
-            const processed = await aiService.processLead(msg.text);
-            uiLogs.push(`>> AI Категория: ${processed.category} (Заголовок: ${processed.title})`);
-            console.log(`[AI-DEBUG] Parsed lead -> Title: "${processed.title}", Category: "${processed.category}"`);
-
-            // Find category — explicitly check targetSlug FIRST in various forms
-            const targetCatString = String(processed.category || 'other').trim();
-            let category: any = await withDbRetry(() =>
-              prisma.category.findFirst({
-                where: {
-                  OR: [
-                    { slug: targetCatString },
-                    { slug: targetCatString.toLowerCase() },
-                    { name: targetCatString }
-                  ]
-                }
-              })
-            );
-
-            if (!category) {
-              category = await withDbRetry(() =>
-                prisma.category.findFirst({
-                  where: {
-                    OR: [
-                      { slug: 'other' },
-                      { name: 'Другое' }
-                    ]
-                  }
-                })
-              );
-            }
-
-            // Try by name if slug didn't work
-            if (!category) {
-              category = await withDbRetry(() =>
-                prisma.category.findFirst({
-                  where: { name: { in: ['Другое', 'Прочее', 'Other'] } }
-                })
-              );
-            }
-
-            // Last resort: any category at all
-            if (!category) {
-              category = await withDbRetry(() => prisma.category.findFirst());
-            }
-
-            // Absolute last resort: create one (WITHOUT 'icon' field — it doesn't exist in schema)
-            if (!category) {
-              category = await withDbRetry(() =>
-                prisma.category.create({
-                  data: {
-                    name: 'Другое',
-                    slug: 'other',
-                    leadPrice: 50
-                  }
-                })
-              );
-              uiLogs.push(`+ Создана категория "Другое"`);
-            }
-
-            if (!category) {
-              uiLogs.push(`!! Категория не найдена, пропуск`);
-              continue;
-            }
-
-            // Check for duplicates
-            // Сравниваем по полностью очищенному тексту (cleanedText), из которого УЖЕ вырезаны
-            // меняющиеся счетчики просмотров, время и кнопки. Это дает 100% стабильность.
-            const stableText = processed.cleanedText || msg.text.trim();
-            const existing = await withDbRetry(() =>
-              prisma.lead.findFirst({
-                where: { 
-                  AND: [
-                    { rawText: stableText },
-                    { sourceChat: chatUrl }
-                  ]
-                }
-              })
-            );
-            if (existing) {
-              uiLogs.push(`>> Дублик пропущен`);
-              continue;
-            }
-
-            // Contact strict check - if no phone, @username, or link is found, block it to prevent leaking traffic
-            const hasContact = /(?:\+?7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}|\b\d{10}\b/.test(msg.text) || 
-                               /@[a-zA-Z0-9_]+/.test(msg.text) || 
-                               /https?:\/\/[^\s]+/.test(msg.text) ||
-                               /(?:vk\.com|t\.me)\/[^\s]+/.test(msg.text);
-
-            if (!hasContact) {
-              uiLogs.push(`>> Отклонено: Нет прямых контактов`);
-              continue;
-            }
-
-            // Spam filter (only in non-parseAll mode)
-            if (!parseAll && (processed.isSpam || processed.score < 30)) {
-              uiLogs.push(`>> Спам отфильтрован`);
-              continue;
-            }
-
-            // Save lead
-            const lead = await withDbRetry(() =>
-              prisma.lead.create({
-                data: {
-                  title: processed.title || 'Новое сообщение',
-                  rawText: processed.cleanedText || msg.text,
-                  city: processed.city || 'Не указан',
-                  categoryId: category.id,
-                  sourceChat: chatUrl,
-                  score: parseAll ? 100 : Math.min(100, Math.max(0, processed.score || 50)),
-                  price: category.leadPrice ?? 100,
-                  status: processed.isSpam ? 'SPAM' : 'NEW'
-                }
-              })
-            );
-            uiLogs.push(`>> ✓ Сохранено`);
-            leadsCount++;
-
-          } catch (msgError: any) {
-            const errMsg = msgError?.message || String(msgError);
-            uiLogs.push(`!! ОШИБКА: ${errMsg.substring(0, 80)}`);
-            console.error(`[PARSER] Message processing error:`, msgError);
-          }
-        }
-
-        // AFTER processing the chat, update the global counter for this chat in settings
-        const totalLeadsForThisChat = await withDbRetry(() =>
-          prisma.lead.count({
-             where: { sourceChat: chatUrl }
-          })
-        );
-        
-        const chatIdx = parsingChats.findIndex(c => c.url === chatUrl);
-        if (chatIdx !== -1) {
-          parsingChats[chatIdx] = {
-            ...parsingChats[chatIdx],
-            count: totalLeadsForThisChat,
-            lastParsedAt: new Date().toISOString(),
-          };
-          configChanged = true;
-        }
-
-        // Rotate to next session for the next chat
-        currentSessionIndex = (currentSessionIndex + 1) % sessionFiles.length;
-        
-      } catch (error) {
-        console.error(`MAKS Parser: Error with session ${sessionFile} for chat ${chatUrl}:`, error);
-      }
+  while (remaining > 0) {
+    const hour = cursor.getUTCHours();
+    if (hour >= 23) {
+      cursor.setUTCHours(22, 59, 59, 999);
+      continue;
     }
-    
-    if (configChanged) {
-       await withDbRetry(() =>
-         prisma.setting.update({
-            where: { key: 'maks_parsing_chats' },
-            data: { value: JSON.stringify(parsingChats) }
-         })
-       );
+    if (hour < 7) {
+      cursor.setUTCDate(cursor.getUTCDate() - 1);
+      cursor.setUTCHours(22, 59, 59, 999);
+      continue;
     }
-    
-      uiLogs.push(`ГОТОВО. Всего лидов: ${leadsCount}`);
-      return { success: true, leadsCount, logs: uiLogs };
-    } catch (err: any) {
-      const errMsg = err?.message || String(err);
-      console.error('MAKS Parser FATAL ERROR:', errMsg);
-      uiLogs.push(`ОШИБКА: ${errMsg}`);
-      return { success: false, message: errMsg, logs: uiLogs };
+    const dayStart = new Date(cursor);
+    dayStart.setUTCHours(7, 0, 0, 0);
+    const available = Math.max(1, Math.floor((cursor.getTime() - dayStart.getTime()) / 60_000));
+    const step = Math.min(remaining, available);
+    cursor.setTime(cursor.getTime() - step * 60_000);
+    remaining -= step;
+    if (remaining > 0 && cursor.getTime() <= dayStart.getTime()) {
+      cursor.setUTCDate(cursor.getUTCDate() - 1);
+      cursor.setUTCHours(22, 59, 59, 999);
     }
   }
-};
+  return new Date(cursor.getTime() - moscowOffsetMs);
+}
 
-import { spawn } from 'child_process';
+async function cleanupExpiredLeads(logs: string[]): Promise<void> {
+  try {
+    const categories = await prisma.category.findMany({ select: { id: true, ttlMinutes: true } });
+    let deleted = 0;
+    for (const category of categories) {
+      const result = await prisma.lead.deleteMany({
+        where: {
+          categoryId: category.id,
+          status: { in: ['NEW', 'SPAM'] },
+          createdAt: { lt: businessCutoff(Date.now(), category.ttlMinutes || 1440) },
+        },
+      });
+      deleted += result.count;
+    }
+    pushLog(logs, `Удалено устаревших лидов: ${deleted}`);
+  } catch (error) {
+    console.error('[PARSER] Ошибка очистки:', safeParserError(error));
+    pushLog(logs, 'Очистка старых лидов временно недоступна');
+  }
+}
 
-async function runPlaywrightParse(chatUrl: string, sessionFile: string): Promise<any> {
-  return new Promise((resolve) => {
-    const scriptPath = path.join(process.cwd(), 'scripts/parser_worker.py');
-    const sessionId = sessionFile.replace('.json', '');
-    let finished = false;
-    
-    console.log(`[PARSER] Spawning worker: python "${scriptPath}" "${sessionId}" "${chatUrl}"`);
-    
-    const { spawn } = require('child_process');
-    const child = spawn('python', [scriptPath, sessionId, chatUrl], {
-      env: { ...process.env, PYTHONIOENCODING: 'utf-8' }
-    });
-
-    let stdout = '';
-    let stderr = '';
-    const timeoutMs = 120000;
-    const timeoutHandle = setTimeout(() => {
-      if (finished) return;
-      finished = true;
-      console.error(`[PARSER-TIMEOUT] Worker timed out after ${timeoutMs}ms for ${chatUrl}`);
-      try { child.kill(); } catch (e) {}
-      resolve({ title: null, messages: [], source_chat: chatUrl });
-    }, timeoutMs);
-
-    child.stdout.on('data', (data: Buffer) => {
-      stdout += data.toString();
-    });
-
-    child.stderr.on('data', (data: Buffer) => {
-      const msg = data.toString();
-      stderr += msg;
-      if (msg.includes('DEBUG') || msg.includes('Found')) {
-        console.log(`[WORKER-DEBUG] ${msg.trim()}`);
-      }
-    });
-
-    child.on('close', (code: number) => {
-      if (finished) return;
-      finished = true;
-      clearTimeout(timeoutHandle);
-      if (code !== 0) {
-        console.error(`[WORKER-ERROR] Exited with code ${code}. Stderr: ${stderr}`);
-        resolve({ title: null, messages: [], source_chat: chatUrl });
-        return;
-      }
-
-      try {
-        // Find JSON in stdout by looking for lines that start with {
-        const lines = stdout.trim().split('\n');
-        let jsonStr = null;
-        
-        // Try the last line first (ideal case)
-        for (let i = lines.length - 1; i >= 0; i--) {
-          const line = lines[i].trim();
-          if (line.startsWith('{')) {
-            jsonStr = line;
-            break;
-          }
-        }
-        
-        if (!jsonStr) {
-          console.error('[PARSER-FATAL] No JSON found in stdout');
-          console.error('[PARSER-FATAL] Raw stdout:', stdout);
-          resolve({ title: null, messages: [], source_chat: chatUrl });
-          return;
-        }
-        
-        const results = JSON.parse(jsonStr);
-        // Validate structure
-        if (!results.title || !Array.isArray(results.messages)) {
-          console.error('[PARSER-FATAL] Invalid results structure:', results);
-          resolve({ title: null, messages: [], source_chat: chatUrl });
-          return;
-        }
-        resolve(results);
-      } catch (e) {
-        console.error('[PARSER-FATAL] Failed to parse JSON from worker output.');
-        console.error('[PARSER-FATAL] Raw stdout:', stdout);
-        console.error('[PARSER-FATAL] Error:', e);
-        resolve({ title: null, messages: [], source_chat: chatUrl });
-      }
-    });
-
-    child.on('error', (err: any) => {
-      if (finished) return;
-      finished = true;
-      clearTimeout(timeoutHandle);
-      console.error('[PARSER-FATAL] Failed to start child process:', err);
-      resolve({ title: null, messages: [], source_chat: chatUrl });
-    });
+function parseChats(value: string | undefined): ParserChat[] {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(value || '[]');
+  } catch {
+    throw new Error('Конфигурация чатов содержит некорректный JSON');
+  }
+  if (!Array.isArray(parsed)) throw new Error('Конфигурация чатов должна быть массивом');
+  return parsed.slice(0, MAX_CHATS_CONFIG).flatMap((item): ParserChat[] => {
+    const source = typeof item === 'string' ? { url: item } : item;
+    if (!source || typeof source !== 'object') return [];
+    const candidate = source as Record<string, unknown>;
+    const url = typeof candidate.url === 'string' ? candidate.url.trim() : '';
+    if (!url) return [];
+    return [{
+      name: typeof candidate.name === 'string' && candidate.name.trim()
+        ? candidate.name.trim().slice(0, 100)
+        : 'Новый чат',
+      url,
+      parseAll: typeof candidate.parseAll === 'boolean' ? candidate.parseAll : true,
+      count: typeof candidate.count === 'number' && Number.isFinite(candidate.count)
+        ? Math.max(0, Math.floor(candidate.count))
+        : 0,
+      lastParsedAt: typeof candidate.lastParsedAt === 'string' ? candidate.lastParsedAt : null,
+    }];
   });
 }
+
+function mergeTargetChats(
+  legacyValue: string | undefined,
+  targets: Array<{ id: string; url: string; name: string | null; parseAll: boolean }>,
+): ParserChat[] {
+  const merged = new Map<string, ParserChat>();
+  for (const chat of parseChats(legacyValue)) {
+    try { merged.set(normalizeMaxChatUrl(chat.url), chat); } catch { merged.set(chat.url, chat); }
+  }
+  for (const target of targets) {
+    try {
+      const url = normalizeMaxChatUrl(target.url);
+      const previous = merged.get(url);
+      merged.set(url, {
+        targetId: target.id,
+        name: target.name || previous?.name || 'Новый чат',
+        url,
+        parseAll: target.parseAll,
+        count: previous?.count || 0,
+        lastParsedAt: previous?.lastParsedAt || null,
+      });
+    } catch {
+      // Невалидная запись остаётся в БД для ручной проверки, но не запускается.
+    }
+  }
+  return [...merged.values()].slice(0, MAX_CHATS_CONFIG);
+}
+
+async function loadAccounts(logs: string[]): Promise<ParserAccount[]> {
+  await synchronizeParserSessionFiles();
+  const rows = await prisma.maksAccount.findMany({
+    where: {
+      active: true,
+      status: { in: ['ACTIVE', 'COOLDOWN', 'PROXY_ERROR'] },
+      OR: [{ cooldownUntil: null }, { cooldownUntil: { lte: new Date() } }],
+    },
+    orderBy: [{ lastUsed: 'asc' }, { createdAt: 'asc' }],
+  });
+  const accounts: ParserAccount[] = [];
+  for (const row of rows) {
+    const sessionId = row.sessionFile.replace(/\.json$/i, '');
+    if (!(await sessionFileExists(sessionId))) {
+      await prisma.maksAccount.update({
+        where: { id: row.id },
+        data: { active: false, status: 'AUTH_REQUIRED', lastError: 'Файл сессии отсутствует', lastErrorAt: new Date() },
+      });
+      continue;
+    }
+    try {
+      accounts.push({
+        id: row.id,
+        name: row.name,
+        sessionFile: row.sessionFile,
+        proxyUrl: decryptProxyUrl(row.proxyString),
+        consecutiveFailures: row.consecutiveFailures,
+      });
+    } catch (error) {
+      await prisma.maksAccount.update({
+        where: { id: row.id },
+        data: { status: 'PROXY_ERROR', lastError: safeParserError(error), lastErrorAt: new Date() },
+      });
+    }
+  }
+  pushLog(logs, `Готово аккаунтов: ${accounts.length}`);
+  return accounts;
+}
+
+function cleanMessageText(text: string, chatTitle: string): string {
+  let result = text.trim().slice(0, 1500);
+  if (chatTitle.length > 5) {
+    const escaped = chatTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    result = result.replace(new RegExp(`^${escaped}\\s*\\n*`, 'i'), '').trim();
+  }
+  result = result.replace(/^(Переслано от:|Переслано:|Forwarded from:)\s*\n*.+?\n+/i, '').trim();
+  const lines = result.split('\n');
+  if (lines.length > 1) {
+    const first = lines[0].toLowerCase();
+    const words = ['работа', 'ваканси', 'подработк', 'халтур', 'шабашк', 'каждый час', 'москва', 'спб', 'питер', 'жилье', 'область', 'тюмень', 'вахта'];
+    if (words.filter((word) => first.includes(word)).length >= 3) {
+      lines.shift();
+      result = lines.join('\n').trim();
+    }
+  }
+  return result;
+}
+
+async function resolveCategory(categoryValue: unknown) {
+  const value = String(categoryValue || 'other').trim().slice(0, 100);
+  const existing = await withDbRetry(() => prisma.category.findFirst({
+    where: { OR: [{ slug: value }, { slug: value.toLowerCase() }, { name: value }] },
+  }));
+  if (existing) return existing;
+  const fallback = await withDbRetry(() => prisma.category.findFirst({
+    where: { OR: [{ slug: 'other' }, { name: { in: ['Другое', 'Прочее', 'Other'] } }] },
+  }));
+  if (fallback) return fallback;
+  return withDbRetry(() => prisma.category.upsert({
+    where: { slug: 'other' },
+    update: {},
+    create: { name: 'Другое', slug: 'other', leadPrice: 50 },
+  }));
+}
+
+async function processMessage(
+  message: { text: string; id?: string },
+  chatUrl: string,
+  chatTitle: string,
+  parseAll: boolean,
+  logs: string[],
+): Promise<boolean> {
+  const original = message.text.trim();
+  if (original.length <= 15 || original.length >= 2000 || /^\p{L}+$/u.test(original)) return false;
+  const cleaned = cleanMessageText(original, chatTitle);
+  if (cleaned.length <= 15 || extractContactInfo(original).length === 0) return false;
+
+  try {
+    const processed = await aiService.processLead(cleaned);
+    if (!parseAll && (processed.isSpam || processed.score < 30)) return false;
+    const category = await resolveCategory(processed.category);
+    const stableText = String(processed.cleanedText || cleaned).trim().slice(0, 1500);
+    const duplicate = await withDbRetry(() => prisma.lead.findFirst({
+      where: { rawText: stableText, sourceChat: chatUrl },
+      select: { id: true },
+    }));
+    if (duplicate) return false;
+
+    await withDbRetry(() => createLeadWithDeliveries({
+      title: String(processed.title || 'Новое сообщение').slice(0, 200),
+      rawText: stableText,
+      city: String(processed.city || 'Не указан').slice(0, 100),
+      categoryId: category.id,
+      sourceChat: chatUrl,
+      score: parseAll ? 100 : Math.min(100, Math.max(0, processed.score || 50)),
+      price: category.leadPrice ?? 100,
+      status: processed.isSpam ? 'SPAM' : 'NEW',
+    }));
+    pushLog(logs, `Сохранён лид: ${String(processed.title || 'Новое сообщение').slice(0, 80)}`);
+    return true;
+  } catch (error) {
+    console.error('[PARSER] Ошибка сообщения:', safeParserError(error));
+    pushLog(logs, `Сообщение пропущено: ${safeParserError(error)}`);
+    return false;
+  }
+}
+
+async function recordAccountResult(account: ParserAccount, worker: WorkerResult): Promise<void> {
+  const now = new Date();
+  if (worker.status === 'OK' || worker.status === 'EMPTY') {
+    account.consecutiveFailures = 0;
+    await prisma.maksAccount.update({
+      where: { id: account.id },
+      data: {
+        active: true,
+        status: 'ACTIVE',
+        lastUsed: now,
+        lastSuccessAt: now,
+        cooldownUntil: null,
+        consecutiveFailures: 0,
+        totalRuns: { increment: 1 },
+        lastError: null,
+      },
+    });
+    return;
+  }
+  const failures = account.consecutiveFailures + 1;
+  account.consecutiveFailures = failures;
+  const status = worker.status === 'AUTH_REQUIRED'
+    ? 'AUTH_REQUIRED'
+    : worker.status === 'PROXY_ERROR' ? 'PROXY_ERROR' : 'COOLDOWN';
+  await prisma.maksAccount.update({
+    where: { id: account.id },
+    data: {
+      active: worker.status !== 'AUTH_REQUIRED',
+      status,
+      lastUsed: now,
+      lastErrorAt: now,
+      cooldownUntil: parserCooldown(failures, worker.status),
+      consecutiveFailures: failures,
+      totalRuns: { increment: 1 },
+      totalErrors: { increment: 1 },
+      lastError: safeParserError(worker.error || worker.status),
+    },
+  });
+}
+
+function failedWorker(chatUrl: string, status: WorkerStatus, error: unknown): WorkerResult {
+  return { title: null, messages: [], source_chat: chatUrl, status, error: safeParserError(error) };
+}
+
+async function runPlaywrightParse(chatUrl: string, account: ParserAccount): Promise<WorkerResult> {
+  return new Promise((resolve) => {
+    const scriptPath = path.join(process.cwd(), 'scripts', 'parser_worker.py');
+    const sessionId = account.sessionFile.replace(/\.json$/i, '');
+    const timeoutMs = positiveIntEnv('PARSER_WORKER_TIMEOUT_MS', 120_000, 30_000, 300_000);
+    const outputLimit = 2 * 1024 * 1024;
+    let stdout = '';
+    let stderr = '';
+    let finished = false;
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    const child = spawn('python', [scriptPath, sessionId, chatUrl], {
+      cwd: process.cwd(),
+      shell: false,
+      windowsHide: true,
+      stdio: ['ignore', 'pipe', 'pipe'],
+      env: {
+        ...process.env,
+        PYTHONIOENCODING: 'utf-8',
+        PARSER_PROXY_URL: account.proxyUrl || 'direct',
+        PARSER_SESSIONS_DIR: process.env.PARSER_SESSIONS_DIR || path.join(process.cwd(), 'sessions'),
+      },
+    });
+
+    const finish = (value: WorkerResult) => {
+      if (finished) return;
+      finished = true;
+      if (timeoutHandle) clearTimeout(timeoutHandle);
+      resolve(value);
+    };
+    const collect = (target: 'stdout' | 'stderr', chunk: Buffer) => {
+      const current = target === 'stdout' ? stdout : stderr;
+      const next = current + chunk.toString('utf8');
+      if (next.length > outputLimit) {
+        child.kill('SIGTERM');
+        finish(failedWorker(chatUrl, 'ERROR', `Превышен лимит ${target}`));
+        return;
+      }
+      if (target === 'stdout') stdout = next;
+      else stderr = next;
+    };
+    child.stdout.on('data', (chunk: Buffer) => collect('stdout', chunk));
+    child.stderr.on('data', (chunk: Buffer) => collect('stderr', chunk));
+    child.once('error', (error) => finish(failedWorker(chatUrl, 'ERROR', error)));
+    child.once('close', (code) => {
+      if (finished) return;
+      if (code !== 0) {
+        finish(failedWorker(chatUrl, 'ERROR', stderr || `Worker завершился с кодом ${code}`));
+        return;
+      }
+      try {
+        const line = stdout.trim().split(/\r?\n/).reverse().find((candidate) => candidate.trim().startsWith('{'));
+        if (!line) throw new Error('Worker не вернул JSON');
+        const parsed = JSON.parse(line) as Partial<WorkerResult>;
+        const statuses = new Set<WorkerStatus>(['OK', 'EMPTY', 'AUTH_REQUIRED', 'RATE_LIMITED', 'PROXY_ERROR', 'TIMEOUT', 'ERROR']);
+        if (!parsed.status || !statuses.has(parsed.status) || !Array.isArray(parsed.messages)) {
+          throw new Error('Worker вернул некорректную структуру');
+        }
+        const messages = parsed.messages
+          .filter((item): item is { text: string; id?: string } => Boolean(item && typeof item.text === 'string'))
+          .slice(-100);
+        finish({
+          title: typeof parsed.title === 'string' ? parsed.title.slice(0, 200) : null,
+          messages,
+          source_chat: chatUrl,
+          status: parsed.status,
+          error: typeof parsed.error === 'string' ? safeParserError(parsed.error) : undefined,
+        });
+      } catch (error) {
+        finish(failedWorker(chatUrl, 'ERROR', error));
+      }
+    });
+    timeoutHandle = setTimeout(() => {
+      child.kill('SIGTERM');
+      finish(failedWorker(chatUrl, 'TIMEOUT', `Worker превысил ${timeoutMs} мс`));
+    }, timeoutMs);
+  });
+}
+
+async function saveChats(chats: ParserChat[]): Promise<void> {
+  const legacyChats = chats.filter((chat) => !chat.targetId).map((chat) => ({
+    name: chat.name,
+    url: chat.url,
+    parseAll: chat.parseAll,
+    count: chat.count,
+    lastParsedAt: chat.lastParsedAt,
+  }));
+  await prisma.setting.upsert({
+    where: { key: 'maks_parsing_chats' },
+    update: { value: JSON.stringify(legacyChats) },
+    create: { key: 'maks_parsing_chats', value: JSON.stringify(legacyChats) },
+  });
+}
+
+async function syncWithoutLease(leaseToken: string): Promise<SyncResult> {
+  const logs: string[] = [];
+  let leadsCount = 0;
+  let failedChats = 0;
+  try {
+    await cleanupExpiredLeads(logs);
+    const [accounts, chatsSetting, cursorSetting, targetChats] = await Promise.all([
+      loadAccounts(logs),
+      prisma.setting.findUnique({ where: { key: 'maks_parsing_chats' } }),
+      prisma.setting.findUnique({ where: { key: 'maks_parser_cursor' } }),
+      prisma.targetChat.findMany({
+        where: { active: true, status: 'ACTIVE' },
+        select: { id: true, url: true, name: true, parseAll: true },
+        orderBy: { lastDiscoveredAt: 'desc' },
+        take: MAX_CHATS_CONFIG,
+      }),
+    ]);
+    const chats = mergeTargetChats(chatsSetting?.value, targetChats);
+    if (accounts.length === 0) return { success: false, leadsCount: 0, message: 'Нет активных аккаунтов', logs };
+    if (chats.length === 0) return { success: false, leadsCount: 0, message: 'Список чатов пуст', logs };
+
+    const maxPerCycle = positiveIntEnv('PARSER_MAX_CHATS_PER_CYCLE', 100, 1, 500);
+    const rawCursor = Number.parseInt(cursorSetting?.value || '0', 10);
+    const cursor = Number.isFinite(rawCursor) ? Math.max(0, rawCursor) % chats.length : 0;
+    const selected = Array.from({ length: Math.min(maxPerCycle, chats.length) }, (_, offset) => ({
+      index: (cursor + offset) % chats.length,
+      chat: chats[(cursor + offset) % chats.length],
+    }));
+    let accountIndex = 0;
+
+    for (const item of selected) {
+      if (accounts.length === 0) break;
+      const originalUrl = item.chat.url;
+      let chatUrl: string;
+      try {
+        chatUrl = normalizeMaxChatUrl(originalUrl);
+      } catch (error) {
+        failedChats += 1;
+        pushLog(logs, `[${item.chat.name}] Небезопасная ссылка: ${safeParserError(error)}`);
+        continue;
+      }
+      if (chatUrl !== originalUrl) item.chat.url = chatUrl;
+
+      let worker: WorkerResult | null = null;
+      const maxAccountAttempts = Math.min(2, accounts.length);
+      for (let attempt = 0; attempt < maxAccountAttempts && accounts.length > 0; attempt += 1) {
+        accountIndex %= accounts.length;
+        const account = accounts[accountIndex];
+        await refreshParserLease(leaseToken);
+        worker = await runPlaywrightParse(chatUrl, account);
+        await recordAccountResult(account, worker);
+        if (worker.status === 'OK' || worker.status === 'EMPTY') {
+          accountIndex = (accountIndex + 1) % accounts.length;
+          break;
+        }
+        pushLog(logs, `[${item.chat.name}] ${account.name}: ${worker.status}`);
+        accounts.splice(accountIndex, 1);
+        worker = null;
+      }
+
+      if (!worker) {
+        failedChats += 1;
+        if (item.chat.targetId) {
+          await prisma.targetChat.update({
+            where: { id: item.chat.targetId },
+            data: { lastCheckedAt: new Date(), lastError: 'Не удалось проверить чат активными аккаунтами' },
+          });
+        }
+        continue;
+      }
+      const title = worker.title || item.chat.name;
+      let chatLeads = 0;
+      for (const message of worker.messages) {
+        if (await processMessage(message, chatUrl, title, item.chat.parseAll, logs)) {
+          leadsCount += 1;
+          chatLeads += 1;
+        }
+      }
+      item.chat.name = title.slice(0, 100);
+      item.chat.count = await withDbRetry(() => prisma.lead.count({ where: { sourceChat: chatUrl } }));
+      item.chat.lastParsedAt = new Date().toISOString();
+      if (item.chat.targetId) {
+        await prisma.targetChat.update({
+          where: { id: item.chat.targetId },
+          data: { name: item.chat.name, lastCheckedAt: new Date(), lastError: null },
+        });
+      }
+      pushLog(logs, `[${item.chat.name}] сообщений: ${worker.messages.length}, новых лидов: ${chatLeads}`);
+    }
+
+    await saveChats(chats);
+    const nextCursor = (cursor + selected.length) % chats.length;
+    await prisma.setting.upsert({
+      where: { key: 'maks_parser_cursor' },
+      update: { value: String(nextCursor) },
+      create: { key: 'maks_parser_cursor', value: String(nextCursor) },
+    });
+    pushLog(logs, `Готово. Лидов: ${leadsCount}; ошибок чатов: ${failedChats}`);
+    return { success: failedChats === 0, leadsCount, failedChats, logs };
+  } catch (error) {
+    const message = safeParserError(error);
+    console.error('[PARSER] Фатальная ошибка:', message);
+    pushLog(logs, `Ошибка: ${message}`);
+    return { success: false, leadsCount, failedChats, message, logs };
+  }
+}
+
+export const maxParser = {
+  sync: async (): Promise<SyncResult> => {
+    const leaseToken = await acquireParserLease();
+    if (!leaseToken) {
+      return { success: true, skipped: true, leadsCount: 0, logs: ['Парсер уже выполняется другим процессом'] };
+    }
+    let leaseResult = 'ERROR';
+    try {
+      const result = await syncWithoutLease(leaseToken);
+      leaseResult = result.success ? `SUCCESS:${result.leadsCount}` : `FAILED:${result.message || result.failedChats || 0}`;
+      return result;
+    } finally {
+      await releaseParserLease(leaseToken, leaseResult);
+    }
+  },
+};

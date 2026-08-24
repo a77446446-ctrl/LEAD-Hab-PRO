@@ -1,9 +1,12 @@
+import { adminGuard } from '@/lib/auth/admin-guard';
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { writeFile } from 'fs/promises';
 import { join } from 'path';
 
 export async function POST(request: Request) {
+  const denied = await adminGuard();
+  if (denied) return denied;
   try {
     const data = await request.formData();
     const file: File | null = data.get('file') as unknown as File;

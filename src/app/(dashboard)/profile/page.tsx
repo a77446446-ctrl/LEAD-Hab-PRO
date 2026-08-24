@@ -1,15 +1,40 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { useUser } from '@/store/useUser';
+import { LegalAcceptanceCard } from '@/components/legal/LegalAcceptanceCard';
 
 import { Settings, LogOut, Award, History, TrendingUp } from 'lucide-react';
 
 export default function ProfilePage() {
-  const { user, logout } = useUser();
+  const { user, logout, setNotifyEnabled } = useUser();
+  const [savingNotifications, setSavingNotifications] = useState(false);
 
   if (!user) return null;
+
+
+
+  const changeNotifications = async (enabled: boolean) => {
+    setSavingNotifications(true);
+    try {
+      const response = await fetch('/api/profile', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ notifyEnabled: enabled }),
+      });
+      const data = await response.json() as { notify_enabled?: boolean; error?: string; code?: string; botUrl?: string };
+      if (!response.ok) {
+        if (data.code === 'BOT_NOT_STARTED' && data.botUrl) window.WebApp?.openMaxLink?.(data.botUrl);
+        throw new Error(data.error || 'Не удалось изменить уведомления');
+      }
+      setNotifyEnabled(Boolean(data.notify_enabled));
+    } catch (error) {
+      alert(error instanceof Error ? error.message : 'Не удалось изменить уведомления');
+    } finally {
+      setSavingNotifications(false);
+    }
+  };
 
   const stats = [
     { label: 'Куплено лидов', value: '0', icon: History },
@@ -55,12 +80,19 @@ export default function ProfilePage() {
           </div>
           <div>
             <label className="relative inline-flex items-center cursor-pointer">
-              <input type="checkbox" className="sr-only peer" defaultChecked={user.notify_enabled} />
+              <input
+                type="checkbox"
+                className="sr-only peer"
+                checked={user.notify_enabled}
+                disabled={savingNotifications}
+                onChange={(event) => changeNotifications(event.target.checked)}
+              />
               <div className="w-11 h-6 bg-[#ddd] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent border border-black"></div>
             </label>
           </div>
         </div>
 
+        {user.role === 'admin' && (
         <Link 
           href="/admin/settings"
           className="w-full flex items-center justify-between p-4 glass-panel hover:bg-gray-100 transition-colors border-black"
@@ -71,10 +103,18 @@ export default function ProfilePage() {
           </div>
           <div className="text-black font-black">→</div>
         </Link>
+        )}
 
         
         <button 
-          onClick={logout}
+          onClick={async () => {
+            try {
+              await fetch('/api/auth/logout', { method: 'POST' });
+            } finally {
+              logout();
+              window.location.assign('/login');
+            }
+          }}
           className="w-full flex items-center justify-between p-4 glass-panel border-black hover:bg-gray-100 transition-colors"
         >
           <div className="flex items-center gap-3 font-bold text-red-600 uppercase text-sm">
@@ -83,6 +123,8 @@ export default function ProfilePage() {
           </div>
         </button>
       </div>
+
+      <LegalAcceptanceCard />
 
       <div className="text-center text-[10px] text-[#999] uppercase font-bold tracking-widest pt-10">
         ПО ДЕЛАМ v1.0.0
