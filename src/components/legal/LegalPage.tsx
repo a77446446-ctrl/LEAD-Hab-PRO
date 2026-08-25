@@ -7,7 +7,7 @@ export function LegalPage({ title, children }: { title: string; children: ReactN
   return (
     <main className="min-h-screen bg-[#efefef] px-5 py-10 text-black">
       <article className="mx-auto max-w-3xl border border-black bg-white p-6 shadow-[6px_6px_0_0_#000] sm:p-10">
-        <Link href="/profile" className="text-sm font-bold underline">← В приложение</Link>
+        <Link href="/consent" className="text-sm font-bold underline">← К подтверждению</Link>
         <h1 className="mt-6 text-3xl font-black uppercase">{title}</h1>
         <p className="mt-2 text-sm text-zinc-600">Версия {config.version}, действует с {config.effectiveDate}</p>
         {config.missing.length > 0 && (

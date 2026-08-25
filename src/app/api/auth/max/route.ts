@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import { buildMaxDisplayName, verifyMaxInitData } from '@/lib/auth/max-init-data';
 import { createSessionToken, sessionCookie, type SessionRole } from '@/lib/auth/session';
 import { serializeCurrentUser } from '@/lib/auth/current-user';
+import { isConfiguredAdminMaxId } from '@/lib/auth/admin-config';
 
 export const runtime = 'nodejs';
 
@@ -12,14 +13,6 @@ function getOnboardingBonus(): bigint {
   const value = BigInt(raw);
   if (value > 100_000_000n) throw new Error('Стартовый бонус превышает допустимый предел');
   return value;
-}
-
-function isConfiguredAdmin(maxId: bigint): boolean {
-  return (process.env.ADMIN_MAX_IDS || '')
-    .split(',')
-    .map((value) => value.trim())
-    .filter(Boolean)
-    .some((value) => /^\d+$/.test(value) && BigInt(value) === maxId);
 }
 
 export async function POST(request: Request) {
@@ -38,7 +31,7 @@ export async function POST(request: Request) {
     const maxUser = verifyMaxInitData(body.initData, process.env.MAX_BOT_TOKEN || '');
     const displayName = buildMaxDisplayName(maxUser);
     const bonusKopecks = getOnboardingBonus();
-    const configuredAdmin = isConfiguredAdmin(maxUser.maxId);
+    const configuredAdmin = isConfiguredAdminMaxId(maxUser.maxId);
     const now = new Date();
 
     const user = await prisma.$transaction(async (tx) => {
@@ -53,7 +46,7 @@ export async function POST(request: Request) {
         update: {
           name: displayName,
           lastLoginAt: now,
-          ...(configuredAdmin ? { role: 'ADMIN' } : {}),
+          role: configuredAdmin ? 'ADMIN' : 'USER',
         },
       });
 

@@ -19,7 +19,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(loginUrl);
   }
 
-  if (request.nextUrl.pathname.startsWith('/admin') || request.nextUrl.pathname.startsWith('/api/admin')) {
+  const pathname = request.nextUrl.pathname;
+  const isAdminOnlyPath = pathname === '/profile'
+    || pathname.startsWith('/profile/')
+    || pathname.startsWith('/admin')
+    || pathname.startsWith('/api/admin');
+
+  if (isAdminOnlyPath) {
     if (session.role !== 'ADMIN') {
       if (isApi) return apiError('Недостаточно прав', 403);
       return NextResponse.redirect(new URL('/dashboard', request.url));
@@ -31,6 +37,7 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
+    '/consent/:path*',
     '/dashboard/:path*',
     '/my-leads/:path*',
     '/archive/:path*',

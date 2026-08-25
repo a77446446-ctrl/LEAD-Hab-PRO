@@ -16,7 +16,13 @@ function startDestination(initData?: string): string {
   const leadId = encodeURIComponent(match[2]);
   return match[1] === 'purchase' ? `/my-leads?lead=${leadId}` : `/dashboard?lead=${leadId}`;
 }
-
+async function destinationAfterLegal(user: User, destination: string): Promise<string> {
+  if (user.role === 'admin') return destination;
+  const response = await fetch('/api/legal/acceptance', { cache: 'no-store' });
+  if (!response.ok) throw new Error('Не удалось проверить документы');
+  const acceptance = await response.json() as { accepted?: boolean };
+  return acceptance.accepted ? destination : `/consent?next=${encodeURIComponent(destination)}`;
+}
 export default function LoginPage() {
   const router = useRouter();
   const setUser = useUser((state) => state.setUser);
@@ -33,11 +39,14 @@ export default function LoginPage() {
         if (!response.ok) return null;
         return response.json() as Promise<User>;
       })
-      .then((profile) => {
+      .then(async (profile) => {
         if (!profile) return;
+        const destination = startDestination(window.WebApp?.initData);
+        const target = await destinationAfterLegal(profile, destination);
         setUser(profile);
-        router.replace(startDestination(window.WebApp?.initData));
+        router.replace(target);
       })
+      .catch(() => setError('Не удалось проверить текущую сессию'))
       .finally(() => setCheckingSession(false));
   }, [router, setUser]);
 
@@ -58,8 +67,10 @@ export default function LoginPage() {
       });
       const data = await response.json() as { user?: User; error?: string };
       if (!response.ok || !data.user) throw new Error(data.error || 'Не удалось войти через MAX');
+      const destination = startDestination(initData);
+      const target = await destinationAfterLegal(data.user, destination);
       setUser(data.user);
-      router.replace(startDestination(initData));
+      router.replace(target);
       router.refresh();
     } catch (authenticationError) {
       setError(authenticationError instanceof Error ? authenticationError.message : 'Не удалось войти через MAX');

@@ -17,25 +17,38 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     let active = true;
-    fetch('/api/profile', { cache: 'no-store' })
-      .then(async (response) => {
-        if (!response.ok) throw new Error('UNAUTHORIZED');
-        return response.json() as Promise<User>;
-      })
-      .then((profile) => {
+
+    const loadUser = async () => {
+      try {
+        const profileResponse = await fetch('/api/profile', { cache: 'no-store' });
+        if (!profileResponse.ok) throw new Error('UNAUTHORIZED');
+        const profile = await profileResponse.json() as User;
+
+        if (profile.role === 'user') {
+          const acceptanceResponse = await fetch('/api/legal/acceptance', { cache: 'no-store' });
+          if (!acceptanceResponse.ok) throw new Error('LEGAL_STATUS_UNAVAILABLE');
+          const acceptance = await acceptanceResponse.json() as { accepted?: boolean };
+          if (!acceptance.accepted) {
+            if (active) setUser(null);
+            const next = `${window.location.pathname}${window.location.search}`;
+            router.replace(`/consent?next=${encodeURIComponent(next)}`);
+            return;
+          }
+        }
+
         if (active) setUser(profile);
-      })
-      .catch(() => {
+      } catch {
         if (!active) return;
         logout();
         router.replace('/login');
-      })
-      .finally(() => {
+      } finally {
         if (active) setAuthLoading(false);
-      });
+      }
+    };
+
+    void loadUser();
     return () => { active = false; };
   }, [logout, router, setUser]);
-
   useEffect(() => {
     const handleScroll = () => setShowScrollTop(window.scrollY > 300);
     window.addEventListener('scroll', handleScroll);

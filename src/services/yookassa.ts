@@ -56,7 +56,7 @@ function amountValue(kopecks: bigint): string {
 }
 
 function returnUrl(orderId: string): string {
-  const configured = process.env.YOOKASSA_RETURN_URL || `${process.env.NEXT_PUBLIC_APP_URL || ''}/profile`;
+  const configured = process.env.YOOKASSA_RETURN_URL || `${process.env.NEXT_PUBLIC_APP_URL || ''}/subscriptions`;
   const url = new URL(configured);
   if (url.protocol !== 'https:' && !(process.env.NODE_ENV !== 'production' && url.hostname === 'localhost')) {
     throw new Error('YOOKASSA_RETURN_URL должен использовать HTTPS');

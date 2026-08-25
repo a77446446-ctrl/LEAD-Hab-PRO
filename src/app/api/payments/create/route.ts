@@ -15,6 +15,6 @@ export async function POST(request: Request) {
     if (error instanceof AuthenticationError) return NextResponse.json({ error: error.message }, { status: 401 });
     const message = error instanceof Error ? error.message : 'Не удалось создать платёж';
     const status = message === 'LEGAL_ACCEPTANCE_REQUIRED' ? 428 : message.includes('не настроена') || message.includes('реквизиты') ? 503 : 400;
-    return NextResponse.json({ error: message === 'LEGAL_ACCEPTANCE_REQUIRED' ? 'Примите юридические документы в профиле' : message }, { status });
+    return NextResponse.json({ error: message === 'LEGAL_ACCEPTANCE_REQUIRED' ? 'Примите юридические документы перед продолжением работы' : message }, { status });
   }
 }

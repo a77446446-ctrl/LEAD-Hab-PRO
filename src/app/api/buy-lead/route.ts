@@ -36,7 +36,7 @@ export async function POST(request: Request) {
   try {
     const currentUser = await requireCurrentUser();
     if (!await hasCurrentLegalAcceptance(currentUser.id)) {
-      throw new PurchaseError('LEGAL_ACCEPTANCE_REQUIRED', 'Примите актуальные юридические документы в профиле', 428);
+      throw new PurchaseError('LEGAL_ACCEPTANCE_REQUIRED', 'Примите актуальные юридические документы перед продолжением работы', 428);
     }
     const body = (await request.json()) as { leadId?: unknown };
     if (typeof body.leadId !== 'string' || body.leadId.length < 1 || body.leadId.length > 100) {

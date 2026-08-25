@@ -4,6 +4,7 @@ import { cookies } from 'next/headers';
 import { prisma } from '@/lib/prisma';
 import { kopecksToRubles } from '@/lib/money';
 import { sessionCookie, verifySessionToken } from '@/lib/auth/session';
+import { isConfiguredAdminMaxId } from '@/lib/auth/admin-config';
 
 export class AuthenticationError extends Error {}
 export class AuthorizationError extends Error {}
@@ -36,7 +37,7 @@ export async function requireCurrentUser() {
 
 export async function requireAdmin() {
   const user = await requireCurrentUser();
-  if (user.role !== 'ADMIN') throw new AuthorizationError('Недостаточно прав');
+  if (!isConfiguredAdminMaxId(user.maxId)) throw new AuthorizationError('Недостаточно прав');
   return user;
 }
 
@@ -45,7 +46,7 @@ export function serializeCurrentUser(user: Awaited<ReturnType<typeof requireCurr
     id: user.id,
     max_id: user.maxId.toString(),
     name: user.name,
-    role: user.role.toLowerCase(),
+    role: isConfiguredAdminMaxId(user.maxId) ? 'admin' : 'user',
     balance: kopecksToRubles(user.balanceKopecks),
     rating: user.rating,
     notify_enabled: user.notifyEnabled,

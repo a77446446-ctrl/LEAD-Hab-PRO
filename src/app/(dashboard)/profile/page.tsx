@@ -1,17 +1,23 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUser } from '@/store/useUser';
-import { LegalAcceptanceCard } from '@/components/legal/LegalAcceptanceCard';
+
 
 import { Settings, LogOut, Award, History, TrendingUp } from 'lucide-react';
 
 export default function ProfilePage() {
+  const router = useRouter();
   const { user, logout, setNotifyEnabled } = useUser();
   const [savingNotifications, setSavingNotifications] = useState(false);
 
-  if (!user) return null;
+  useEffect(() => {
+    if (user && user.role !== 'admin') router.replace('/dashboard');
+  }, [router, user]);
+
+  if (!user || user.role !== 'admin') return null;
 
 
 
@@ -124,7 +130,7 @@ export default function ProfilePage() {
         </button>
       </div>
 
-      <LegalAcceptanceCard />
+
 
       <div className="text-center text-[10px] text-[#999] uppercase font-bold tracking-widest pt-10">
         ПО ДЕЛАМ v1.0.0
