@@ -13,7 +13,10 @@ test('контейнер устанавливает Python и все worker за
     read('src/app/api/admin/auth/proxy-check/route.ts'),
     read('src/services/max-parser.ts'),
   ]);
-  assert.match(nixpacks, /providers = \["\.\.\.", "python"\]/);
+  assert.match(nixpacks, /providers = \["node"\]/);
+  assert.doesNotMatch(nixpacks, /providers = \["\.\.\.", "python"\]/);
+  assert.match(nixpacks, /python3-venv/);
+  assert.match(nixpacks, /requirements-parser\.txt/);
   assert.match(nixpacks, /playwright install --with-deps chromium/);
   assert.match(runtime, /PARSER_PYTHON_EXECUTABLE/);
   assert.match(runtime, /code === 'ENOENT'/);

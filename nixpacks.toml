@@ -1,16 +1,22 @@
-providers = ["...", "python"]
+providers = ["node"]
 
 [variables]
-NIXPACKS_PYTHON_VERSION = "3.12"
 PARSER_PYTHON_EXECUTABLE = "/opt/venv/bin/python"
 PLAYWRIGHT_BROWSERS_PATH = "/opt/venv/playwright-browsers"
 
+[phases.setup]
+aptPkgs = ["...", "python3", "python3-venv", "python3-pip"]
+
 [phases.playwright]
 dependsOn = ["install"]
-cmds = ["python -m playwright install --with-deps chromium"]
+cmds = [
+  "python3 -m venv /opt/venv",
+  "/opt/venv/bin/pip install --no-cache-dir -r requirements-parser.txt",
+  "/opt/venv/bin/python -m playwright install --with-deps chromium",
+]
 
 [phases.build]
-dependsOn = ["playwright"]
+dependsOn = ["...", "playwright"]
 
 [start]
 cmd = "npm start"
