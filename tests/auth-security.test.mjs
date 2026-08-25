@@ -65,3 +65,9 @@ test('onboarding и покупка используют атомарные се�
   assert.doesNotMatch(leadsRoute, /purchasedBy/);
   assert.match(leadsRoute, /redactContactInfo/);
 });
+
+test('production cookie поддерживает авторизацию внутри MAX iframe', async () => {
+  const source = await readFile(new URL('../src/lib/auth/session.ts', import.meta.url), 'utf8');
+  assert.match(source, /secure:\s*process\.env\.NODE_ENV === 'production'/);
+  assert.match(source, /sameSite:\s*process\.env\.NODE_ENV === 'production'\s*\?\s*'none' as const\s*:\s*'lax' as const/);
+});
