@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Settings as SettingsIcon, 
@@ -96,7 +97,11 @@ export default function SettingsPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showUnsavedModal, setShowUnsavedModal] = useState<string | null>(null);
   const [authQR, setAuthQR] = useState('');
-  const [authStep, setAuthStep] = useState<'idle' | 'qr' | 'code'>('idle');
+  const [authStep, setAuthStep] = useState<'idle' | 'starting' | 'qr' | 'error'>('idle');
+  const [authError, setAuthError] = useState('');
+  const authAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => () => authAbortRef.current?.abort(), []);
 
   // AI Verification State
   const [verifyingAi, setVerifyingAi] = useState(false);
@@ -344,52 +349,95 @@ export default function SettingsPage() {
     } finally { setSaving(false); }
   };
 
+  const closeAuthDialog = () => {
+    authAbortRef.current?.abort();
+    authAbortRef.current = null;
+    setAuthorizing(false);
+    setAuthStep('idle');
+    setAuthQR('');
+    setAuthError('');
+  };
+
   const startAuthFlow = async (mode: 'proxy' | 'direct' = 'proxy', fullProxy?: string) => {
+    authAbortRef.current?.abort();
+    const controller = new AbortController();
+    authAbortRef.current = controller;
     setAuthorizing(true);
     setProxyStatus('idle');
     setAuthQR('');
-    setAuthStep('qr');
-    addLog(mode === 'direct' ? 'Запуск авторизации (VPN)...' : 'Запуск авторизации (Proxy)...', 'info');
+    setAuthError('');
+    setAuthStep('starting');
+    addLog(mode === 'direct' ? 'Запуск авторизации без прокси на сервере...' : 'Запуск авторизации через proxy...', 'info');
+
+    let startTimedOut = false;
+    const startTimeout = window.setTimeout(() => {
+      startTimedOut = true;
+      controller.abort();
+    }, 20_000);
 
     try {
-      const proxyStr = mode === 'direct' ? 'direct' : fullProxy;
-      const res = await fetch('/api/admin/auth/qr-start', {
+      const response = await fetch('/api/admin/auth/qr-start', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ proxy: proxyStr })
+        body: JSON.stringify({ proxy: mode === 'direct' ? 'direct' : fullProxy }),
+        signal: controller.signal,
       });
-      const data = await res.json();
-      if (data.success) {
-        // Start monitoring for new sessions
-        const interval = setInterval(async () => {
-            const sRes = await fetch('/api/admin/auth/sessions');
-            const sData = await sRes.json();
-            if (sData.sessions?.length > sessions.length) {
-                setSessions(sData.sessions);
-                addLog('Аккаунт успешно добавлен!', 'success');
-                setAuthStep('idle');
-                clearInterval(interval);
-            }
-        }, 5000);
-      } else {
-        throw new Error('Скрипт авторизации не запущен');
+      window.clearTimeout(startTimeout);
+      const data = await response.json() as { success?: boolean; accountId?: string; error?: string };
+      if (!response.ok || !data.success || !data.accountId) {
+        throw new Error(data.error || 'Сервер не запустил авторизацию MAX');
       }
-    } catch (error) {
-      addLog('Ошибка авторизации', 'error');
-      setAuthStep('idle');
+
+      const deadline = Date.now() + 6 * 60_000;
+      while (Date.now() < deadline) {
+        if (controller.signal.aborted) throw new DOMException('Авторизация отменена', 'AbortError');
+        const statusResponse = await fetch(`/api/admin/auth/status?id=${encodeURIComponent(data.accountId)}`, {
+          cache: 'no-store',
+          signal: controller.signal,
+        });
+        const statusData = await statusResponse.json() as { state?: string; qrUrl?: string; message?: string; error?: string };
+        if (!statusResponse.ok) throw new Error(statusData.error || 'Не удалось получить статус авторизации');
+
+        if (statusData.state === 'qr' && statusData.qrUrl) {
+          setAuthQR(statusData.qrUrl);
+          setAuthStep('qr');
+        } else if (statusData.state === 'success') {
+          await fetchSessions(true);
+          addLog('Аккаунт MAX успешно добавлен', 'success');
+          setAuthStep('idle');
+          setAuthQR('');
+          return;
+        } else if (statusData.state === 'error') {
+          throw new Error(statusData.message || 'Авторизация MAX завершилась с ошибкой');
+        }
+
+        await new Promise((resolve) => window.setTimeout(resolve, 2_000));
+      }
+      throw new Error('Авторизация не завершилась за 6 минут');
+    } catch (reason) {
+      window.clearTimeout(startTimeout);
+      if (controller.signal.aborted && authAbortRef.current !== controller) return;
+      const message = startTimedOut
+        ? 'Сервер не ответил за 20 секунд'
+        : reason instanceof Error ? reason.message : 'Не удалось авторизовать аккаунт MAX';
+      setAuthError(message);
+      setAuthStep('error');
+      addLog(`Ошибка авторизации: ${message}`, 'error');
     } finally {
+      window.clearTimeout(startTimeout);
+      if (authAbortRef.current === controller) authAbortRef.current = null;
       setAuthorizing(false);
     }
   };
 
   const handleStartQR = async () => {
     if (canBypass) {
-        await startAuthFlow('direct');
-        return;
+      await startAuthFlow('direct');
+      return;
     }
-    
+
     if (!proxyIP || !proxyPort) {
-      alert('Укажите IP и Порт прокси');
+      alert('Укажите IP и порт прокси');
       return;
     }
 
@@ -400,28 +448,34 @@ export default function SettingsPage() {
 
     setProxyStatus('checking');
     addLog(`Проверка прокси ${proxyIP}...`, 'info');
-    
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 18_000);
+
     try {
       const check = await fetch('/api/admin/auth/proxy-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ proxy: fullProxy })
+        body: JSON.stringify({ proxy: fullProxy }),
+        signal: controller.signal,
       });
-      const checkResult = await check.json();
-      if (!checkResult.valid) {
-        addLog(`Ошибка прокси: ${checkResult.error}`, 'error');
+      const checkResult = await check.json() as { valid?: boolean; error?: string };
+      if (!check.ok || !checkResult.valid) {
+        addLog(`Прокси не прошёл предварительную проверку: ${checkResult.error || 'нет соединения'}`, 'error');
         setProxyStatus('invalid');
         return;
       }
-      addLog('Прокси валиден', 'success');
+      addLog('Прокси доступен, запускаю QR-вход', 'success');
       setProxyStatus('valid');
       await startAuthFlow('proxy', fullProxy);
-    } catch (e) {
-      addLog('Ошибка связи при проверке', 'error');
+    } catch (reason) {
+      addLog(reason instanceof DOMException && reason.name === 'AbortError'
+        ? 'Проверка прокси превысила 18 секунд'
+        : 'Ошибка связи при проверке прокси', 'error');
       setProxyStatus('invalid');
+    } finally {
+      window.clearTimeout(timeout);
     }
   };
-
 
   const saveAutoParseSettings = async (enabled: boolean, interval?: number) => {
     try {
@@ -670,7 +724,7 @@ export default function SettingsPage() {
                       )}
                       type="button"
                    >
-                      VPN (Локально)
+                      Без прокси
                    </button>
                 </div>
              </div>
@@ -717,7 +771,7 @@ export default function SettingsPage() {
                <div className="bg-zinc-900 border border-zinc-700 p-4 rounded-lg flex gap-3 items-center">
                   <div className="text-accent"><ShieldCheck size={20} /></div>
                   <div className="text-[9px] text-white font-black uppercase leading-relaxed">
-                    Режим VPN: Убедитесь, что VPN включен на вашем устройстве. Прокси не будут использоваться.
+                    Без прокси: браузер запускается на сервере Calyphity. VPN на вашем устройстве на него не влияет.
                   </div>
                </div>
              )}
@@ -1065,6 +1119,37 @@ export default function SettingsPage() {
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.2); }
       `}</style>
 
+      {/* Серверная QR-авторизация MAX */}
+      {authStep !== 'idle' && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/90 p-4 backdrop-blur-sm">
+          <div className="max-h-[92vh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl border border-zinc-700 bg-zinc-900 p-5 text-center shadow-2xl sm:p-8">
+            {authStep === 'starting' && (
+              <div className="space-y-5 py-10">
+                <Loader2 className="mx-auto animate-spin text-accent" size={44} />
+                <div><h2 className="font-black uppercase text-white">Запускаю защищённый вход MAX</h2><p className="mt-2 text-sm text-zinc-400">Сервер открывает web.max.ru и готовит QR-код. Обычно это занимает до 20 секунд.</p></div>
+              </div>
+            )}
+            {authStep === 'qr' && authQR && (
+              <>
+                <div><h2 className="text-lg font-black uppercase text-white">Отсканируйте QR-код</h2><p className="mt-2 text-sm text-zinc-400">Откройте MAX на телефоне и подтвердите вход. Страница обновит QR автоматически.</p></div>
+                <div className="overflow-hidden rounded-xl border border-zinc-700 bg-white p-2">
+                  <Image src={authQR} alt="QR-код авторизации MAX" width={1280} height={800} unoptimized className="mx-auto h-auto max-h-[55vh] w-full object-contain" />
+                </div>
+                <div className="flex items-center justify-center gap-2 text-xs font-bold text-accent"><Loader2 className="animate-spin" size={14} /> Ожидаю подтверждение входа…</div>
+              </>
+            )}
+            {authStep === 'error' && (
+              <div className="space-y-4 py-6">
+                <AlertCircle className="mx-auto text-red-400" size={48} />
+                <div><h2 className="font-black uppercase text-white">Авторизация не выполнена</h2><p className="mt-2 break-words text-sm text-red-300">{authError}</p></div>
+              </div>
+            )}
+            <button type="button" onClick={closeAuthDialog} className="w-full rounded-xl border border-zinc-700 bg-zinc-950 py-3 text-xs font-black uppercase text-white transition-colors hover:bg-zinc-800">
+              {authStep === 'error' ? 'Закрыть' : 'Отменить авторизацию'}
+            </button>
+          </div>
+        </div>
+      )}
       {/* Unsaved Changes Modal */}
       {showUnsavedModal && (
         <div className="fixed inset-0 bg-zinc-950/80 z-50 flex items-center justify-center p-4 rounded-lg">

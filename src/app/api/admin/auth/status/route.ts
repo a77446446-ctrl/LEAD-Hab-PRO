@@ -1,42 +1,80 @@
-import { adminGuard } from '@/lib/auth/admin-guard';
-export const dynamic = 'force-dynamic';
-import { NextRequest, NextResponse } from 'next/server';
-import path from 'path';
 import fs from 'fs/promises';
+import { NextRequest, NextResponse } from 'next/server';
+import { adminGuard } from '@/lib/auth/admin-guard';
+import {
+  assertSessionId,
+  authQrFilePath,
+  authStatusFilePath,
+  safeParserError,
+  sessionFileExists,
+} from '@/lib/parser-accounts';
+import { prisma } from '@/lib/prisma';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
+type AuthStatusDocument = {
+  state?: unknown;
+  message?: unknown;
+  updatedAt?: unknown;
+};
+
+async function readStatus(sessionId: string): Promise<AuthStatusDocument | null> {
+  try {
+    const file = authStatusFilePath(sessionId);
+    const stat = await fs.stat(file);
+    if (!stat.isFile() || stat.size <= 0 || stat.size > 8 * 1024) return null;
+    return JSON.parse(await fs.readFile(file, 'utf8')) as AuthStatusDocument;
+  } catch {
+    return null;
+  }
+}
 
 export async function GET(req: NextRequest) {
   const denied = await adminGuard();
   if (denied) return denied;
-  try {
-    const sessionPath = path.join(process.cwd(), 'sessions/active_session.json');
-    
-    try {
-      const stats = await fs.stat(sessionPath);
-      const data = JSON.parse(await fs.readFile(sessionPath, 'utf8'));
-      
-      // Try to find user info in localStorage entries
-      let name = 'Пользователь МАКС';
-      if (data.origins) {
-        for (const origin of data.origins) {
-          const userEntry = origin.localStorage.find((e: any) => e.name === 'user' || e.name.includes('profile'));
-          if (userEntry) {
-            try {
-              const userData = JSON.parse(userEntry.value);
-              name = userData.name || userData.first_name || name;
-            } catch (e) {}
-          }
-        }
-      }
 
-      return NextResponse.json({ 
-        active: true, 
-        name,
-        updatedAt: stats.mtime 
-      });
-    } catch (e) {
-      return NextResponse.json({ active: false });
-    }
-  } catch (error) {
-    return NextResponse.json({ active: false }, { status: 500 });
+  const accountId = new URL(req.url).searchParams.get('id');
+  if (!accountId) return NextResponse.json({ error: 'Не указан аккаунт' }, { status: 400 });
+
+  const account = await prisma.maksAccount.findUnique({ where: { id: accountId } });
+  if (!account) return NextResponse.json({ error: 'Аккаунт не найден' }, { status: 404 });
+  const sessionId = assertSessionId(account.sessionFile.replace(/\.json$/i, ''));
+
+
+  if (await sessionFileExists(sessionId)) {
+    await prisma.maksAccount.update({
+      where: { id: account.id },
+      data: { status: 'ACTIVE', active: true, lastError: null, cooldownUntil: null, consecutiveFailures: 0 },
+    });
+    return NextResponse.json({ state: 'success' });
   }
+  if (account.status !== 'AUTHORIZING' && account.lastError) {
+    return NextResponse.json({ state: 'error', message: safeParserError(account.lastError) });
+  }
+
+  const status = await readStatus(sessionId);
+  const ageMs = Date.now() - account.createdAt.getTime();
+  if (!status && ageMs > 6 * 60_000) {
+    const message = 'Авторизация не завершилась за 6 минут';
+    await prisma.maksAccount.update({ where: { id: account.id }, data: { status: 'AUTH_REQUIRED', active: false, lastError: message } });
+    return NextResponse.json({ state: 'error', message });
+  }
+
+  if (status?.state === 'error') {
+    const message = safeParserError(status.message || 'Авторизация MAX завершилась с ошибкой');
+    await prisma.maksAccount.update({ where: { id: account.id }, data: { status: 'AUTH_REQUIRED', active: false, lastError: message } });
+    return NextResponse.json({ state: 'error', message });
+  }
+
+  if (status?.state === 'qr') {
+    try {
+      const qrStat = await fs.stat(authQrFilePath(sessionId));
+      return NextResponse.json({ state: 'qr', qrUrl: `/api/admin/auth/qr?id=${encodeURIComponent(account.id)}&v=${Math.floor(qrStat.mtimeMs)}` });
+    } catch {
+      return NextResponse.json({ state: 'starting' });
+    }
+  }
+
+  return NextResponse.json({ state: 'starting' });
 }

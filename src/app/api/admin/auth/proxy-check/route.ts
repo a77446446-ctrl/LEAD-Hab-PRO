@@ -7,7 +7,7 @@ import path from 'path';
 
 export const runtime = 'nodejs';
 const MAX_OUTPUT_BYTES = 16 * 1024;
-const CHECK_TIMEOUT_MS = 30_000;
+const CHECK_TIMEOUT_MS = 15_000;
 
 export async function POST(req: NextRequest) {
   const denied = await adminGuard();

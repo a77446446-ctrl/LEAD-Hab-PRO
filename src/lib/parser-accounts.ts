@@ -83,6 +83,18 @@ export function sessionFilePath(sessionId: string): string {
   return path.join(parserSessionDirectory(), sessionFileName(sessionId));
 }
 
+export function authArtifactDirectory(): string {
+  return path.join(parserSessionDirectory(), '.auth');
+}
+
+export function authStatusFilePath(sessionId: string): string {
+  return path.join(authArtifactDirectory(), `${assertSessionId(sessionId)}.status.json`);
+}
+
+export function authQrFilePath(sessionId: string): string {
+  return path.join(authArtifactDirectory(), `${assertSessionId(sessionId)}.qr.png`);
+}
+
 export async function sessionFileExists(sessionId: string): Promise<boolean> {
   try {
     const stat = await fs.stat(sessionFilePath(sessionId));
