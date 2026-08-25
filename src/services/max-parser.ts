@@ -10,6 +10,7 @@ import {
   synchronizeParserSessionFiles,
 } from '@/lib/parser-accounts';
 import { normalizeMaxChatUrl } from '@/lib/max-chat-url';
+import { parserPythonExecutable, parserPythonSpawnError } from '@/lib/python-runtime';
 import { extractContactInfo } from '@/lib/redact-contact';
 import { createLeadWithDeliveries } from './bot-outbox';
 import { aiService } from './ai';
@@ -357,7 +358,7 @@ async function runPlaywrightParse(chatUrl: string, account: ParserAccount): Prom
     let stderr = '';
     let finished = false;
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
-    const child = spawn('python', [scriptPath, sessionId, chatUrl], {
+    const child = spawn(parserPythonExecutable(), [scriptPath, sessionId, chatUrl], {
       cwd: process.cwd(),
       shell: false,
       windowsHide: true,
@@ -389,7 +390,7 @@ async function runPlaywrightParse(chatUrl: string, account: ParserAccount): Prom
     };
     child.stdout.on('data', (chunk: Buffer) => collect('stdout', chunk));
     child.stderr.on('data', (chunk: Buffer) => collect('stderr', chunk));
-    child.once('error', (error) => finish(failedWorker(chatUrl, 'ERROR', error)));
+    child.once('error', (error) => finish(failedWorker(chatUrl, 'ERROR', parserPythonSpawnError(error))));
     child.once('close', (code) => {
       if (finished) return;
       if (code !== 0) {

@@ -144,6 +144,11 @@ export default function SettingsPage() {
   const [proxyStatus, setProxyStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
   const [canBypass, setCanBypass] = useState(false);
   const [proxyLoaded, setProxyLoaded] = useState(false);
+  const [savedProxyIdentity, setSavedProxyIdentity] = useState('');
+  const [hasSavedProxyPassword, setHasSavedProxyPassword] = useState(false);
+
+  const proxyIdentity = (protocol = proxyProtocol, host = proxyIP, port = proxyPort, username = proxyUser) =>
+    JSON.stringify([protocol, host.trim(), port.trim(), username]);
 
   // Unsaved changes protection
   useEffect(() => {
@@ -173,30 +178,30 @@ export default function SettingsPage() {
     };
   }, [hasUnsavedChanges]);
 
-  // Load proxy from localStorage on mount
+  // Реквизиты прокси загружаются из зашифрованного серверного черновика.
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const savedProtocol = localStorage.getItem('maks_proxyProtocol');
-      if (savedProtocol === 'http://' || savedProtocol === 'socks5://') setProxyProtocol(savedProtocol as any);
-      setProxyIP(localStorage.getItem('maks_proxyIP') || '');
-      setProxyPort(localStorage.getItem('maks_proxyPort') || '');
-      setProxyUser(localStorage.getItem('maks_proxyUser') || '');
-      // Пароль прокси не должен сохраняться в браузере.
-      localStorage.removeItem('maks_proxyPass');
-      setProxyPass('');
-      setProxyLoaded(true);
-    }
+    let cancelled = false;
+    fetch('/api/admin/auth/proxy', { cache: 'no-store' })
+      .then(async (response) => {
+        if (!response.ok) throw new Error('Не удалось загрузить сохранённый прокси');
+        return response.json() as Promise<{ saved?: boolean; protocol?: 'http://' | 'socks5://'; host?: string; port?: string; username?: string; hasPassword?: boolean }>;
+      })
+      .then((draft) => {
+        if (cancelled || !draft.saved || !draft.protocol || !draft.host || !draft.port) return;
+        setProxyProtocol(draft.protocol);
+        setProxyIP(draft.host);
+        setProxyPort(draft.port);
+        setProxyUser(draft.username || '');
+        setHasSavedProxyPassword(Boolean(draft.hasPassword));
+        setSavedProxyIdentity(proxyIdentity(draft.protocol, draft.host, draft.port, draft.username || ''));
+      })
+      .catch(() => undefined)
+      .finally(() => { if (!cancelled) setProxyLoaded(true); });
+    return () => { cancelled = true; };
   }, []);
 
-  // Save proxy to localStorage on change
   useEffect(() => {
-    if (typeof window !== 'undefined' && proxyLoaded) {
-      localStorage.setItem('maks_proxyProtocol', proxyProtocol);
-      localStorage.setItem('maks_proxyIP', proxyIP);
-      localStorage.setItem('maks_proxyPort', proxyPort);
-      localStorage.setItem('maks_proxyUser', proxyUser);
-    }
-    // Reset proxy status if user edits proxy fields
+    if (!proxyLoaded) return;
     setProxyStatus('idle');
     setCanBypass(false);
   }, [proxyProtocol, proxyIP, proxyPort, proxyUser, proxyPass, proxyLoaded]);
@@ -302,6 +307,39 @@ export default function SettingsPage() {
     } catch (error) { console.error('Failed to fetch sessions:', error); }
   };
 
+  const currentProxyValue = (): string => {
+    if (!proxyIP.trim() || !proxyPort.trim()) throw new Error('Укажите IP и порт прокси');
+    const identity = proxyIdentity();
+    if (!proxyPass && hasSavedProxyPassword && identity === savedProxyIdentity) return 'saved';
+    if (Boolean(proxyUser) !== Boolean(proxyPass)) throw new Error('Для прокси укажите одновременно логин и пароль');
+    const url = new URL(`${proxyProtocol}${proxyIP.trim()}:${proxyPort.trim()}`);
+    if (proxyUser && proxyPass) {
+      url.username = proxyUser;
+      url.password = proxyPass;
+    }
+    return url.toString();
+  };
+
+  const persistProxyDraft = async (): Promise<'saved'> => {
+    const proxy = currentProxyValue();
+    if (proxy === 'saved') return 'saved';
+    const response = await fetch('/api/admin/auth/proxy', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ proxy }),
+    });
+    const draft = await response.json() as { saved?: boolean; protocol?: 'http://' | 'socks5://'; host?: string; port?: string; username?: string; hasPassword?: boolean; error?: string };
+    if (!response.ok || !draft.saved || !draft.protocol || !draft.host || !draft.port) throw new Error(draft.error || 'Не удалось сохранить прокси');
+    setProxyProtocol(draft.protocol);
+    setProxyIP(draft.host);
+    setProxyPort(draft.port);
+    setProxyUser(draft.username || '');
+    setProxyPass('');
+    setHasSavedProxyPassword(Boolean(draft.hasPassword));
+    setSavedProxyIdentity(proxyIdentity(draft.protocol, draft.host, draft.port, draft.username || ''));
+    return 'saved';
+  };
+
   const handleSave = async () => {
     setSaving(true);
     setStatus('idle');
@@ -336,6 +374,9 @@ export default function SettingsPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'maks_parser_auto', value: autoParseEnabled ? 'true' : 'false' }),
       });
+      if (!canBypass && (proxyIP || proxyPort || proxyUser || proxyPass)) {
+        await persistProxyDraft();
+      }
       setStatus('success');
       setHasUnsavedChanges(false);
       setTimeout(() => setStatus('idle'), 3000);
@@ -441,21 +482,17 @@ export default function SettingsPage() {
       return;
     }
 
-    let fullProxy = `${proxyProtocol}${proxyIP}:${proxyPort}`;
-    if (proxyUser && proxyPass) {
-      fullProxy = `${proxyProtocol}${proxyUser}:${proxyPass}@${proxyIP}:${proxyPort}`;
-    }
-
     setProxyStatus('checking');
     addLog(`Проверка прокси ${proxyIP}...`, 'info');
     const controller = new AbortController();
     const timeout = window.setTimeout(() => controller.abort(), 18_000);
 
     try {
+      const proxyReference = await persistProxyDraft();
       const check = await fetch('/api/admin/auth/proxy-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ proxy: fullProxy }),
+        body: JSON.stringify({ proxy: proxyReference }),
         signal: controller.signal,
       });
       const checkResult = await check.json() as { valid?: boolean; error?: string };
@@ -466,7 +503,7 @@ export default function SettingsPage() {
       }
       addLog('Прокси доступен, запускаю QR-вход', 'success');
       setProxyStatus('valid');
-      await startAuthFlow('proxy', fullProxy);
+      await startAuthFlow('proxy', proxyReference);
     } catch (reason) {
       addLog(reason instanceof DOMException && reason.name === 'AbortError'
         ? 'Проверка прокси превысила 18 секунд'
@@ -760,7 +797,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="relative">
                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={12} />
-                       <input type={showPass ? 'text' : 'password'} value={proxyPass} onChange={(e) => setProxyPass(e.target.value)} placeholder="Пароль" className={cn(inputClasses, "pr-10")} />
+                       <input type={showPass ? 'text' : 'password'} value={proxyPass} onChange={(e) => setProxyPass(e.target.value)} placeholder={hasSavedProxyPassword && proxyIdentity() === savedProxyIdentity ? 'Пароль сохранён' : 'Пароль'} className={cn(inputClasses, "pr-10")} />
                        <button onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors">
                           {showPass ? <EyeOff size={12} /> : <Eye size={12} />}
                        </button>
@@ -806,13 +843,7 @@ export default function SettingsPage() {
                    <motion.button
                      initial={{ opacity: 0, y: -10 }}
                      animate={{ opacity: 1, y: 0 }}
-                     onClick={() => {
-                        let fullProxy = `${proxyProtocol}${proxyIP}:${proxyPort}`;
-                        if (proxyUser && proxyPass) {
-                          fullProxy = `${proxyProtocol}${proxyUser}:${proxyPass}@${proxyIP}:${proxyPort}`;
-                        }
-                        startAuthFlow('proxy', fullProxy);
-                     }}
+                     onClick={() => startAuthFlow('proxy', 'saved')}
                      className="w-full flex items-center justify-center gap-2 py-3 bg-red-100 border border-red-500 text-red-600 text-[8px] font-black uppercase tracking-widest hover:bg-red-200 transition-all"
                    >
                      <Unlock size={12} />
@@ -984,13 +1015,13 @@ export default function SettingsPage() {
                 {autoParseEnabled ? 'АВТО ВКЛ' : 'АВТО ВЫКЛ'}
               </button>
             </div>
-            <div className="flex items-center justify-between gap-3 text-[10px] uppercase tracking-[0.2em] text-zinc-400 font-bold">
-              <span>{syncing ? 'РАБОТАЕТ СЕЙЧАС' : autoParseEnabled ? `В ОЧЕРЕДИ ${nextRunSeconds !== null ? `${Math.floor(nextRunSeconds/60)}:${String(nextRunSeconds % 60).padStart(2,'0')}` : ''}` : 'РУЧНОЙ РЕЖИМ'}</span>
+            <div className="flex min-w-0 items-center justify-between gap-3 text-[10px] uppercase tracking-[0.2em] text-zinc-400 font-bold">
+              <span className="min-w-0 truncate">{syncing ? 'РАБОТАЕТ СЕЙЧАС' : autoParseEnabled ? `В ОЧЕРЕДИ ${nextRunSeconds !== null ? `${Math.floor(nextRunSeconds/60)}:${String(nextRunSeconds % 60).padStart(2,'0')}` : ''}` : 'РУЧНОЙ РЕЖИМ'}</span>
               <select
                 value={parseInterval}
                 onChange={(e) => handleIntervalChange(parseInt(e.target.value, 10))}
                 disabled={!autoParseEnabled}
-                className="bg-zinc-900 border border-zinc-700 py-1.5 px-3 text-[9px] font-black text-white uppercase focus:ring-1 focus:ring-black appearance-none cursor-pointer outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                className="shrink-0 bg-zinc-900 border border-zinc-700 py-1.5 px-3 text-[9px] font-black text-white uppercase focus:ring-1 focus:ring-black appearance-none cursor-pointer outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="60">1 МИН</option>
                 <option value="180">3 МИН</option>
@@ -1019,10 +1050,10 @@ export default function SettingsPage() {
 
           <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar min-h-[150px] max-h-[300px] mb-6">
             {parsingChats.map((chat) => (
-              <div key={chat.url} className="bg-zinc-900 border border-zinc-700 p-3.5 flex items-center justify-between group">
-                <div className="flex flex-col gap-0.5 cursor-pointer" onClick={() => editChatName(chat.url)}>
-                <div className="flex items-center gap-2">
-                      <div className="relative">
+              <div key={chat.url} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 overflow-hidden border border-zinc-700 bg-zinc-900 p-2.5 sm:gap-3 sm:p-3.5">
+                <button type="button" className="min-w-0 cursor-pointer overflow-hidden text-left" onClick={() => editChatName(chat.url)} title={chat.name}>
+                  <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
+                      <div className="relative shrink-0">
                         <div className={cn(
                           "w-1.5 h-1.5 rounded-full border border-zinc-700",
                           currentParsingChat === chat.url ? "bg-amber-500" : sessions.length > 0 ? "bg-green-500" : "bg-gray-400"
@@ -1030,23 +1061,23 @@ export default function SettingsPage() {
                         {currentParsingChat === chat.url && <div className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping border border-zinc-700" />}
                       </div>
                       <span className={cn(
-                        "text-[10px] font-black uppercase tracking-tight transition-colors text-white hover:text-accent"
+                        "min-w-0 flex-1 truncate text-[10px] font-black uppercase tracking-tight text-white transition-colors hover:text-accent"
                       )}>
-                        {chat.name} <span className="text-zinc-400 ml-1">[{chat.count || 0}]</span>
+                        {chat.name}
                       </span>
-                      {chat.parseAll && <span className={cn("text-[6px] font-black px-1.5 py-0.5 uppercase border", sessions.length > 0 ? "bg-green-900/30 text-green-400 border-green-800 rounded-lg" : "bg-zinc-800 text-zinc-500 border-zinc-700")}>ВСЁ</span>}
-                      {!chat.parseAll && <span className={cn("text-[6px] font-black px-1.5 py-0.5 uppercase border", sessions.length > 0 ? "bg-yellow-900/30 text-yellow-400 border-yellow-800 rounded-lg" : "bg-zinc-800 text-zinc-500 border-zinc-700")}>ЦЕЛЕВЫЕ</span>}
+                      {chat.parseAll && <span className={cn("shrink-0 border px-1.5 py-0.5 text-[6px] font-black uppercase", sessions.length > 0 ? "rounded-lg border-green-800 bg-green-900/30 text-green-400" : "border-zinc-700 bg-zinc-800 text-zinc-500")}>ВСЁ</span>}
+                      {!chat.parseAll && <span className={cn("shrink-0 border px-1.5 py-0.5 text-[6px] font-black uppercase", sessions.length > 0 ? "rounded-lg border-yellow-800 bg-yellow-900/30 text-yellow-400" : "border-zinc-700 bg-zinc-800 text-zinc-500")}>ЦЕЛЕВЫЕ</span>}
                     </div>
-                  <span className="text-[8px] font-bold text-zinc-500 uppercase tracking-[0.2em]">{chat.url}</span>
+                  <span className="block truncate text-[8px] font-bold uppercase tracking-[0.12em] text-zinc-500">{chat.url}</span>
                   {chat.lastParsedAt && (
-                    <span className="text-[8px] text-zinc-400 uppercase tracking-[0.2em] mt-1 block font-bold">Последний парсинг: {new Date(chat.lastParsedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="mt-1 block truncate text-[8px] font-bold uppercase tracking-[0.12em] text-zinc-400">Последний парсинг: {new Date(chat.lastParsedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
                   )}
-                </div>
-                <div className="flex items-center gap-2">
+                </button>
+                <div className="flex shrink-0 items-center gap-0.5 sm:gap-1">
                   <button 
                     onClick={() => toggleChatMode(chat.url)} 
                     className={cn(
-                      "p-2.5 transition-all border border-zinc-700",
+                      "shrink-0 border border-zinc-700 p-2 transition-all sm:p-2.5",
                       chat.parseAll 
                         ? "bg-green-900/30 text-green-400 hover:bg-green-100" 
                         : "bg-yellow-900/30 text-yellow-400 hover:bg-yellow-100"
@@ -1056,9 +1087,9 @@ export default function SettingsPage() {
                     <Activity size={14}/>
                   </button>
                   {chat.count !== undefined && (
-                    <span className="text-[8px] text-zinc-500 uppercase tracking-[0.15em] ml-2 font-black">{chat.count} лидов</span>
+                    <span className="w-11 whitespace-nowrap text-right text-[7px] font-black uppercase tracking-tight text-zinc-500 sm:w-14 sm:text-[8px]">{chat.count} лидов</span>
                   )}
-                  <button onClick={() => removeChat(chat.url)} className="text-zinc-500 hover:text-red-500 transition-colors p-2"><Trash2 size={12}/></button>
+                  <button onClick={() => removeChat(chat.url)} className="shrink-0 p-2 text-zinc-500 transition-colors hover:text-red-500"><Trash2 size={12}/></button>
                 </div>
               </div>
             ))}

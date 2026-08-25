@@ -1,0 +1,16 @@
+providers = ["...", "python"]
+
+[variables]
+NIXPACKS_PYTHON_VERSION = "3.12"
+PARSER_PYTHON_EXECUTABLE = "/opt/venv/bin/python"
+PLAYWRIGHT_BROWSERS_PATH = "/opt/venv/playwright-browsers"
+
+[phases.playwright]
+dependsOn = ["install"]
+cmds = ["python -m playwright install --with-deps chromium"]
+
+[phases.build]
+dependsOn = ["playwright"]
+
+[start]
+cmd = "npm start"

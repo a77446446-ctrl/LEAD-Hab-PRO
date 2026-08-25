@@ -7,6 +7,7 @@ await import('./user-access-flow.test.mjs');
 await import('./max-bot-stage-2.test.mjs');
 await import('./parser-stage-3.test.mjs');
 await import('./auth-qr-regression.test.mjs');
+await import('./runtime-and-settings-regression.test.mjs');
 await import('./chat-discovery-stage-4.test.mjs');
 await import('./legal-stage-5.test.mjs');
 await import('./yookassa-stage-6.test.mjs');

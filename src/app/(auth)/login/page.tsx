@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { Loader2 } from 'lucide-react';
+import { ExternalLink, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/store/useUser';
 import type { User } from '@/types';
@@ -120,6 +120,13 @@ export default function LoginPage() {
           {(loading || checkingSession) && <Loader2 size={18} className="animate-spin" />}
           {checkingSession ? 'Проверяем сессию' : loading ? 'Входим через MAX' : 'Начать работу'}
         </button>
+        <a
+          href="/api/auth/max-link"
+          className="flex w-full items-center justify-center gap-2 border-2 border-black bg-white py-3 text-xs font-black uppercase tracking-wider text-black transition-colors hover:bg-zinc-100"
+        >
+          <ExternalLink size={16} /> Открыть приложение в MAX Web
+        </a>
+        <p className="text-center text-xs font-medium leading-relaxed text-zinc-600">MAX пока не предоставляет OAuth-вход с возвратом на отдельный сайт. В браузере приложение открывается через веб-версию MAX.</p>
       </div>
     </div>
   );

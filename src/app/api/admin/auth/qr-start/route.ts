@@ -4,7 +4,8 @@ import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGuard } from '@/lib/auth/admin-guard';
 import { encryptProxyUrl, parserSessionDirectory, safeParserError, sessionFileName } from '@/lib/parser-accounts';
-import { normalizeProxyUrl } from '@/lib/proxy';
+import { resolveProxyInput } from '@/lib/proxy-draft';
+import { parserPythonExecutable, parserPythonSpawnError } from '@/lib/python-runtime';
 import { prisma } from '@/lib/prisma';
 
 export const runtime = 'nodejs';
@@ -21,7 +22,7 @@ export async function POST(req: NextRequest) {
     const body = await req.json() as { proxy?: unknown };
     const proxy = body.proxy === 'direct' || body.proxy === '' || body.proxy == null
       ? 'direct'
-      : normalizeProxyUrl(body.proxy);
+      : await resolveProxyInput(body.proxy);
     if (!proxy) throw new Error('Прокси не задан');
 
     const staleBefore = new Date(Date.now() - AUTH_TIMEOUT_MS);
@@ -49,7 +50,7 @@ export async function POST(req: NextRequest) {
     accountId = account.id;
 
     const scriptPath = path.join(process.cwd(), 'scripts', 'auth_manager.py');
-    const child = spawn('python', [scriptPath, sessionId], {
+    const child = spawn(parserPythonExecutable(), [scriptPath, sessionId], {
       cwd: process.cwd(),
       shell: false,
       windowsHide: true,
@@ -83,7 +84,7 @@ export async function POST(req: NextRequest) {
     });
     await new Promise<void>((resolve, reject) => {
       child.once('spawn', resolve);
-      child.once('error', reject);
+      child.once('error', (error) => reject(parserPythonSpawnError(error)));
     });
 
     return NextResponse.json({ success: true, accountId: account.id });

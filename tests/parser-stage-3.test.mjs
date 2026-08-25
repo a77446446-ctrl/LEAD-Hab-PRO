@@ -110,6 +110,7 @@ test('API аккаунтов не раскрывает пароль прокси
 
 test('пароль прокси не сохраняется в localStorage', async () => {
   const settings = await read('src/app/(admin)/admin/settings/page.tsx');
-  assert.match(settings, /removeItem\('maks_proxyPass'\)/);
+  assert.doesNotMatch(settings, /localStorage\.setItem\('maks_proxy/);
   assert.doesNotMatch(settings, /setItem\('maks_proxyPass'/);
+  assert.match(settings, /\/api\/admin\/auth\/proxy/);
 });

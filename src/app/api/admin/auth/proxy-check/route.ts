@@ -1,6 +1,7 @@
 import { adminGuard } from '@/lib/auth/admin-guard';
 import { safeParserError } from '@/lib/parser-accounts';
-import { normalizeProxyUrl } from '@/lib/proxy';
+import { resolveProxyInput } from '@/lib/proxy-draft';
+import { parserPythonExecutable, parserPythonSpawnError } from '@/lib/python-runtime';
 import { NextRequest, NextResponse } from 'next/server';
 import { spawn } from 'child_process';
 import path from 'path';
@@ -15,12 +16,12 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json() as { proxy?: unknown };
     if (body.proxy === 'direct' || body.proxy === '' || body.proxy == null) return NextResponse.json({ valid: true });
-    const proxy = normalizeProxyUrl(body.proxy);
+    const proxy = await resolveProxyInput(body.proxy);
     if (!proxy) return NextResponse.json({ valid: true });
 
     return await new Promise<NextResponse>((resolve) => {
       const scriptPath = path.join(process.cwd(), 'scripts', 'proxy_check.py');
-      const child = spawn('python', [scriptPath], {
+      const child = spawn(parserPythonExecutable(), [scriptPath], {
         cwd: process.cwd(),
         shell: false,
         windowsHide: true,
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
       };
       child.stdout.on('data', append);
       child.stderr.on('data', append);
-      child.once('error', () => finish(NextResponse.json({ valid: false, error: 'Не удалось запустить проверку прокси' })));
+      child.once('error', (error) => finish(NextResponse.json({ valid: false, error: parserPythonSpawnError(error).message })));
       child.once('close', (code) => finish(code === 0
         ? NextResponse.json({ valid: true })
         : NextResponse.json({ valid: false, error: safeParserError(output) || 'Соединение через прокси не установлено' })));
