@@ -259,16 +259,16 @@ export default function AdminCategoriesPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-accent" /></div>;
 
   return (
-    <div className="space-y-8 pb-20">
+    <div className="space-y-6 pb-20 sm:space-y-8">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-3xl font-black uppercase tracking-tight text-white">Управление Категориями</h2>
+          <h2 className="text-2xl font-black uppercase tracking-tight text-white sm:text-3xl">Управление Категориями</h2>
           <p className="text-zinc-400 text-sm font-bold mt-1">Контроль ИИ-фильтров и монетизации системы</p>
         </div>
       </div>
 
       {/* EDIT/ADD FORM */}
-      <div className="bg-zinc-900 border border-zinc-700 rounded-xl p-8 space-y-8 relative overflow-hidden shadow-lg">
+      <div className="relative space-y-8 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-lg sm:p-8">
         <div className="absolute top-0 right-0 p-8 opacity-5">
            <Zap size={120} className="text-white" />
         </div>
@@ -497,7 +497,7 @@ export default function AdminCategoriesPage() {
       {/* CATEGORIES LIST */}
       <div className="grid grid-cols-1 gap-6">
         {categories.map((cat) => (
-          <div key={cat.id} className="bg-zinc-900 border border-zinc-700 rounded-xl p-8 hover:bg-zinc-800/80 transition-all group relative overflow-hidden shadow-sm">
+          <div key={cat.id} className="group relative overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm transition-all hover:bg-zinc-800/80 sm:p-8">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
               <div className="space-y-2 max-w-xs">
                 <div className="flex items-center gap-3">

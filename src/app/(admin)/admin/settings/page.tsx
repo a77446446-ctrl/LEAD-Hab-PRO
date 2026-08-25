@@ -608,16 +608,16 @@ export default function SettingsPage() {
   if (loading) return <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-accent" size={32} /></div>;
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 pb-20 px-6 font-sans">
+    <div className="mx-auto max-w-6xl space-y-6 px-0 pb-20 font-sans sm:px-6">
       {/* HEADER */}
-      <div className="flex items-center justify-between py-6 border-b border-zinc-700">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col gap-4 border-b border-zinc-700 py-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <div className="bg-accent border border-zinc-700 p-2.5 text-black rounded-lg">
             <SettingsIcon size={20} />
           </div>
           <h1 className="text-sm font-black tracking-widest text-white uppercase leading-none">НАСТРОЙКИ МАКС</h1>
           
-          <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950 border border-zinc-700 text-accent text-[9px] font-black uppercase tracking-widest transition-all hover:bg-zinc-700 ml-4">
+          <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950 border border-zinc-700 text-accent text-[9px] font-black uppercase tracking-widest transition-all hover:bg-zinc-700 sm:ml-4">
             <div className="flex items-center gap-1.5">
               {saving ? <Loader2 className="animate-spin" size={12} /> : <Save size={12} />}
               <span>СОХРАНИТЬ</span>
@@ -625,7 +625,7 @@ export default function SettingsPage() {
           </button>
         </div>
         
-        <button onClick={() => setShowHelp(!showHelp)} className="flex items-center gap-2 px-3 py-2 bg-zinc-900 border border-zinc-700 text-white text-[9px] font-black uppercase tracking-widest hover:bg-zinc-800 transition-all">
+        <button onClick={() => setShowHelp(!showHelp)} className="flex items-center justify-center gap-2 border border-zinc-700 bg-zinc-900 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-white transition-all hover:bg-zinc-800 sm:w-auto">
           <div className="flex items-center gap-1.5">
             <HelpCircle size={14} /> <span>ИНСТРУКЦИЯ</span>
           </div>
@@ -634,13 +634,13 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 rounded-xl items-stretch">
         {/* ACCOUNTS CARD */}
-        <div className="bg-zinc-900 border border-zinc-700 p-8 rounded-xl flex flex-col h-full">
+        <div className="flex h-full flex-col rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-8">
           <div className="flex items-center gap-3 mb-8">
             <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-white"><UserIcon size={14} /></div>
             <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">Аккаунты</h3>
           </div>
 
-          <div className="bg-zinc-900 border border-zinc-700 p-6 rounded-xl mb-6 space-y-5">
+          <div className="mb-6 space-y-5 rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-6">
              <div className="flex items-center justify-between">
                 <label className="text-[8px] font-black text-zinc-400 uppercase tracking-[0.2em]">Режим подключения</label>
                 <div className="flex bg-zinc-900 p-1 border border-zinc-700">
@@ -691,7 +691,7 @@ export default function SettingsPage() {
                     </div>
                  </div>
 
-                 <div className="grid grid-cols-2 gap-3">
+                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     <div className="relative">
                        <Server className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={12} />
                        <input value={proxyIP} onChange={(e) => setProxyIP(e.target.value)} placeholder="IP Адрес" className={inputClasses} />
@@ -909,7 +909,7 @@ export default function SettingsPage() {
         </div>
 
         {/* PARSING CARD */}
-        <div className="bg-zinc-900 border border-zinc-700 p-8 rounded-xl flex flex-col h-full">
+        <div className="flex h-full flex-col rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-8">
           <div className="flex flex-col gap-4 rounded-lg mb-8">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">

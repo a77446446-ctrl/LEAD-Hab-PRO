@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { Users as UsersIcon, Search, UserCheck, Shield, MoreHorizontal, RefreshCw } from 'lucide-react';
+import { AlertCircle, RefreshCw, Search, Shield, UserCheck, Users as UsersIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface User {
@@ -15,127 +15,172 @@ interface User {
   createdAt: string;
 }
 
+function formatDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '—' : date.toLocaleDateString('ru-RU');
+}
+
+function RoleBadge({ role }: { role: string }) {
+  const isAdmin = role.toUpperCase() === 'ADMIN';
+
+  return (
+    <div
+      className={cn(
+        'inline-flex items-center gap-1.5 rounded border px-2 py-1 text-[9px] font-black uppercase tracking-wider',
+        isAdmin
+          ? 'border-accent/50 bg-accent/10 text-accent'
+          : 'border-zinc-700 bg-zinc-800 text-zinc-400',
+      )}
+    >
+      {isAdmin ? <Shield size={10} /> : <UserCheck size={10} />}
+      {isAdmin ? 'Администратор' : 'Пользователь'}
+    </div>
+  );
+}
+
 export default function UsersPage() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [search, setSearch] = useState('');
 
-  useEffect(() => {
-    fetchUsers();
-  }, []);
+  const fetchUsers = useCallback(async () => {
+    setLoading(true);
+    setError('');
 
-  const fetchUsers = async () => {
     try {
-      const res = await fetch('/api/admin/users');
-      const data = await res.json();
-      setUsers(data);
-    } catch (error) {
-      console.error('Failed to fetch users:', error);
+      const response = await fetch('/api/admin/users', { cache: 'no-store' });
+      const data: unknown = await response.json();
+
+      if (!response.ok) {
+        const message = typeof data === 'object' && data !== null && 'error' in data
+          ? String(data.error)
+          : 'Не удалось загрузить пользователей';
+        throw new Error(message);
+      }
+
+      if (!Array.isArray(data)) {
+        throw new Error('Сервер вернул некорректный список пользователей');
+      }
+
+      setUsers(data as User[]);
+    } catch (reason) {
+      setUsers([]);
+      setError(reason instanceof Error ? reason.message : 'Не удалось загрузить пользователей');
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  const filteredUsers = users.filter(u => 
-    u.name.toLowerCase().includes(search.toLowerCase()) || 
-    u.maxId.includes(search)
-  );
+  useEffect(() => {
+    void fetchUsers();
+  }, [fetchUsers]);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-full">
-        <RefreshCw className="animate-spin text-accent" size={32} />
-      </div>
-    );
-  }
+  const filteredUsers = useMemo(() => {
+    const query = search.trim().toLocaleLowerCase('ru-RU');
+    if (!query) return users;
+
+    return users.filter((user) => (
+      user.name.toLocaleLowerCase('ru-RU').includes(query) || user.maxId.includes(query)
+    ));
+  }, [search, users]);
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-black tracking-tight flex items-center gap-3 text-white">
-            <UsersIcon className="text-white" size={32} />
+          <h1 className="flex items-center gap-3 text-2xl font-black tracking-tight text-white sm:text-3xl">
+            <UsersIcon className="shrink-0 text-white" size={30} />
             ПОЛЬЗОВАТЕЛИ
           </h1>
-          <p className="text-zinc-400 text-sm font-bold mt-1">Управление доступом и балансами</p>
+          <p className="mt-1 text-sm font-bold text-zinc-400">Управление доступом и балансами</p>
         </div>
 
-        <div className="relative">
+        <div className="relative w-full md:w-72">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
-          <input 
-            type="text" 
-            placeholder="Поиск по имени или ID..." 
+          <input
+            type="search"
+            placeholder="Поиск по имени или ID..."
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="w-72 bg-zinc-900 border border-zinc-700 py-3.5 pl-12 pr-4 text-xs font-black focus:outline-none focus:border-accent transition-all text-white placeholder:text-zinc-500 rounded-xl shadow-sm"
+            onChange={(event) => setSearch(event.target.value)}
+            className="w-full rounded-xl border border-zinc-700 bg-zinc-900 py-3.5 pl-12 pr-4 text-xs font-black text-white shadow-sm transition-all placeholder:text-zinc-500 focus:border-accent focus:outline-none"
           />
         </div>
       </div>
 
-      <motion.div 
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-zinc-900 border border-zinc-700 rounded-xl overflow-hidden shadow-lg"
-      >
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-zinc-700 text-[9px] text-zinc-400 uppercase font-black tracking-[0.2em] bg-zinc-800/50">
-              <th className="px-8 py-5">Пользователь</th>
-              <th className="px-8 py-5">Роль</th>
-              <th className="px-8 py-5">Баланс</th>
-              <th className="px-8 py-5">Рейтинг</th>
-              <th className="px-8 py-5">Регистрация</th>
-              <th className="px-8 py-5 text-right">Действия</th>
-            </tr>
-          </thead>
-          <tbody className="text-sm">
-            {filteredUsers.map((user) => (
-              <tr key={user.id} className="border-b border-zinc-800 hover:bg-zinc-800 transition-colors group">
-                <td className="px-8 py-5">
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-accent/10 flex items-center justify-center text-accent font-black text-sm border border-accent/30 rounded-lg group-hover:bg-accent/20 transition-colors">
-                      {user.name.charAt(0)}
-                    </div>
-                    <div>
-                      <div className="font-black text-white group-hover:text-accent transition-colors">{user.name}</div>
-                      <div className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1 font-bold">ID: {user.maxId}</div>
-                    </div>
-                  </div>
-                </td>
-                <td className="px-8 py-5">
-                  <div className={cn(
-                    "inline-flex items-center gap-1.5 px-2 py-1 text-[9px] font-black uppercase tracking-wider border rounded",
-                    user.role === 'ADMIN' ? "bg-accent/10 text-accent border-accent/50" : "bg-zinc-800 text-zinc-400 border-zinc-700"
-                  )}>
-                    {user.role === 'ADMIN' ? <Shield size={10} /> : <UserCheck size={10} />}
-                    {user.role}
-                  </div>
-                </td>
-                <td className="px-8 py-5 font-black text-white">{user.balance} ₽</td>
-                <td className="px-8 py-5">
-                  <div className="flex items-center gap-1.5 font-black text-zinc-200">
-                    <span className="text-accent drop-shadow-[0_0_5px_rgba(228,255,0,0.5)]">★</span>
-                    {user.rating.toFixed(1)}
-                  </div>
-                </td>
-                <td className="px-8 py-5 text-[11px] text-zinc-400 font-bold uppercase">
-                  {new Date(user.createdAt).toLocaleDateString('ru-RU')}
-                </td>
-                <td className="px-8 py-5 text-right">
-                  <button className="p-2.5 hover:bg-zinc-700 transition-all text-zinc-500 hover:text-white border border-transparent hover:border-zinc-600 bg-zinc-800 rounded-lg">
-                    <MoreHorizontal size={16} />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {filteredUsers.length === 0 && (
-          <div className="py-20 text-center text-zinc-500 font-black uppercase">
-            Пользователи не найдены
+      {error && (
+        <div className="flex flex-col gap-4 rounded-xl border border-red-800 bg-red-950/40 p-4 text-red-200 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="mt-0.5 shrink-0" size={20} />
+            <div>
+              <p className="font-black uppercase">Не удалось открыть пользователей</p>
+              <p className="mt-1 text-sm text-red-300">{error}</p>
+            </div>
           </div>
-        )}
-      </motion.div>
+          <button
+            type="button"
+            onClick={() => void fetchUsers()}
+            className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-red-700 px-4 text-xs font-black uppercase hover:bg-red-900/50"
+          >
+            <RefreshCw size={16} /> Повторить
+          </button>
+        </div>
+      )}
+
+      {loading ? (
+        <div className="flex min-h-64 items-center justify-center">
+          <RefreshCw className="animate-spin text-accent" size={32} />
+        </div>
+      ) : (
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+          <div className="space-y-3 md:hidden">
+            {filteredUsers.map((user) => (
+              <article key={user.id} className="rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-lg">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-accent/30 bg-accent/10 text-sm font-black text-accent">
+                    {user.name.charAt(0) || '?'}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate font-black text-white">{user.name}</div>
+                    <div className="mt-1 truncate text-[10px] font-bold uppercase tracking-wider text-zinc-500">ID: {user.maxId}</div>
+                  </div>
+                  <RoleBadge role={user.role} />
+                </div>
+                <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-zinc-800 pt-4 text-center">
+                  <div><dt className="text-[9px] font-black uppercase text-zinc-500">Баланс</dt><dd className="mt-1 text-sm font-black text-white">{user.balance} ₽</dd></div>
+                  <div><dt className="text-[9px] font-black uppercase text-zinc-500">Рейтинг</dt><dd className="mt-1 text-sm font-black text-white"><span className="text-accent">★</span> {user.rating.toFixed(1)}</dd></div>
+                  <div><dt className="text-[9px] font-black uppercase text-zinc-500">Регистрация</dt><dd className="mt-1 text-xs font-bold text-zinc-300">{formatDate(user.createdAt)}</dd></div>
+                </dl>
+              </article>
+            ))}
+          </div>
+
+          <div className="hidden overflow-x-auto rounded-xl border border-zinc-700 bg-zinc-900 shadow-lg md:block">
+            <table className="w-full min-w-[900px] border-collapse text-left">
+              <thead>
+                <tr className="border-b border-zinc-700 bg-zinc-800/50 text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                  <th className="px-6 py-5">Пользователь</th><th className="px-6 py-5">Роль</th><th className="px-6 py-5">Баланс</th><th className="px-6 py-5">Рейтинг</th><th className="px-6 py-5">Регистрация</th>
+                </tr>
+              </thead>
+              <tbody className="text-sm">
+                {filteredUsers.map((user) => (
+                  <tr key={user.id} className="group border-b border-zinc-800 transition-colors hover:bg-zinc-800">
+                    <td className="px-6 py-5"><div className="font-black text-white group-hover:text-accent">{user.name}</div><div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500">ID: {user.maxId}</div></td>
+                    <td className="px-6 py-5"><RoleBadge role={user.role} /></td>
+                    <td className="px-6 py-5 font-black text-white">{user.balance} ₽</td>
+                    <td className="px-6 py-5 font-black text-zinc-200"><span className="text-accent">★</span> {user.rating.toFixed(1)}</td>
+                    <td className="px-6 py-5 text-[11px] font-bold uppercase text-zinc-400">{formatDate(user.createdAt)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {filteredUsers.length === 0 && !error && (
+            <div className="rounded-xl border border-zinc-800 bg-zinc-900 py-16 text-center font-black uppercase text-zinc-500">Пользователи не найдены</div>
+          )}
+        </motion.div>
+      )}
     </div>
   );
 }

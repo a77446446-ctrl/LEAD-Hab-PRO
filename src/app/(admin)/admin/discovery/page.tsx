@@ -60,17 +60,17 @@ export default function DiscoveryPage() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-start justify-between gap-6">
-        <div><h1 className="text-3xl font-black uppercase">Детектив</h1><p className="mt-2 text-sm text-zinc-400">Поиск и контроль новых источников MAX</p></div>
-        <button onClick={() => void run()} disabled={running} className="flex items-center gap-2 rounded-xl bg-accent px-5 py-3 font-black uppercase text-black disabled:opacity-50">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
+        <div><h1 className="text-2xl font-black uppercase sm:text-3xl">Детектив</h1><p className="mt-2 text-sm text-zinc-400">Поиск и контроль новых источников MAX</p></div>
+        <button onClick={() => void run()} disabled={running} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 font-black uppercase text-black disabled:opacity-50">
           {running ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />} Запустить поиск
         </button>
       </div>
       {error && <div className="rounded-xl border border-red-700 bg-red-950/40 p-4 text-sm text-red-200">{error}</div>}
       <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
         <h2 className="mb-4 font-black uppercase">Добавить MAX-чат вручную</h2>
-        <div className="flex gap-3"><input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://max.ru/..." className="min-w-0 flex-1 rounded-xl border border-zinc-700 bg-zinc-950 px-4 py-3 outline-none focus:border-accent" /><button onClick={() => void add()} className="flex items-center gap-2 rounded-xl border border-zinc-700 px-5 font-bold hover:border-accent"><Plus size={18} /> Добавить</button></div>
+        <div className="flex flex-col gap-3 sm:flex-row"><input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://max.ru/..." className="min-w-0 flex-1 rounded-xl border border-zinc-700 bg-zinc-950 px-4 py-3 outline-none focus:border-accent" /><button onClick={() => void add()} className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-zinc-700 px-5 font-bold hover:border-accent"><Plus size={18} /> Добавить</button></div>
       </section>
       <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900">
         <div className="border-b border-zinc-800 p-5 font-black uppercase">Источники: {chats.length}</div>

@@ -48,10 +48,10 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="space-y-10">
-      <div className="flex justify-between items-end">
+    <div className="space-y-6 sm:space-y-10">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <h2 className="text-3xl font-black text-white uppercase">Обзор системы</h2>
+          <h2 className="text-2xl font-black uppercase text-white sm:text-3xl">Обзор системы</h2>
           <p className="text-zinc-400 text-sm font-bold mt-1">Статистика платформы за последние 24 часа</p>
         </div>
         <div className="bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 text-xs font-black text-white uppercase shadow-sm">
@@ -60,7 +60,7 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
         {stats.map((stat, i) => (
           <div key={i} className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-lg p-6 space-y-4">
             <div className="flex justify-between items-start">
@@ -83,11 +83,11 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-3 gap-6">
-        <div className="col-span-2 bg-zinc-900 border border-zinc-700 rounded-xl shadow-lg p-6 h-80 flex items-center justify-center text-zinc-600 font-black text-xl uppercase tracking-widest border-dashed border-2">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
+        <div className="flex h-64 items-center justify-center rounded-xl border-2 border-dashed border-zinc-700 bg-zinc-900 p-6 text-center text-base font-black uppercase tracking-widest text-zinc-600 shadow-lg sm:h-80 sm:text-xl xl:col-span-2">
           График доходности
         </div>
-        <div className="col-span-1 rounded-xl overflow-hidden shadow-lg border border-zinc-700">
+        <div className="overflow-hidden rounded-xl border border-zinc-700 shadow-lg xl:col-span-1">
           <LeadIngestMock />
         </div>
       </div>

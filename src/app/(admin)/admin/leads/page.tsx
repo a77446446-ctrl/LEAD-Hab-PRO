@@ -84,29 +84,29 @@ export default function AdminLeadsPage() {
     .filter(l => l.title.toLowerCase().includes(searchQuery.toLowerCase()) || l.city.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
-    <div className="space-y-8">
-      <div className="flex justify-between items-end">
+    <div className="space-y-6 sm:space-y-8">
+      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
         <div>
-          <h2 className="text-3xl font-black tracking-tight text-white uppercase">Управление Лидами</h2>
+          <h2 className="text-2xl font-black uppercase tracking-tight text-white sm:text-3xl">Управление Лидами</h2>
           <p className="text-zinc-400 text-sm font-bold mt-1">Модерация и контроль входящего потока заявок</p>
         </div>
-        <div className="flex gap-2">
-          <div className="relative">
+        <div className="flex w-full gap-2 md:w-auto">
+          <div className="relative min-w-0 flex-1 md:flex-none">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" size={16} />
             <input 
               type="text" 
               placeholder="Поиск лидов..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-zinc-900 border border-zinc-700 py-2 pl-10 pr-4 text-xs font-black focus:outline-none focus:border-accent text-white placeholder:text-zinc-500 rounded-lg transition-colors"
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-900 py-2 pl-10 pr-4 text-xs font-black text-white transition-colors placeholder:text-zinc-500 focus:border-accent focus:outline-none"
             />
           </div>
           <button onClick={() => fetchLeads()} className="bg-zinc-900 p-2 border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors rounded-lg"><Filter size={18} /></button>
         </div>
       </div>
 
-      <div className="bg-zinc-900 border border-zinc-700 relative z-10 p-0 rounded-xl overflow-hidden shadow-lg">
-        <div className="p-6 border-b border-zinc-700 flex gap-6 bg-zinc-800/50">
+      <div className="relative z-10 overflow-x-auto rounded-xl border border-zinc-700 bg-zinc-900 p-0 shadow-lg">
+        <div className="flex min-w-max gap-4 border-b border-zinc-700 bg-zinc-800/50 p-4 sm:gap-6 sm:p-6">
           <button onClick={() => setActiveTab('ALL')} className={cn("text-xs font-black pb-2 border-b-4 transition-all uppercase tracking-wider", activeTab === 'ALL' ? "text-white border-accent" : "text-zinc-500 border-transparent hover:text-white")}>ВСЕ</button>
           <button onClick={() => setActiveTab('NEW')} className={cn("text-xs font-black pb-2 border-b-4 transition-all uppercase tracking-wider", activeTab === 'NEW' ? "text-white border-accent" : "text-zinc-500 border-transparent hover:text-white")}>НОВЫЕ</button>
           <button onClick={() => setActiveTab('SOLD')} className={cn("text-xs font-black pb-2 border-b-4 transition-all uppercase tracking-wider", activeTab === 'SOLD' ? "text-white border-accent" : "text-zinc-500 border-transparent hover:text-white")}>ПРОДАННЫЕ</button>
@@ -119,7 +119,7 @@ export default function AdminLeadsPage() {
             <Loader2 className="animate-spin" size={32} />
           </div>
         ) : (
-          <table className="w-full text-left" ref={menuRef}>
+          <table className="w-full min-w-[900px] text-left" ref={menuRef}>
             <thead className="bg-zinc-900 text-[9px] uppercase font-black text-zinc-400 tracking-[0.2em] border-b border-zinc-700">
               <tr>
                 <th className="px-6 py-5">Лид</th>
@@ -187,17 +187,17 @@ export default function AdminLeadsPage() {
       {selectedLead && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm" onClick={() => setSelectedLead(null)}>
           <div 
-            className="bg-zinc-900 border border-zinc-700 rounded-xl p-8 max-w-2xl w-full shadow-2xl relative"
+            className="relative max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-zinc-700 bg-zinc-900 p-5 shadow-2xl sm:p-8"
             onClick={e => e.stopPropagation()}
           >
-            <div className="absolute top-8 right-8">
+            <div className="absolute right-5 top-5 sm:right-8 sm:top-8">
                <button onClick={() => setSelectedLead(null)} className="text-zinc-400 hover:text-white transition-colors">
                  <span className="text-xs uppercase font-black tracking-widest border border-zinc-700 bg-zinc-800 px-4 py-2 hover:bg-zinc-700 rounded-lg transition-colors">Закрыть</span>
                </button>
             </div>
             
-            <h3 className="text-2xl font-black text-white mb-2 pr-20">{selectedLead.title}</h3>
-            <div className="flex gap-3 mb-6">
+            <h3 className="mb-2 pr-24 text-xl font-black text-white sm:text-2xl">{selectedLead.title}</h3>
+            <div className="mb-6 flex flex-wrap gap-3">
                <span className="bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-md text-[10px] font-black px-3 py-1 uppercase">{selectedLead.category?.name || 'Другое'}</span>
                <span className="bg-zinc-800 border border-zinc-700 text-zinc-300 rounded-md text-[10px] font-black px-3 py-1 uppercase">{selectedLead.city}</span>
                {selectedLead.sourceChat && (
@@ -211,7 +211,7 @@ export default function AdminLeadsPage() {
               {selectedLead.rawText}
             </div>
             
-            <div className="mt-6 pt-6 border-t border-zinc-800 flex justify-between items-center">
+            <div className="mt-6 flex flex-col gap-4 border-t border-zinc-800 pt-6 sm:flex-row sm:items-center sm:justify-between">
                <div className="text-[10px] text-zinc-500 uppercase tracking-widest flex flex-col gap-1 font-black">
                  <span>ID: {selectedLead.id}</span>
                  <span>Получено: {formatTime(selectedLead.createdAt)}</span>

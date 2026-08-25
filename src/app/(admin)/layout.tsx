@@ -1,17 +1,19 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { 
-  LayoutDashboard, 
-  Database, 
-  Tags, 
-  Users, 
-  CreditCard, 
+import {
+  LayoutDashboard,
+  Database,
+  Tags,
+  Users,
+  CreditCard,
   Settings,
   Search,
-  ArrowLeft
+  ArrowLeft,
+  Menu,
+  X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -31,51 +33,119 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    document.body.style.overflow = isMobileMenuOpen ? 'hidden' : '';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isMobileMenuOpen]);
+
+  const navigation = (
+    <>
+      <nav className="flex flex-1 flex-col gap-2">
+        {adminNav.map((item) => {
+          const isActive = pathname === item.href;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              aria-current={isActive ? 'page' : undefined}
+              className={cn(
+                'flex min-h-12 items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm font-black uppercase transition-all',
+                isActive
+                  ? 'border-accent bg-accent text-black shadow-[0_0_15px_rgba(228,255,0,0.3)]'
+                  : 'text-zinc-400 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white',
+              )}
+            >
+              <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <Link
+        href="/dashboard"
+        className="flex min-h-12 items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm font-black uppercase text-zinc-400 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"
+      >
+        <ArrowLeft size={18} />
+        В приложение
+      </Link>
+    </>
+  );
 
   return (
-    <div className="min-h-screen bg-zinc-950 text-white flex">
-      {/* Sidebar */}
-      <aside className="w-64 border-r border-zinc-800 bg-zinc-900 p-6 flex flex-col gap-8 rounded-tr-2xl rounded-br-2xl">
+    <div className="flex min-h-screen min-w-0 bg-zinc-950 text-white">
+      <aside className="hidden w-64 shrink-0 flex-col gap-8 rounded-br-2xl rounded-tr-2xl border-r border-zinc-800 bg-zinc-900 p-6 lg:flex">
         <div>
           <div className="flex items-center">
-            <div className="bg-white text-black px-2 py-1 text-xl font-black tracking-tighter leading-none rounded-l-lg">ADMIN</div>
-            <div className="bg-accent text-black px-2 py-1 text-xl font-black tracking-tighter leading-none rounded-r-lg">PANEL</div>
+            <div className="rounded-l-lg bg-white px-2 py-1 text-xl font-black leading-none tracking-tighter text-black">ADMIN</div>
+            <div className="rounded-r-lg bg-accent px-2 py-1 text-xl font-black leading-none tracking-tighter text-black">PANEL</div>
           </div>
-          <p className="text-[10px] text-zinc-500 font-bold uppercase tracking-widest mt-2">Control Center</p>
+          <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Control Center</p>
         </div>
 
-        <nav className="flex flex-col gap-2 flex-1">
-          {adminNav.map((item) => {
-            const isActive = pathname === item.href;
-            return (
-              <Link 
-                key={item.href} 
-                href={item.href}
-                className={cn(
-                  "flex items-center gap-3 px-4 py-3 text-sm font-black uppercase transition-all border border-transparent rounded-xl",
-                  isActive ? "bg-accent border-accent text-black shadow-[0_0_15px_rgba(228,255,0,0.3)]" : "text-zinc-400 hover:text-white hover:border-zinc-700 hover:bg-zinc-800"
-                )}
-              >
-                <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
-
-        <Link 
-          href="/dashboard"
-          className="flex items-center gap-3 px-4 py-3 text-sm font-black text-zinc-400 uppercase hover:text-white hover:border hover:border-zinc-700 hover:bg-zinc-800 border border-transparent transition-all rounded-xl"
-        >
-          <ArrowLeft size={18} />
-          В приложение
-        </Link>
+        {navigation}
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 p-10 overflow-y-auto">
-        {children}
-      </main>
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-40 flex min-h-16 items-center justify-between border-b border-zinc-800 bg-zinc-950/95 px-4 backdrop-blur lg:hidden">
+          <div className="flex items-center">
+            <div className="rounded-l-md bg-white px-2 py-1 text-sm font-black leading-none tracking-tighter text-black">ADMIN</div>
+            <div className="rounded-r-md bg-accent px-2 py-1 text-sm font-black leading-none tracking-tighter text-black">PANEL</div>
+          </div>
+          <button
+            type="button"
+            onClick={() => setIsMobileMenuOpen(true)}
+            aria-label="Открыть меню администратора"
+            aria-expanded={isMobileMenuOpen}
+            className="flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-900 text-white"
+          >
+            <Menu size={22} />
+          </button>
+        </header>
+
+        <main className="min-w-0 flex-1 overflow-y-auto p-4 sm:p-6 lg:p-10">
+          {children}
+        </main>
+      </div>
+
+      {isMobileMenuOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="Меню администратора">
+          <button
+            type="button"
+            aria-label="Закрыть меню"
+            onClick={() => setIsMobileMenuOpen(false)}
+            className="absolute inset-0 bg-black/70 backdrop-blur-sm"
+          />
+          <aside className="absolute inset-y-0 right-0 flex w-[min(86vw,22rem)] flex-col gap-6 overflow-y-auto border-l border-zinc-700 bg-zinc-900 p-5 shadow-2xl">
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="flex items-center">
+                  <div className="rounded-l-lg bg-white px-2 py-1 text-lg font-black leading-none tracking-tighter text-black">ADMIN</div>
+                  <div className="rounded-r-lg bg-accent px-2 py-1 text-lg font-black leading-none tracking-tighter text-black">PANEL</div>
+                </div>
+                <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Control Center</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsMobileMenuOpen(false)}
+                aria-label="Закрыть меню администратора"
+                className="flex h-11 w-11 items-center justify-center rounded-xl border border-zinc-700 bg-zinc-950 text-white"
+              >
+                <X size={22} />
+              </button>
+            </div>
+            {navigation}
+          </aside>
+        </div>
+      )}
     </div>
   );
 }
