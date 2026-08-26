@@ -3,8 +3,18 @@ import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ПО ДЕЛАМ — лиды из MAX",
-  description: "Агрегатор проверенных заказов для мастеров",
+  title: "ПО ДЕЛАМ - Агрегатор заказов",
+  description: "Поиск работы и специалистов, подработки. Все для строительства и ремонта: мастер на час, грузчики и другие услуги.",
+  icons: {
+    icon: "/icon.png",
+    apple: "/icon.png",
+  },
+  openGraph: {
+    title: "ПО ДЕЛАМ - Агрегатор заказов",
+    description: "Поиск работы и специалистов, подработки. Все для строительства и ремонта: мастер на час, грузчики и другие услуги.",
+    images: ["/icon.png"],
+    type: "website",
+  },
 };
 
 export default function RootLayout({
