@@ -195,6 +195,13 @@ def run_parser(session_id, chat_url):
                 timezone_id="Europe/Moscow",
             )
             page = context.new_page()
+
+            # Auto-normalize URL if user pasted a profile link (e.g. max.ru/username)
+            if "#" not in chat_url:
+                username = chat_url.rstrip("/").split("/")[-1]
+                if not username.startswith("+"):
+                    chat_url = f"https://web.max.ru/a/#@{username}"
+
             response = page.goto(chat_url, timeout=45_000, wait_until="domcontentloaded")
             if response and response.status == 429:
                 return result(chat_url, "RATE_LIMITED", error="MAX вернул HTTP 429")

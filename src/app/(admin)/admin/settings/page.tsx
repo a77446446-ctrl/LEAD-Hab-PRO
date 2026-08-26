@@ -622,12 +622,21 @@ export default function SettingsPage() {
   const addChat = async () => {
     if (!newChat) return;
     
-    let finalUrl = newChat;
+    let finalUrl = newChat.trim();
     if (finalUrl.includes('max.ru') && !finalUrl.includes('web.max.ru')) {
         finalUrl = finalUrl.replace('max.ru', 'web.max.ru');
     }
     if (!finalUrl.startsWith('http')) {
         finalUrl = 'https://' + finalUrl;
+    }
+
+    // Auto-normalize profile links to MAX Web app format
+    if (!finalUrl.includes('#')) {
+      const urlParts = finalUrl.replace(/\/$/, '').split('/');
+      const username = urlParts[urlParts.length - 1];
+      if (username && !username.startsWith('+')) {
+        finalUrl = `https://web.max.ru/a/#@${username}`;
+      }
     }
 
     if (parsingChats.some(c => c.url === finalUrl)) {
