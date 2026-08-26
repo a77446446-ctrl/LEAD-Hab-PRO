@@ -865,6 +865,36 @@ export default function SettingsPage() {
                    </motion.button>
                  )}
                </AnimatePresence>
+
+               {!canBypass && proxyIP && proxyPort && (
+                 <button
+                   onClick={async () => {
+                     addLog('Запуск пошаговой диагностики прокси...', 'info');
+                     try {
+                       const proxyReference = await persistProxyDraft();
+                       const res = await fetch('/api/admin/auth/proxy-diagnose', {
+                         method: 'POST',
+                         headers: { 'Content-Type': 'application/json' },
+                         body: JSON.stringify({ proxy: proxyReference }),
+                       });
+                       const data = await res.json() as { success?: boolean; steps?: { step: string; ok: boolean; ms?: number; detail?: string; error?: string }[]; error?: string };
+                       if (data.steps) {
+                         for (const s of data.steps) {
+                           addLog(`${s.ok ? '✅' : '❌'} ${s.step}: ${s.detail || s.error || ''} (${s.ms || 0}мс)`, s.ok ? 'success' : 'error');
+                         }
+                       }
+                       if (data.error) addLog(`Ошибка: ${data.error}`, 'error');
+                       addLog(data.success ? 'Диагностика: все шаги пройдены ✅' : 'Диагностика: обнаружена проблема ❌', data.success ? 'success' : 'error');
+                     } catch (e) {
+                       addLog(`Ошибка диагностики: ${e instanceof Error ? e.message : String(e)}`, 'error');
+                     }
+                   }}
+                   className="w-full flex items-center justify-center gap-2 py-2.5 bg-zinc-950 border border-zinc-700 text-zinc-400 text-[8px] font-black uppercase tracking-widest hover:bg-zinc-800 hover:text-white transition-all"
+                 >
+                   <Activity size={12} />
+                   <span>ДИАГНОСТИКА ПРОКСИ (ПОШАГОВАЯ)</span>
+                 </button>
+               )}
              </div>
           </div>
 
