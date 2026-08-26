@@ -222,12 +222,9 @@ def run_parser(session_id, chat_url):
                     else:
                         chat_url = f"https://web.max.ru/a/#@{username}"
 
-            # 1. Load the chat directly
-            # Make sure the URL is properly lowercased for protocol and host to avoid cross-origin reloads
-            if chat_url.lower().startswith("https://web.max.ru"):
-                chat_url = "https://web.max.ru" + chat_url[len("https://web.max.ru"):]
-                
-            response = page.goto(chat_url, timeout=45_000, wait_until="domcontentloaded")
+            # 1. Load the base SPA first. We must use the exact lowercase path "/a/".
+            base_url = "https://web.max.ru/a/"
+            response = page.goto(base_url, timeout=45_000, wait_until="domcontentloaded")
             if response and response.status == 429:
                 return result(chat_url, "RATE_LIMITED", error="Превышен лимит запросов MAX (429)")
 
@@ -236,13 +233,14 @@ def run_parser(session_id, chat_url):
             if state.get("login") and not state.get("shell"):
                 return result(chat_url, "AUTH_REQUIRED", error="Сессия MAX требует повторного входа")
 
-            # Force the hash again just in case Telegram's SPA router overwrote it with the last open chat
-            if "#" in chat_url:
-                hash_part = chat_url.split("#", 1)[1]
-                try:
-                    page.evaluate(f"if (window.location.hash !== '#{hash_part}') window.location.hash = '{hash_part}';")
-                except Exception:
-                    pass
+            # 2. Trigger the internal SPA router.
+            # To avoid "Execution context was destroyed", the new URL MUST have the exact same protocol, host, and path.
+            # We extract only the hash from the user's chat_url and append it to our strict base_url.
+            hash_part = chat_url.split("#", 1)[1] if "#" in chat_url else ""
+            safe_target_url = base_url + ("#" + hash_part if hash_part else "")
+            
+            # This is guaranteed to be a hash-only navigation, so it won't reload the page.
+            page.evaluate(f"window.location.href = '{safe_target_url}';")
 
             # Wait specifically for messages in the new chat
             state = wait_for_app(page, seconds=15, check_messages=True)
