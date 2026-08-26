@@ -553,7 +553,12 @@ async function syncWithoutLease(leaseToken: string): Promise<SyncResult> {
       create: { key: 'maks_parser_cursor', value: String(nextCursor) },
     });
     pushLog(logs, `Готово. Лидов: ${leadsCount}; ошибок чатов: ${failedChats}`);
-    return { success: failedChats === 0, leadsCount, failedChats, logs };
+    if (failedChats > 0) {
+      const errorLog = logs.slice().reverse().find(l => l.includes('ERROR') || l.includes('TIMEOUT') || l.includes('PROXY') || l.includes('AUTH') || l.includes('Ошибка'));
+      const msg = errorLog ? errorLog.slice(0, 100) : `Сбой в ${failedChats} чатах.`;
+      return { success: false, leadsCount, failedChats, message: msg, logs };
+    }
+    return { success: true, leadsCount, failedChats, logs };
   } catch (error) {
     const message = safeParserError(error);
     console.error('[PARSER] Фатальная ошибка:', message);

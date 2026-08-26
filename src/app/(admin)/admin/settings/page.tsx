@@ -562,18 +562,20 @@ export default function SettingsPage() {
         return;
       }
       const data = await res.json();
+      
+      if (data.logs && data.logs.length > 0) {
+        setLogs(prev => {
+          const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          // Clone the array before reversing to avoid React Strict Mode double-reverse bug
+          const newLogs = [...data.logs].reverse().map((msg: string) => ({ time, msg, type: data.success ? 'info' as const : 'error' as const }));
+          return [...newLogs, ...prev].slice(0, 50);
+        });
+      }
+
       if (data.success) {
-        if (data.logs && data.logs.length > 0) {
-          setLogs(prev => {
-            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            // Clone the array before reversing to avoid React Strict Mode double-reverse bug
-            const newLogs = [...data.logs].reverse().map((msg: string) => ({ time, msg, type: 'info' as const }));
-            return [...newLogs, ...prev].slice(0, 50);
-          });
-        }
         setTimeout(() => addLog(`Готово. Лидов: ${data.leadsCount}`, 'success'), 100);
       } else {
-        addLog(`Ошибка: ${data.message || 'Неизвестная ошибка'}`, 'error');
+        setTimeout(() => addLog(`Ошибка: ${data.message || 'Сбой парсинга'}`, 'error'), 100);
       }
     } catch (error) { 
       addLog(`Ошибка парсинга: ${error instanceof Error ? error.message : String(error)}`, 'error'); 

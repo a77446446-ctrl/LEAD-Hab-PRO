@@ -153,14 +153,7 @@ export async function synchronizeParserSessionFiles(): Promise<void> {
       await prisma.maksAccount.upsert({
         where: { sessionFile: file },
         create: { name: meta.name, sessionFile: file, proxyString: storedProxy, active: true, status: 'ACTIVE' },
-        update: {
-          proxyString: storedProxy,
-          active: true,
-          status: 'ACTIVE',
-          lastError: null,
-          cooldownUntil: null,
-          consecutiveFailures: 0
-        },
+        update: { proxyString: storedProxy }, // DO NOT OVERWRITE ACTIVE STATUS
       });
       await secureSessionFile(sessionId);
     } catch (error) {
