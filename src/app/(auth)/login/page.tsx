@@ -29,10 +29,16 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
   const [error, setError] = useState('');
+  const [isInsideMax, setIsInsideMax] = useState<boolean | null>(null);
 
   useEffect(() => {
     window.WebApp?.ready?.();
     window.WebApp?.expand?.();
+    
+    // Simple check: if there is initData, we are definitely inside MAX.
+    // If not, we might still be inside MAX but just opened it without initData? 
+    // Usually WebApp.initData is always there in a mini app.
+    setIsInsideMax(!!window.WebApp?.initData);
 
     fetch('/api/profile', { cache: 'no-store' })
       .then(async (response) => {
@@ -111,22 +117,30 @@ export default function LoginPage() {
           </div>
         )}
 
-        <button
-          type="button"
-          onClick={authenticate}
-          disabled={loading || checkingSession}
-          className="w-full bg-accent text-black border-2 border-black py-4 text-sm font-black uppercase tracking-widest hover:bg-[#F2FF00] disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] transition-all flex items-center justify-center gap-2"
-        >
-          {(loading || checkingSession) && <Loader2 size={18} className="animate-spin" />}
-          {checkingSession ? 'Проверяем сессию' : loading ? 'Входим через MAX' : 'Начать работу'}
-        </button>
-        <a
-          href="/api/auth/max-link"
-          className="flex w-full items-center justify-center gap-2 border-2 border-black bg-white py-3 text-xs font-black uppercase tracking-wider text-black transition-colors hover:bg-zinc-100"
-        >
-          <ExternalLink size={16} /> Открыть приложение в MAX Web
-        </a>
-        <p className="text-center text-xs font-medium leading-relaxed text-zinc-600">MAX пока не предоставляет OAuth-вход с возвратом на отдельный сайт. В браузере приложение открывается через веб-версию MAX.</p>
+        {isInsideMax === true && (
+          <button
+            type="button"
+            onClick={authenticate}
+            disabled={loading || checkingSession}
+            className="w-full bg-accent text-black border-2 border-black py-4 text-sm font-black uppercase tracking-widest hover:bg-[#F2FF00] disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            {(loading || checkingSession) && <Loader2 size={18} className="animate-spin" />}
+            {checkingSession ? 'Проверяем сессию' : loading ? 'Входим через MAX' : 'Начать работу'}
+          </button>
+        )}
+
+        {isInsideMax === false && (
+          <a
+            href="/api/auth/max-link"
+            className="w-full bg-accent text-black border-2 border-black py-4 text-sm font-black uppercase tracking-widest hover:bg-[#F2FF00] active:scale-[0.98] transition-all flex items-center justify-center gap-2"
+          >
+            <ExternalLink size={18} /> Открыть приложение в MAX Web
+          </a>
+        )}
+
+        <div className="pt-2 text-center text-[10px] font-black uppercase tracking-widest text-zinc-400">
+          ПО ДЕЛАМ &copy; {new Date().getFullYear()}
+        </div>
       </div>
     </div>
   );
