@@ -16,6 +16,7 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Logo } from '@/components/Logo';
 
 const adminNav = [
   { icon: LayoutDashboard, label: 'Обзор', href: '/admin' },
@@ -84,10 +85,7 @@ export default function AdminLayout({
     <div className="flex min-h-screen min-w-0 bg-zinc-950 text-white">
       <aside className="hidden w-64 shrink-0 flex-col gap-8 rounded-br-2xl rounded-tr-2xl border-r border-zinc-800 bg-zinc-900 p-6 lg:flex">
         <div>
-          <div className="flex items-center">
-            <div className="rounded-l-lg bg-white px-2 py-1 text-xl font-black leading-none tracking-tighter text-black">ADMIN</div>
-            <div className="rounded-r-lg bg-accent px-2 py-1 text-xl font-black leading-none tracking-tighter text-black">PANEL</div>
-          </div>
+          <Logo size="md" />
           <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Control Center</p>
         </div>
 
@@ -96,10 +94,7 @@ export default function AdminLayout({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-40 flex min-h-16 items-center justify-between border-b border-zinc-800 bg-zinc-950/95 px-4 backdrop-blur lg:hidden">
-          <div className="flex items-center">
-            <div className="rounded-l-md bg-white px-2 py-1 text-sm font-black leading-none tracking-tighter text-black">ADMIN</div>
-            <div className="rounded-r-md bg-accent px-2 py-1 text-sm font-black leading-none tracking-tighter text-black">PANEL</div>
-          </div>
+          <Logo size="sm" />
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(true)}
@@ -127,10 +122,7 @@ export default function AdminLayout({
           <aside className="absolute inset-y-0 right-0 flex w-[min(86vw,22rem)] flex-col gap-6 overflow-y-auto border-l border-zinc-700 bg-zinc-900 p-5 shadow-2xl">
             <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center">
-                  <div className="rounded-l-lg bg-white px-2 py-1 text-lg font-black leading-none tracking-tighter text-black">ADMIN</div>
-                  <div className="rounded-r-lg bg-accent px-2 py-1 text-lg font-black leading-none tracking-tighter text-black">PANEL</div>
-                </div>
+                <Logo size="md" />
                 <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Control Center</p>
               </div>
               <button

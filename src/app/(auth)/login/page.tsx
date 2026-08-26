@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { ExternalLink, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@/store/useUser';
+import { Logo } from '@/components/Logo';
 import type { User } from '@/types';
 function startDestination(initData?: string): string {
   const startParam = initData ? new URLSearchParams(initData).get('start_param') : null;
@@ -88,10 +89,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-[#f5f5f5] flex flex-col items-center justify-between p-6 overflow-hidden relative font-sans">
       <div className="pt-10 flex items-center justify-center">
-        <div className="flex items-center">
-          <div className="bg-black text-white px-3 py-1.5 text-[32px] font-black tracking-tighter leading-none">ПО</div>
-          <div className="bg-accent text-black px-3 py-1.5 text-[32px] font-black tracking-tighter leading-none">ДЕЛАМ</div>
-        </div>
+        <Logo size="lg" />
       </div>
 
       <div className="flex-1 w-full max-w-sm flex items-center justify-center my-6">
