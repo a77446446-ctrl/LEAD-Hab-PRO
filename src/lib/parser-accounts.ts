@@ -155,9 +155,11 @@ export async function synchronizeParserSessionFiles(): Promise<void> {
         create: { name: meta.name, sessionFile: file, proxyString: storedProxy, active: true, status: 'ACTIVE' },
         update: {
           proxyString: storedProxy,
-          ...(existing?.status === 'AUTHORIZING' || existing?.status === 'AUTH_REQUIRED'
-            ? { active: true, status: 'ACTIVE', lastError: null, cooldownUntil: null }
-            : {}),
+          active: true,
+          status: 'ACTIVE',
+          lastError: null,
+          cooldownUntil: null,
+          consecutiveFailures: 0
         },
       });
       await secureSessionFile(sessionId);
