@@ -82,7 +82,7 @@ def app_is_ready(page):
     """)
 
 
-def wait_for_app(page, seconds=30):
+def wait_for_app(page, seconds=30, check_messages=True):
     deadline = time.monotonic() + seconds
     state = {"ready": False, "login": False}
     # Wait until the shell (sidebar) loads
@@ -93,6 +93,9 @@ def wait_for_app(page, seconds=30):
         page.wait_for_timeout(750)
         
     if state.get("login") and not state.get("messages") and not state.get("shell"):
+        return state
+
+    if not check_messages:
         return state
 
     # Now wait specifically for messages to appear (since proxy can be slow)
@@ -219,13 +222,23 @@ def run_parser(session_id, chat_url):
                     else:
                         chat_url = f"https://web.max.ru/a/#@{username}"
 
-            response = page.goto(chat_url, timeout=45_000, wait_until="domcontentloaded")
+            # 1. Load the base SPA first
+            base_url = "https://web.max.ru/a/"
+            response = page.goto(base_url, timeout=45_000, wait_until="domcontentloaded")
             if response and response.status == 429:
-                return result(chat_url, "RATE_LIMITED", error="MAX вернул HTTP 429")
-            if response and response.status in {401, 403}:
-                return result(chat_url, "AUTH_REQUIRED", error=f"MAX вернул HTTP {response.status}")
+                return result(chat_url, "RATE_LIMITED", error="Превышен лимит запросов MAX (429)")
 
-            state = wait_for_app(page)
+            # Wait for the app shell to load
+            state = wait_for_app(page, seconds=20, check_messages=False)
+            if state.get("login") and not state.get("shell"):
+                return result(chat_url, "AUTH_REQUIRED", error="Сессия MAX требует повторного входа")
+
+            # 2. Now that SPA is loaded, trigger the internal router by setting the hash
+            page.evaluate(f"window.location.href = '{chat_url}';")
+            
+            # Wait specifically for messages in the new chat
+            state = wait_for_app(page, seconds=15, check_messages=True)
+            
             if state.get("login") and not state.get("ready"):
                 return result(chat_url, "AUTH_REQUIRED", error="Сессия MAX требует повторного входа")
 
