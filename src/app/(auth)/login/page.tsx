@@ -86,12 +86,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex flex-col items-center justify-between p-6 overflow-hidden relative font-sans">
-      <div className="pt-10 flex items-center justify-center">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-between p-6 overflow-hidden relative font-sans">
+      <div className="pt-10 flex items-center justify-center w-full">
         <img 
           src="/logo-home-guy.png" 
           alt="ПО ДЕЛАМ" 
-          className="h-20 w-auto object-contain mix-blend-multiply"
+          className="w-full max-w-[220px] h-auto object-contain"
         />
       </div>
 
@@ -99,7 +99,7 @@ export default function LoginPage() {
         <img
           src="/hero-illustration.jpg"
           alt="Мастера сервиса ПО ДЕЛАМ"
-          className="w-full h-auto object-contain mix-blend-multiply"
+          className="w-full h-auto object-contain"
           onError={(event) => { event.currentTarget.style.display = 'none'; }}
         />
       </div>

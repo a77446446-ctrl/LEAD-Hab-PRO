@@ -16,7 +16,6 @@ import {
   X,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Logo } from '@/components/Logo';
 
 const adminNav = [
   { icon: LayoutDashboard, label: 'Обзор', href: '/admin' },
@@ -85,8 +84,11 @@ export default function AdminLayout({
     <div className="flex min-h-screen min-w-0 bg-zinc-950 text-white">
       <aside className="hidden w-64 shrink-0 flex-col gap-8 rounded-br-2xl rounded-tr-2xl border-r border-zinc-800 bg-zinc-900 p-6 lg:flex">
         <div>
-          <Logo size="md" />
-          <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Control Center</p>
+          <div className="flex flex-col">
+            <span className="text-xl font-black uppercase tracking-widest text-white leading-none">MAKS</span>
+            <span className="text-[10px] font-bold text-accent tracking-[0.2em] uppercase mt-1">Lead Hub PRO</span>
+          </div>
+          <p className="mt-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Control Center</p>
         </div>
 
         {navigation}
@@ -94,7 +96,10 @@ export default function AdminLayout({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-40 flex min-h-16 items-center justify-between border-b border-zinc-800 bg-zinc-950/95 px-4 backdrop-blur lg:hidden">
-          <Logo size="sm" />
+          <div className="flex flex-col">
+            <span className="text-lg font-black uppercase tracking-widest text-white leading-none">MAKS</span>
+            <span className="text-[8px] font-bold text-accent tracking-[0.2em] uppercase mt-0.5">Lead Hub PRO</span>
+          </div>
           <button
             type="button"
             onClick={() => setIsMobileMenuOpen(true)}
@@ -122,8 +127,11 @@ export default function AdminLayout({
           <aside className="absolute inset-y-0 right-0 flex w-[min(86vw,22rem)] flex-col gap-6 overflow-y-auto border-l border-zinc-700 bg-zinc-900 p-5 shadow-2xl">
             <div className="flex items-center justify-between">
               <div>
-                <Logo size="md" />
-                <p className="mt-2 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Control Center</p>
+                <div className="flex flex-col">
+                  <span className="text-xl font-black uppercase tracking-widest text-white leading-none">MAKS</span>
+                  <span className="text-[10px] font-bold text-accent tracking-[0.2em] uppercase mt-1">Lead Hub PRO</span>
+                </div>
+                <p className="mt-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Control Center</p>
               </div>
               <button
                 type="button"
