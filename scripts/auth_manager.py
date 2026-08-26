@@ -53,21 +53,27 @@ async def capture_qr(page, target):
         '[class*="qr" i] img',
         '[class*="qr" i] svg',
         'canvas',
+        '[data-testid*="qr"]',
+        'img[src*="data:image"]',
+        'svg',
+        'img',
     ]
     captured = False
     for selector in selectors:
         locator = page.locator(selector)
-        for index in range(min(await locator.count(), 5)):
+        for index in range(min(await locator.count(), 10)):
             item = locator.nth(index)
             box = await item.bounding_box()
-            if box and box["width"] >= 120 and box["height"] >= 120:
+            if box and 120 <= box["width"] <= 500 and 120 <= box["height"] <= 500:
                 await item.screenshot(path=str(temporary), animations="disabled", type="png")
                 captured = True
                 break
         if captured:
             break
     if not captured:
-        await page.screenshot(path=str(temporary), full_page=False, animations="disabled", type="png")
+        # Fallback: crop the center part of the screen where the QR card usually is
+        clip = {"x": 340, "y": 100, "width": 600, "height": 600}
+        await page.screenshot(path=str(temporary), clip=clip, animations="disabled", type="png")
     os.replace(temporary, target)
     if os.name != "nt":
         os.chmod(target, 0o600)
