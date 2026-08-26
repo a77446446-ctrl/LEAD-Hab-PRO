@@ -156,7 +156,7 @@ export async function synchronizeParserSessionFiles(): Promise<void> {
         update: {
           proxyString: storedProxy,
           ...(existing?.status === 'AUTHORIZING' || existing?.status === 'AUTH_REQUIRED'
-            ? { active: true, status: 'ACTIVE', lastError: null }
+            ? { active: true, status: 'ACTIVE', lastError: null, cooldownUntil: null }
             : {}),
         },
       });

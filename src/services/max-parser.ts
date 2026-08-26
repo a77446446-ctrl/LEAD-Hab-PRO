@@ -461,7 +461,11 @@ async function syncWithoutLease(leaseToken: string): Promise<SyncResult> {
       }),
     ]);
     const chats = mergeTargetChats(chatsSetting?.value, targetChats);
-    if (accounts.length === 0) return { success: false, leadsCount: 0, message: 'Нет активных аккаунтов', logs };
+    const totalAccounts = await prisma.maksAccount.count({ where: { active: true } });
+    if (accounts.length === 0) {
+      if (totalAccounts > 0) return { success: false, leadsCount: 0, message: 'Все аккаунты на паузе (cooldown)', logs };
+      return { success: false, leadsCount: 0, message: 'Нет активных аккаунтов', logs };
+    }
     if (chats.length === 0) return { success: false, leadsCount: 0, message: 'Список чатов пуст', logs };
 
     const maxPerCycle = positiveIntEnv('PARSER_MAX_CHATS_PER_CYCLE', 100, 1, 500);
@@ -514,6 +518,14 @@ async function syncWithoutLease(leaseToken: string): Promise<SyncResult> {
         continue;
       }
       const title = worker.title || item.chat.name;
+      // UPDATE: Update the target chat name if it was previously saved as the inbox title
+      if (item.chat.targetId && title && title !== item.chat.name) {
+        await prisma.targetChat.update({
+          where: { id: item.chat.targetId },
+          data: { name: title.slice(0, 100) },
+        }).catch(() => {});
+      }
+
       let chatLeads = 0;
       for (const message of worker.messages) {
         if (await processMessage(message, chatUrl, title, item.chat.parseAll, logs)) {
