@@ -86,20 +86,20 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex flex-col items-center justify-between p-6 overflow-hidden relative font-sans">
-      <div className="pt-10 flex items-center justify-center w-full">
+    <div className="min-h-screen bg-white flex flex-col items-center justify-between p-4 sm:p-6 overflow-hidden relative font-sans">
+      <div className="pt-2 flex items-center justify-center w-full">
         <img 
           src="/logo-home-guy.png" 
           alt="ПО ДЕЛАМ" 
-          className="w-full max-w-[220px] h-auto object-contain"
+          className="w-full max-w-[200px] h-auto object-contain"
         />
       </div>
 
-      <div className="flex-1 w-full max-w-sm flex items-center justify-center my-6">
+      <div className="flex-1 w-full max-w-sm flex items-center justify-center my-2">
         <img
           src="/hero-illustration.jpg"
           alt="Мастера сервиса ПО ДЕЛАМ"
-          className="w-full h-auto object-contain"
+          className="w-full h-auto object-contain brightness-110 contrast-125 grayscale mix-blend-darken"
           onError={(event) => { event.currentTarget.style.display = 'none'; }}
         />
       </div>
