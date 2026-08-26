@@ -605,13 +605,19 @@ export default function SettingsPage() {
     const countdown = setInterval(() => {
       setNextRunSeconds(prev => {
         if (prev === null) return parseInterval;
-        if (prev <= 1) return parseInterval; // visual reset
-        return prev - 1;
+        return prev > 0 ? prev - 1 : 0;
       });
     }, 1000);
 
     return () => clearInterval(countdown);
   }, [autoParseEnabled, sessions.length, syncing, parseInterval]);
+
+  useEffect(() => {
+    if (nextRunSeconds === 0 && !syncing && autoParseEnabled) {
+      handleSync();
+      setNextRunSeconds(parseInterval);
+    }
+  }, [nextRunSeconds, syncing, autoParseEnabled, parseInterval]);
 
   const addChat = async () => {
     if (!newChat) return;
@@ -646,7 +652,7 @@ export default function SettingsPage() {
       chatName = 'Новый чат';
     }
 
-    setParsingChats([...parsingChats, { name: chatName, url: finalUrl, parseAll: true }]);
+    setParsingChats([...parsingChats, { name: chatName, url: finalUrl, parseAll: true, count: 0 }]);
     setNewChat('');
     setHasUnsavedChanges(true);
     addLog(`Добавлен чат: ${chatName}`, 'success');

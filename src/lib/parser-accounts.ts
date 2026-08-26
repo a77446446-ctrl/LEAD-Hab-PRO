@@ -55,7 +55,7 @@ export function isEncryptedProxyUrl(value: string | null | undefined): boolean {
 }
 
 export function maskProxyUrl(value: string | null | undefined): string {
-  if (!value || value === 'direct') return 'Прямое подключение';
+  if (!value || value === 'direct') return 'Прямое подключение (Без прокси)';
   try {
     const url = new URL(value);
     const auth = url.username ? `${decodeURIComponent(url.username).slice(0, 2)}***:***@` : '';

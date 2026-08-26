@@ -211,7 +211,7 @@ def run_parser(session_id, chat_url):
             messages = extract_messages(page)
             save_session(target, context, {**meta, "proxy": None, "formatVersion": 2})
 
-            if DEBUG_ARTIFACTS and not messages:
+            if not messages:
                 directory = Path.cwd() / "debug_screenshots"
                 directory.mkdir(exist_ok=True)
                 page.screenshot(path=str(directory / f"empty_{session_id}_{int(time.time())}.png"))
