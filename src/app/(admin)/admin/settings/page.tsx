@@ -635,7 +635,8 @@ export default function SettingsPage() {
       const urlParts = finalUrl.replace(/\/$/, '').split('/');
       const username = urlParts[urlParts.length - 1];
       if (username && !username.startsWith('+')) {
-        finalUrl = `https://web.max.ru/a/#@${username}`;
+        const isNumeric = /^-?\d+$/.test(username);
+        finalUrl = isNumeric ? `https://web.max.ru/a/#${username}` : `https://web.max.ru/a/#@${username}`;
       }
     }
 

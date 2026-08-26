@@ -85,13 +85,27 @@ def app_is_ready(page):
 def wait_for_app(page, seconds=30):
     deadline = time.monotonic() + seconds
     state = {"ready": False, "login": False}
+    # Wait until the shell (sidebar) loads
     while time.monotonic() < deadline:
         state = app_is_ready(page)
-        if state.get("ready") or state.get("login"):
-            return state
+        if state.get("shell") > 0 or state.get("login") or state.get("messages") > 0:
+            break
         page.wait_for_timeout(750)
-    return state
+        
+    if state.get("login") and not state.get("messages") and not state.get("shell"):
+        return state
 
+    # Now wait specifically for messages to appear (since proxy can be slow)
+    message_deadline = time.monotonic() + 15  # Wait up to 15 seconds for chat history
+    while time.monotonic() < message_deadline:
+        state = app_is_ready(page)
+        if state.get("messages") > 0:
+            break
+        page.wait_for_timeout(1000)
+
+    # Force a final wait just in case DOM is still rendering
+    page.wait_for_timeout(2000)
+    return state
 
 def human_scroll(page):
     rng = random.SystemRandom()
@@ -200,7 +214,10 @@ def run_parser(session_id, chat_url):
             if "#" not in chat_url:
                 username = chat_url.rstrip("/").split("/")[-1]
                 if not username.startswith("+"):
-                    chat_url = f"https://web.max.ru/a/#@{username}"
+                    if username.lstrip("-").isdigit():
+                        chat_url = f"https://web.max.ru/a/#{username}"
+                    else:
+                        chat_url = f"https://web.max.ru/a/#@{username}"
 
             response = page.goto(chat_url, timeout=45_000, wait_until="domcontentloaded")
             if response and response.status == 429:
