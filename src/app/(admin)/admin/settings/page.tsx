@@ -707,7 +707,7 @@ export default function SettingsPage() {
     } catch { addLog('Не удалось изменить состояние аккаунта', 'error'); }
   };
 
-  const inputClasses = "w-full bg-zinc-900 border border-zinc-700 py-3.5 pl-11 pr-4 text-[10px] font-black uppercase tracking-widest focus:ring-1 focus:ring-black transition-all text-white placeholder:text-zinc-500 outline-none";
+  const inputClasses = "w-full bg-zinc-900 border border-zinc-700 py-3.5 pl-11 pr-4 text-xs font-medium focus:ring-1 focus:ring-black transition-all text-white placeholder:text-zinc-500 outline-none";
 
   if (!mounted) return null;
   if (loading) return <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-accent" size={32} /></div>;
