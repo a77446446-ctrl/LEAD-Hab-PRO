@@ -502,7 +502,7 @@ async function syncWithoutLease(leaseToken: string): Promise<SyncResult> {
           accountIndex = (accountIndex + 1) % accounts.length;
           break;
         }
-        pushLog(logs, `[${item.chat.name}] ${account.name}: ${worker.status}`);
+        pushLog(logs, `[${item.chat.name}] ${account.name}: ${worker.status}${worker.error ? ` (${worker.error})` : ''}`);
         accounts.splice(accountIndex, 1);
         worker = null;
       }
