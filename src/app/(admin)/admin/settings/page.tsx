@@ -97,7 +97,7 @@ export default function SettingsPage() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [showUnsavedModal, setShowUnsavedModal] = useState<string | null>(null);
   const [authQR, setAuthQR] = useState('');
-  const [authStep, setAuthStep] = useState<'idle' | 'starting' | 'qr' | 'error'>('idle');
+  const [authStep, setAuthStep] = useState<'idle' | 'starting' | 'qr' | 'success' | 'error'>('idle');
   const [authError, setAuthError] = useState('');
   const authAbortRef = useRef<AbortController | null>(null);
 
@@ -299,12 +299,17 @@ export default function SettingsPage() {
     finally { if (!silent) setLoading(false); }
   };
 
-  const fetchSessions = async (silent = false) => {
+  const fetchSessions = async (_silent = false): Promise<MaksSession[] | null> => {
     try {
-      const res = await fetch('/api/admin/auth/sessions');
-      const data = await res.json();
-      setSessions(data.sessions || []);
-    } catch (error) { console.error('Failed to fetch sessions:', error); }
+      const res = await fetch('/api/admin/auth/sessions', { cache: 'no-store' });
+      const data = await res.json() as { sessions?: MaksSession[]; error?: string };
+      if (!res.ok || !Array.isArray(data.sessions)) throw new Error(data.error || 'Сервер не вернул аккаунты');
+      setSessions(data.sessions);
+      return data.sessions;
+    } catch (error) {
+      console.error('Failed to fetch sessions:', error);
+      return null;
+    }
   };
 
   const currentProxyValue = (): string => {
@@ -436,16 +441,19 @@ export default function SettingsPage() {
           cache: 'no-store',
           signal: controller.signal,
         });
-        const statusData = await statusResponse.json() as { state?: string; qrUrl?: string; message?: string; error?: string };
+        const statusData = await statusResponse.json() as { state?: string; qrUrl?: string; message?: string; error?: string; account?: MaksSession };
         if (!statusResponse.ok) throw new Error(statusData.error || 'Не удалось получить статус авторизации');
 
         if (statusData.state === 'qr' && statusData.qrUrl) {
           setAuthQR(statusData.qrUrl);
           setAuthStep('qr');
         } else if (statusData.state === 'success') {
-          await fetchSessions(true);
+          const refreshed = await fetchSessions(true);
+          if (statusData.account && !refreshed?.some((session) => session.id === statusData.account?.id)) {
+            setSessions((current) => [statusData.account as MaksSession, ...current.filter((session) => session.id !== statusData.account?.id)]);
+          }
           addLog('Аккаунт MAX успешно добавлен', 'success');
-          setAuthStep('idle');
+          setAuthStep('success');
           setAuthQR('');
           return;
         } else if (statusData.state === 'error') {
@@ -797,7 +805,7 @@ export default function SettingsPage() {
                     </div>
                     <div className="relative">
                        <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={12} />
-                       <input type={showPass ? 'text' : 'password'} value={proxyPass} onChange={(e) => setProxyPass(e.target.value)} placeholder={hasSavedProxyPassword && proxyIdentity() === savedProxyIdentity ? 'Пароль сохранён' : 'Пароль'} className={cn(inputClasses, "pr-10")} />
+                       <input type={showPass ? 'text' : 'password'} value={proxyPass} onChange={(e) => setProxyPass(e.target.value)} placeholder={hasSavedProxyPassword && proxyIdentity() === savedProxyIdentity ? '••••••••' : 'Пароль'} className={cn(inputClasses, "pr-10")} />
                        <button onClick={() => setShowPass(!showPass)} className="absolute right-4 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors">
                           {showPass ? <EyeOff size={12} /> : <Eye size={12} />}
                        </button>
@@ -1169,6 +1177,12 @@ export default function SettingsPage() {
                 <div className="flex items-center justify-center gap-2 text-xs font-bold text-accent"><Loader2 className="animate-spin" size={14} /> Ожидаю подтверждение входа…</div>
               </>
             )}
+            {authStep === 'success' && (
+              <div className="space-y-4 py-6">
+                <CheckCircle2 className="mx-auto text-green-400" size={48} />
+                <div><h2 className="font-black uppercase text-white">Аккаунт подключён</h2><p className="mt-2 text-sm text-zinc-300">Сессия сохранена, аккаунт активен и показан в списке ниже.</p></div>
+              </div>
+            )}
             {authStep === 'error' && (
               <div className="space-y-4 py-6">
                 <AlertCircle className="mx-auto text-red-400" size={48} />
@@ -1176,7 +1190,7 @@ export default function SettingsPage() {
               </div>
             )}
             <button type="button" onClick={closeAuthDialog} className="w-full rounded-xl border border-zinc-700 bg-zinc-950 py-3 text-xs font-black uppercase text-white transition-colors hover:bg-zinc-800">
-              {authStep === 'error' ? 'Закрыть' : 'Отменить авторизацию'}
+              {authStep === 'error' ? 'Закрыть' : authStep === 'success' ? 'Готово' : 'Отменить авторизацию'}
             </button>
           </div>
         </div>

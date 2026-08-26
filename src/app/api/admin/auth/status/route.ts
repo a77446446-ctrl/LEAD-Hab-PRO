@@ -5,6 +5,8 @@ import {
   assertSessionId,
   authQrFilePath,
   authStatusFilePath,
+  decryptProxyUrl,
+  maskProxyUrl,
   safeParserError,
   sessionFileExists,
 } from '@/lib/parser-accounts';
@@ -43,11 +45,29 @@ export async function GET(req: NextRequest) {
 
 
   if (await sessionFileExists(sessionId)) {
-    await prisma.maksAccount.update({
+    const activeAccount = await prisma.maksAccount.update({
       where: { id: account.id },
       data: { status: 'ACTIVE', active: true, lastError: null, cooldownUntil: null, consecutiveFailures: 0 },
     });
-    return NextResponse.json({ state: 'success' });
+    let proxy = 'Прокси настроен';
+    try { proxy = maskProxyUrl(decryptProxyUrl(activeAccount.proxyString)); } catch { /* секрет не раскрываем */ }
+    return NextResponse.json({
+      state: 'success',
+      account: {
+        id: activeAccount.id,
+        name: activeAccount.name,
+        active: true,
+        status: 'ACTIVE',
+        lastUsed: activeAccount.lastUsed?.toISOString() || null,
+        lastSuccessAt: activeAccount.lastSuccessAt?.toISOString() || null,
+        cooldownUntil: null,
+        consecutiveFailures: 0,
+        totalRuns: activeAccount.totalRuns,
+        totalErrors: activeAccount.totalErrors,
+        lastError: null,
+        proxy,
+      },
+    });
   }
   if (account.status !== 'AUTHORIZING' && account.lastError) {
     return NextResponse.json({ state: 'error', message: safeParserError(account.lastError) });
