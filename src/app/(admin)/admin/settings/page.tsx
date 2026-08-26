@@ -349,36 +349,25 @@ export default function SettingsPage() {
     setSaving(true);
     setStatus('idle');
     try {
-      await fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'maks_main_channel', value: settings['maks_main_channel'] || '' }),
-      });
-      await fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'maks_ai_api_key', value: settings['maks_ai_api_key'] || '' }),
-      });
-      await fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'maks_ai_enabled', value: settings['maks_ai_enabled'] || 'false' }),
-      });
-      await fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'maks_spam_keywords', value: settings['maks_spam_keywords'] || '' }),
-      });
-      await fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'maks_parsing_chats', value: JSON.stringify(parsingChats) }),
-      });
-      await fetch('/api/admin/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ key: 'maks_parser_auto', value: autoParseEnabled ? 'true' : 'false' }),
-      });
+      const saveKey = async (key: string, value: string) => {
+        const res = await fetch('/api/admin/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, value }),
+        });
+        if (!res.ok) {
+          const errData = await res.json().catch(() => ({ error: 'Ошибка сервера' }));
+          throw new Error(`Не удалось сохранить ${key}: ${(errData as any).error || res.status}`);
+        }
+      };
+
+      await saveKey('maks_main_channel', settings['maks_main_channel'] || '');
+      await saveKey('maks_ai_api_key', settings['maks_ai_api_key'] || '');
+      await saveKey('maks_ai_enabled', settings['maks_ai_enabled'] || 'false');
+      await saveKey('maks_spam_keywords', settings['maks_spam_keywords'] || '');
+      await saveKey('maks_parsing_chats', JSON.stringify(parsingChats));
+      await saveKey('maks_parser_auto', autoParseEnabled ? 'true' : 'false');
+
       if (!canBypass && (proxyIP || proxyPort || proxyUser || proxyPass)) {
         await persistProxyDraft();
       }
@@ -391,7 +380,7 @@ export default function SettingsPage() {
       addLog('Настройки и аккаунты сохранены', 'success');
     } catch (error) { 
       setStatus('error'); 
-      addLog('Ошибка сохранения', 'error');
+      addLog(`Ошибка сохранения: ${error instanceof Error ? error.message : String(error)}`, 'error');
     } finally { setSaving(false); }
   };
 

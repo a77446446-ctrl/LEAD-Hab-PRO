@@ -272,7 +272,9 @@ async function processMessage(
   const original = message.text.trim();
   if (original.length <= 15 || original.length >= 2000 || /^\p{L}+$/u.test(original)) return false;
   const cleaned = cleanMessageText(original, chatTitle);
-  if (cleaned.length <= 15 || extractContactInfo(original).length === 0) return false;
+  if (cleaned.length <= 15) return false;
+  // When parseAll is false, require contact info; when true, accept all messages
+  if (!parseAll && extractContactInfo(original).length === 0) return false;
 
   try {
     const processed = await aiService.processLead(cleaned);

@@ -16,8 +16,9 @@ export function normalizeMaxChatUrl(value: unknown): string {
   if (url.protocol !== 'https:' || !ALLOWED_MAX_HOSTS.has(hostname) || url.port || url.username || url.password) {
     throw new Error('Разрешены только HTTPS-ссылки max.ru');
   }
+  const savedHash = url.hash;
   url.hostname = 'web.max.ru';
-  url.hash = '';
+  url.hash = savedHash;
   return url.toString();
 }
 
