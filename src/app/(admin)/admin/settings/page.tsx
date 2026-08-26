@@ -141,7 +141,7 @@ export default function SettingsPage() {
   const [proxyUser, setProxyUser] = useState('');
   const [proxyPass, setProxyPass] = useState('');
   const [showPass, setShowPass] = useState(false);
-  const [proxyStatus, setProxyStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid'>('idle');
+  const [proxyStatus, setProxyStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid' | 'diagnosing'>('idle');
   const [canBypass, setCanBypass] = useState(false);
   const [proxyLoaded, setProxyLoaded] = useState(false);
   const [savedProxyIdentity, setSavedProxyIdentity] = useState('');
@@ -868,7 +868,9 @@ export default function SettingsPage() {
 
                {!canBypass && proxyIP && proxyPort && (
                  <button
+                   disabled={proxyStatus === 'diagnosing'}
                    onClick={async () => {
+                     setProxyStatus('diagnosing');
                      addLog('Запуск пошаговой диагностики прокси...', 'info');
                      try {
                        const proxyReference = await persistProxyDraft();
@@ -887,12 +889,19 @@ export default function SettingsPage() {
                        addLog(data.success ? 'Диагностика: все шаги пройдены ✅' : 'Диагностика: обнаружена проблема ❌', data.success ? 'success' : 'error');
                      } catch (e) {
                        addLog(`Ошибка диагностики: ${e instanceof Error ? e.message : String(e)}`, 'error');
+                     } finally {
+                       setProxyStatus('idle');
                      }
                    }}
-                   className="w-full flex items-center justify-center gap-2 py-2.5 bg-zinc-950 border border-zinc-700 text-zinc-400 text-[8px] font-black uppercase tracking-widest hover:bg-zinc-800 hover:text-white transition-all"
+                   className={cn(
+                     "w-full flex items-center justify-center gap-2 py-2.5 border text-[8px] font-black uppercase tracking-widest transition-all",
+                     proxyStatus === 'diagnosing' 
+                       ? "bg-zinc-800 border-zinc-700 text-zinc-500 cursor-not-allowed" 
+                       : "bg-zinc-950 border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-white"
+                   )}
                  >
-                   <Activity size={12} />
-                   <span>ДИАГНОСТИКА ПРОКСИ (ПОШАГОВАЯ)</span>
+                   {proxyStatus === 'diagnosing' ? <Loader2 className="animate-spin" size={12} /> : <Activity size={12} />}
+                   <span>{proxyStatus === 'diagnosing' ? 'ИДЕТ ДИАГНОСТИКА...' : 'ДИАГНОСТИКА ПРОКСИ (ПОШАГОВАЯ)'}</span>
                  </button>
                )}
              </div>
