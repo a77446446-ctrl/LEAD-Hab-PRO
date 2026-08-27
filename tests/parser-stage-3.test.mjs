@@ -68,7 +68,8 @@ test('URL worker ограничен HTTPS-доменами MAX', async () => {
   }).outputText;
   const urls = await import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
   assert.equal(urls.normalizeMaxChatUrl('max.ru/join/abc'), 'https://web.max.ru/join/abc');
-  assert.equal(urls.normalizeMaxChatUrl('https://web.max.ru/chat?id=1#fragment'), 'https://web.max.ru/chat?id=1');
+  assert.equal(urls.normalizeMaxChatUrl('https://web.max.ru/chat?id=1#ChatId'), 'https://web.max.ru/chat?id=1#ChatId');
+  assert.equal(urls.normalizeMaxChatUrl('HTTPS://WEB.MAX.RU/A/#ChatId'), 'https://web.max.ru/A/#ChatId');
   assert.throws(() => urls.normalizeMaxChatUrl('http://web.max.ru/chat'));
   assert.throws(() => urls.normalizeMaxChatUrl('https://max.ru.evil.example/chat'));
   assert.throws(() => urls.normalizeMaxChatUrl('https://127.0.0.1/admin'));
@@ -84,6 +85,10 @@ test('Playwright worker не подменяет fingerprint и сохраняе�
   assert.match(worker, /human_scroll/);
   assert.match(worker, /context\.storage_state\(\)/);
   assert.match(worker, /PARSER_DEBUG_ARTIFACTS/);
+  assert.match(worker, /page\.goto\(chat_url, timeout=45_000, wait_until="commit"\)/);
+  assert.match(worker, /if DEBUG_ARTIFACTS and not messages:/);
+  assert.match(worker, /DOM-кандидаты=/);
+  assert.doesNotMatch(worker, /page\.evaluate\(f["']window\.location\.href/);
   assert.doesNotMatch(worker, /navigator.*webdriver|user_agent\s*=/i);
   assert.match(auth, /if not authorized:/);
   assert.doesNotMatch(auth, /force save|input\(/i);

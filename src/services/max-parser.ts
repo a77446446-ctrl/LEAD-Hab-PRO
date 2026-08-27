@@ -539,10 +539,15 @@ async function syncWithoutLease(leaseToken: string): Promise<SyncResult> {
       if (item.chat.targetId) {
         await prisma.targetChat.update({
           where: { id: item.chat.targetId },
-          data: { name: item.chat.name, lastCheckedAt: new Date(), lastError: null },
+          data: {
+            name: item.chat.name,
+            lastCheckedAt: new Date(),
+            lastError: worker.status === 'EMPTY' ? worker.error || 'Сообщения в чате не найдены' : null,
+          },
         });
       }
-      pushLog(logs, `[${item.chat.name}] сообщений: ${worker.messages.length}, новых лидов: ${chatLeads}`);
+      const workerDetail = worker.status === 'EMPTY' && worker.error ? `; ${worker.error}` : '';
+      pushLog(logs, `[${item.chat.name}] сообщений: ${worker.messages.length}, новых лидов: ${chatLeads}${workerDetail}`);
     }
 
     await saveChats(chats);

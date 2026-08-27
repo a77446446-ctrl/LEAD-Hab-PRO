@@ -8,6 +8,7 @@ import re
 import sys
 import time
 from pathlib import Path
+from urllib.parse import urlsplit, urlunsplit
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
@@ -17,6 +18,7 @@ from proxy_runtime import build_playwright_proxy
 SESSION_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,80}$")
 MAX_SESSION_BYTES = 10 * 1024 * 1024
 DEBUG_ARTIFACTS = os.environ.get("PARSER_DEBUG_ARTIFACTS", "false").lower() == "true"
+ALLOWED_MAX_HOSTS = {"max.ru", "web.max.ru"}
 
 
 def result(chat_url, status, title=None, messages=None, error=None):
@@ -29,6 +31,54 @@ def result(chat_url, status, title=None, messages=None, error=None):
     if error:
         payload["error"] = str(error).replace("\r", " ").replace("\n", " ")[:500]
     return payload
+
+
+def normalize_chat_target(chat_url):
+    """Проверяет URL повторно внутри worker и сохраняет регистр идентификатора чата."""
+    if not isinstance(chat_url, str) or not chat_url.strip() or len(chat_url) > 2048:
+        raise ValueError("Некорректная ссылка на чат MAX")
+
+    parsed = urlsplit(chat_url.strip())
+    hostname = (parsed.hostname or "").lower()
+    try:
+        port = parsed.port
+    except ValueError as error:
+        raise ValueError("Некорректный порт в ссылке MAX") from error
+
+    if (
+        parsed.scheme.lower() != "https"
+        or hostname not in ALLOWED_MAX_HOSTS
+        or port is not None
+        or parsed.username
+        or parsed.password
+    ):
+        raise ValueError("Разрешены только HTTPS-ссылки max.ru без авторизационных данных")
+
+    fragment = parsed.fragment
+    path = parsed.path or "/"
+    query = parsed.query
+    if fragment:
+        # Hash-маршруты MAX всегда открываются внутри канонической SPA-страницы.
+        path = "/a/"
+        query = ""
+    elif path.lower() in {"/", "/a", "/a/"}:
+        raise ValueError("Ссылка MAX не содержит идентификатор чата")
+
+    return urlunsplit(("https", "web.max.ru", path, query, fragment))
+
+
+def empty_chat_diagnostic(page, state):
+    """Возвращает безопасную диагностику без идентификатора и полного URL чата."""
+    current = urlsplit(page.url)
+    title = " ".join((page.title() or "без заголовка").split())[:80]
+    return (
+        "Сообщения не найдены: "
+        f"path={current.path or '/'}; "
+        f"hash={'есть' if current.fragment else 'нет'}; "
+        f"shell={int(state.get('shell') or 0)}; "
+        f"DOM-кандидаты={int(state.get('messages') or 0)}; "
+        f"title={title}"
+    )
 
 
 def session_path(session_id):
@@ -199,6 +249,7 @@ def run_parser(session_id, chat_url):
     browser = None
     context = None
     try:
+        chat_url = normalize_chat_target(chat_url)
         proxy, relay = build_playwright_proxy(proxy_url)
         with sync_playwright() as playwright:
             launch_options = {"headless": True}
@@ -213,16 +264,7 @@ def run_parser(session_id, chat_url):
             )
             page = context.new_page()
 
-            # Auto-normalize URL if user pasted a profile link (e.g. max.ru/username)
-            if "#" not in chat_url:
-                username = chat_url.rstrip("/").split("/")[-1]
-                if not username.startswith("+"):
-                    if username.lstrip("-").isdigit():
-                        chat_url = f"https://web.max.ru/a/#{username}"
-                    else:
-                        chat_url = f"https://web.max.ru/a/#@{username}"
-
-            # 1. Load the base SPA first. We must use the exact lowercase path "/a/".
+            # 1. Загружаем оболочку SPA, чтобы проверить сессию отдельно от маршрута чата.
             base_url = "https://web.max.ru/a/"
             response = page.goto(base_url, timeout=45_000, wait_until="domcontentloaded")
             if response and response.status == 429:
@@ -233,14 +275,8 @@ def run_parser(session_id, chat_url):
             if state.get("login") and not state.get("shell"):
                 return result(chat_url, "AUTH_REQUIRED", error="Сессия MAX требует повторного входа")
 
-            # 2. Trigger the internal SPA router.
-            # To avoid "Execution context was destroyed", the new URL MUST have the exact same protocol, host, and path.
-            # We extract only the hash from the user's chat_url and append it to our strict base_url.
-            hash_part = chat_url.split("#", 1)[1] if "#" in chat_url else ""
-            safe_target_url = base_url + ("#" + hash_part if hash_part else "")
-            
-            # This is guaranteed to be a hash-only navigation, so it won't reload the page.
-            page.evaluate(f"window.location.href = '{safe_target_url}';")
+            # 2. Навигацией управляет Playwright: URL не исполняется как JavaScript.
+            page.goto(chat_url, timeout=45_000, wait_until="commit")
 
             # Wait specifically for messages in the new chat
             state = wait_for_app(page, seconds=15, check_messages=True)
@@ -254,11 +290,21 @@ def run_parser(session_id, chat_url):
             messages = extract_messages(page)
             save_session(target, context, {**meta, "proxy": None, "formatVersion": 2})
 
+            empty_error = None
             if not messages:
+                final_state = app_is_ready(page)
+                empty_error = empty_chat_diagnostic(page, final_state)
+            if DEBUG_ARTIFACTS and not messages:
                 directory = Path.cwd() / "debug_screenshots"
                 directory.mkdir(exist_ok=True)
                 page.screenshot(path=str(directory / f"empty_{session_id}_{int(time.time())}.png"))
-            return result(chat_url, "OK" if messages else "EMPTY", title=title, messages=messages)
+            return result(
+                chat_url,
+                "OK" if messages else "EMPTY",
+                title=title,
+                messages=messages,
+                error=empty_error,
+            )
     except FileNotFoundError:
         return result(chat_url, "AUTH_REQUIRED", error="Файл сессии не найден")
     except Exception as error:
