@@ -57,26 +57,19 @@ def normalize_chat_target(chat_url):
     fragment = parsed.fragment
     path = parsed.path or "/"
     query = parsed.query
+
     if fragment:
-        # Hash-маршруты MAX всегда открываются внутри канонической SPA-страницы.
-        path = "/a/"
+        # Настройки МАКС сохраняют URL в hash-формате (web.max.ru/a/#@name),
+        # но MAX использует path-маршрутизацию (web.max.ru/name).
+        # Преобразуем hash обратно в прямой путь.
+        identifier = fragment[1:] if fragment.startswith(("@", "/")) else fragment
+        if not identifier:
+            raise ValueError("Ссылка MAX не содержит идентификатор чата")
+        path = "/" + identifier
+        fragment = ""
         query = ""
     elif path.lower() in {"/", "/a", "/a/"}:
         raise ValueError("Ссылка MAX не содержит идентификатор чата")
-    else:
-        # Публичные URL вида /public217882292 или /-1234567890
-        # нужно преобразовать в SPA hash-маршрут, чтобы авторизованный
-        # браузер открыл ленту сообщений, а не публичную страницу.
-        # Формат: числовой ID → #ID, буквенное имя → #@name
-        segment = path.strip("/").split("/")[0]
-        if not segment:
-            raise ValueError("Ссылка MAX не содержит идентификатор чата")
-        if segment.startswith("+"):
-            raise ValueError("Инвайт-ссылки MAX не поддерживаются парсером")
-        is_numeric = re.fullmatch(r"-?\d+", segment) is not None
-        fragment = segment if is_numeric else ("@" + segment)
-        path = "/a/"
-        query = ""
 
     return urlunsplit(("https", "web.max.ru", path, query, fragment))
 
