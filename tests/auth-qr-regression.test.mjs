@@ -25,10 +25,14 @@ test('серверная QR-авторизация имеет защищённы
   assert.match(status, /state: 'qr'/);
   assert.match(status, /state: 'error'/);
   assert.match(qr, /adminGuard\(\)/);
+  assert.match(start, /persistParserSessionFile\(account\.id, sessionId\)/);
   assert.match(qr, /Cache-Control': 'private, no-store/);
   assert.match(settings, /authStep === 'qr'/);
+  assert.match(status, /ensureParserSessionFile\(account\)/);
+  assert.match(status, /persistParserSessionFile\(account\.id, sessionId\)/);
   assert.match(settings, /encodeURIComponent\(data\.accountId\)/);
   assert.doesNotMatch(settings, /sData\.sessions\?\.length > sessions\.length/);
   assert.match(proxyCheck, /CHECK_TIMEOUT_MS = 15_000/);
   assert.match(environment, /PARSER_AUTH_HEADLESS="true"/);
+  assert.match(environment, /PARSER_SESSION_ENCRYPTION_KEY=/);
 });

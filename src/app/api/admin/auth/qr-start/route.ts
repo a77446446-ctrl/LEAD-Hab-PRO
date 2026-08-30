@@ -3,7 +3,7 @@ import { spawn } from 'child_process';
 import path from 'path';
 import { NextRequest, NextResponse } from 'next/server';
 import { adminGuard } from '@/lib/auth/admin-guard';
-import { encryptProxyUrl, parserSessionDirectory, safeParserError, sessionFileName } from '@/lib/parser-accounts';
+import { encryptProxyUrl, parserSessionDirectory, persistParserSessionFile, safeParserError, sessionFileName } from '@/lib/parser-accounts';
 import { resolveProxyInput } from '@/lib/proxy-draft';
 import { parserPythonExecutable, parserPythonSpawnError } from '@/lib/python-runtime';
 import { prisma } from '@/lib/prisma';
@@ -75,7 +75,22 @@ export async function POST(req: NextRequest) {
     timeout.unref();
     child.once('close', async (code) => {
       clearTimeout(timeout);
-      if (code === 0) return;
+      if (code === 0) {
+        try {
+          await persistParserSessionFile(account.id, sessionId);
+          await prisma.maksAccount.update({
+            where: { id: account.id },
+            data: { status: 'ACTIVE', active: true, lastError: null, cooldownUntil: null, consecutiveFailures: 0 },
+          });
+        } catch (error) {
+          const message = `Сессия MAX создана, но не сохранена в БД: ${safeParserError(error)}`;
+          await prisma.maksAccount.update({
+            where: { id: account.id },
+            data: { status: 'AUTH_REQUIRED', active: false, lastError: message },
+          }).catch(() => undefined);
+        }
+        return;
+      }
       const message = safeParserError(output) || 'Процесс авторизации MAX завершился с ошибкой';
       await prisma.maksAccount.updateMany({
         where: { id: account.id, status: 'AUTHORIZING' },

@@ -6,9 +6,10 @@ import {
   authQrFilePath,
   authStatusFilePath,
   decryptProxyUrl,
+  ensureParserSessionFile,
   maskProxyUrl,
+  persistParserSessionFile,
   safeParserError,
-  sessionFileExists,
 } from '@/lib/parser-accounts';
 import { prisma } from '@/lib/prisma';
 
@@ -44,7 +45,19 @@ export async function GET(req: NextRequest) {
   const sessionId = assertSessionId(account.sessionFile.replace(/\.json$/i, ''));
 
 
-  if (await sessionFileExists(sessionId)) {
+  let hasSession = false;
+  try {
+    hasSession = await ensureParserSessionFile(account);
+    if (hasSession) await persistParserSessionFile(account.id, sessionId);
+  } catch (error) {
+    const message = `Сессия MAX создана, но не сохранена в БД: ${safeParserError(error)}`;
+    await prisma.maksAccount.update({
+      where: { id: account.id },
+      data: { status: 'AUTH_REQUIRED', active: false, lastError: message },
+    });
+    return NextResponse.json({ state: 'error', message });
+  }
+  if (hasSession) {
     const activeAccount = await prisma.maksAccount.update({
       where: { id: account.id },
       data: { status: 'ACTIVE', active: true, lastError: null, cooldownUntil: null, consecutiveFailures: 0 },

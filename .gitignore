@@ -6,7 +6,7 @@ node_modules/
 /src/generated/prisma/
 *.db
 *.db-journal
-sessions/
+/sessions/
 debug_screenshots/
 public/uploads/
 scripts/__pycache__/

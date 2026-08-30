@@ -163,6 +163,9 @@ model MaksAccount {
   id                  String    @id @default(uuid())
   name                String
   sessionFile         String    @unique
+  sessionData         String?   // AES-256-GCM backup Playwright storage_state
+  sessionChecksum     String?
+  sessionUpdatedAt    DateTime?
   proxyString         String? // Зашифрованный proxy URL; legacy plaintext мигрирует при чтении
   active              Boolean   @default(true)
   status              String    @default("AUTHORIZING")

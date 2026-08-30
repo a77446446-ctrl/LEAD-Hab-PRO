@@ -23,6 +23,7 @@ async function loadParserAccountsModule() {
   const output = ts.transpileModule(purePart, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   }).outputText;
+  process.env.PARSER_SESSION_ENCRYPTION_KEY = 'stage-3-session-key-with-at-least-32-characters';
   return import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
 }
 
@@ -32,7 +33,14 @@ test('proxyString шифруется AES-GCM и маскируется до вы
   const clear = 'http://resident-user:secret-pass@127.0.0.1:3128';
   const encrypted = accounts.encryptProxyUrl(clear);
   assert.match(encrypted, /^enc:v1:/);
+  const session = JSON.stringify({ storage: { cookies: [], origins: [] }, meta: { name: 'Тест' } });
+  const sessionBackup = accounts.encryptParserSession(session);
+  assert.match(sessionBackup, /^session:v1:/);
+  assert.doesNotMatch(sessionBackup, /cookies|Тест/);
+  assert.equal(accounts.decryptParserSession(sessionBackup), session);
   assert.doesNotMatch(encrypted, /resident-user|secret-pass|127\.0\.0\.1/);
+  const tamperedSession = `${sessionBackup.slice(0, -1)}${sessionBackup.endsWith('A') ? 'B' : 'A'}`;
+  assert.throws(() => accounts.decryptParserSession(tamperedSession));
   assert.equal(accounts.decryptProxyUrl(encrypted), `${clear}/`);
   assert.equal(accounts.maskProxyUrl(clear), 'http://re***:***@127.0.0.1:3128');
   assert.throws(() => accounts.decryptProxyUrl(`${encrypted.slice(0, -1)}x`));
@@ -49,6 +57,7 @@ test('парсер использует lease, ограниченный worker �
   assert.match(parser, /refreshParserLease/);
   assert.match(parser, /outputLimit = 2 \* 1024 \* 1024/);
   assert.match(parser, /PARSER_PROXY_URL: account\.proxyUrl/);
+  const sessionMigration = await read('prisma/migrations/20260830010000_persist_parser_sessions/migration.sql');
   assert.match(parser, /windowsHide: true/);
   assert.match(parser, /AUTH_REQUIRED/);
   assert.match(parser, /RATE_LIMITED/);
@@ -61,6 +70,9 @@ test('парсер использует lease, ограниченный worker �
   assert.match(schema, /consecutiveFailures Int/);
   assert.match(migration, /CREATE TABLE "ParserLease"/);
   assert.doesNotMatch(migration, /DROP TABLE|DROP COLUMN|TRUNCATE/i);
+  assert.match(schema, /sessionData\s+String\?/);
+  assert.match(sessionMigration, /ADD COLUMN "sessionData" TEXT/);
+  assert.doesNotMatch(sessionMigration, /DROP TABLE|DROP COLUMN|TRUNCATE/i);
 });
 
 test('URL worker ограничен HTTPS-доменами MAX', async () => {

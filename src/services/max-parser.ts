@@ -5,6 +5,7 @@ import { acquireParserLease, refreshParserLease, releaseParserLease } from '@/li
 import {
   decryptProxyUrl,
   parserCooldown,
+  persistParserSessionFile,
   safeParserError,
   sessionFileExists,
   synchronizeParserSessionFiles,
@@ -497,6 +498,11 @@ async function syncWithoutLease(leaseToken: string): Promise<SyncResult> {
         const account = accounts[accountIndex];
         await refreshParserLease(leaseToken);
         worker = await runPlaywrightParse(chatUrl, account);
+        try {
+          await persistParserSessionFile(account.id, account.sessionFile.replace(/\.json$/i, ''));
+        } catch (error) {
+          worker = failedWorker(chatUrl, 'ERROR', `Сессия MAX не сохранена в БД: ${safeParserError(error)}`);
+        }
         await recordAccountResult(account, worker);
         if (worker.status === 'OK' || worker.status === 'EMPTY') {
           accountIndex = (accountIndex + 1) % accounts.length;
