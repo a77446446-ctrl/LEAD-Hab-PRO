@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { Check, Loader2, Pause, Play, Plus, Search, X } from 'lucide-react';
+import { Check, Loader2, Pause, Play, Plus, Search, Trash2, X } from 'lucide-react';
 
 type Chat = {
   id: string; url: string; name: string | null; provider: string; status: string;
@@ -59,6 +59,15 @@ export default function DiscoveryPage() {
     await load();
   };
 
+  const deleteChat = async (id: string, name: string | null) => {
+    if (!confirm(`Удалить источник «${name || 'MAX-чат'}»?`)) return;
+    const response = await fetch('/api/admin/discovery/chats', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }),
+    });
+    if (!response.ok) { setError('Не удалось удалить источник'); return; }
+    await load();
+  };
+
   return (
     <div className="space-y-6 sm:space-y-8">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
@@ -77,7 +86,7 @@ export default function DiscoveryPage() {
         {loading ? <div className="p-8 text-zinc-400">Загрузка…</div> : chats.length === 0 ? <div className="p-8 text-zinc-400">Источники пока не найдены</div> : <div className="divide-y divide-zinc-800">{chats.map((chat) => (
           <div key={chat.id} className="grid gap-4 p-5 lg:grid-cols-[1fr_auto]">
             <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="font-bold">{chat.name || 'MAX-чат'}</span><span className="rounded bg-zinc-800 px-2 py-1 text-[10px] font-black">{chat.provider}</span><span className="text-xs text-accent">оценка {chat.score}</span></div><a href={chat.url} target="_blank" rel="noreferrer" className="mt-2 block truncate text-sm text-zinc-400 hover:text-white">{chat.url}</a><p className="mt-2 text-xs text-zinc-500">Найден {chat.discoveryCount} раз · {new Date(chat.lastDiscoveredAt).toLocaleString('ru-RU')}</p>{chat.lastError && <p className="mt-2 text-xs text-red-300">{chat.lastError}</p>}</div>
-            <div className="flex items-center gap-2"><button title="Активировать" onClick={() => void setStatus(chat.id, 'ACTIVE')} className="rounded-lg border border-zinc-700 p-2 hover:border-green-500"><Check size={17} /></button><button title="На проверку" onClick={() => void setStatus(chat.id, 'PENDING')} className="rounded-lg border border-zinc-700 p-2 hover:border-yellow-500">{chat.active ? <Pause size={17} /> : <Play size={17} />}</button><button title="Отклонить" onClick={() => void setStatus(chat.id, 'REJECTED')} className="rounded-lg border border-zinc-700 p-2 hover:border-red-500"><X size={17} /></button></div>
+            <div className="flex items-center gap-2"><button title="Активировать" onClick={() => void setStatus(chat.id, 'ACTIVE')} className="rounded-lg border border-zinc-700 p-2 hover:border-green-500"><Check size={17} /></button><button title="На проверку" onClick={() => void setStatus(chat.id, 'PENDING')} className="rounded-lg border border-zinc-700 p-2 hover:border-yellow-500">{chat.active ? <Pause size={17} /> : <Play size={17} />}</button><button title="Отклонить" onClick={() => void setStatus(chat.id, 'REJECTED')} className="rounded-lg border border-zinc-700 p-2 hover:border-red-500"><X size={17} /></button><button title="Удалить навсегда" onClick={() => void deleteChat(chat.id, chat.name)} className="rounded-lg border border-zinc-700 p-2 hover:border-red-600 hover:bg-red-950/50"><Trash2 size={17} /></button></div>
           </div>
         ))}</div>}
       </section>

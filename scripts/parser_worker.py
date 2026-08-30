@@ -63,6 +63,20 @@ def normalize_chat_target(chat_url):
         query = ""
     elif path.lower() in {"/", "/a", "/a/"}:
         raise ValueError("Ссылка MAX не содержит идентификатор чата")
+    else:
+        # Публичные URL вида /public217882292 или /-1234567890
+        # нужно преобразовать в SPA hash-маршрут, чтобы авторизованный
+        # браузер открыл ленту сообщений, а не публичную страницу.
+        # Формат: числовой ID → #ID, буквенное имя → #@name
+        segment = path.strip("/").split("/")[0]
+        if not segment:
+            raise ValueError("Ссылка MAX не содержит идентификатор чата")
+        if segment.startswith("+"):
+            raise ValueError("Инвайт-ссылки MAX не поддерживаются парсером")
+        is_numeric = re.fullmatch(r"-?\d+", segment) is not None
+        fragment = segment if is_numeric else ("@" + segment)
+        path = "/a/"
+        query = ""
 
     return urlunsplit(("https", "web.max.ru", path, query, fragment))
 
@@ -74,7 +88,7 @@ def empty_chat_diagnostic(page, state):
     return (
         "Сообщения не найдены: "
         f"path={current.path or '/'}; "
-        f"hash={'есть' if current.fragment else 'нет'}; "
+        f"hash={current.fragment[:60] if current.fragment else 'нет'}; "
         f"shell={int(state.get('shell') or 0)}; "
         f"DOM-кандидаты={int(state.get('messages') or 0)}; "
         f"title={title}"

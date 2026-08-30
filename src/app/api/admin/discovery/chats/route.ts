@@ -47,3 +47,20 @@ export async function PATCH(request: Request) {
   });
   return NextResponse.json(chat);
 }
+
+export async function DELETE(request: Request) {
+  const denied = await adminGuard();
+  if (denied) return denied;
+  try {
+    const body = await request.json() as { id?: unknown };
+    if (typeof body.id !== 'string') {
+      return NextResponse.json({ error: 'Некорректный id' }, { status: 400 });
+    }
+    await prisma.targetChat.delete({ where: { id: body.id } });
+    return NextResponse.json({ ok: true });
+  } catch (error) {
+    const message = error instanceof Error && error.message.includes('Record to delete does not exist')
+      ? 'Источник не найден' : 'Не удалось удалить источник';
+    return NextResponse.json({ error: message }, { status: 404 });
+  }
+}
