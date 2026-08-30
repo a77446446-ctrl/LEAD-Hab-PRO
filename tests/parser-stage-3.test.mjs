@@ -54,6 +54,8 @@ test('парсер использует lease, ограниченный worker �
   assert.match(parser, /RATE_LIMITED/);
   assert.match(parser, /normalizeMaxChatUrl/);
   assert.match(parser, /accounts\.splice\(accountIndex, 1\)/);
+  assert.match(parser, /worker\.status === 'OK' && worker\.messages\.length > 0/);
+  assert.match(parser, /const title = parsedTitle \|\| item\.chat\.name/);
   assert.match(lease, /lockedUntil: \{ lt: now \}/);
   assert.match(schema, /model ParserLease/);
   assert.match(schema, /consecutiveFailures Int/);
@@ -85,7 +87,8 @@ test('Playwright worker не подменяет fingerprint и сохраняе�
   assert.match(worker, /human_scroll/);
   assert.match(worker, /context\.storage_state\(\)/);
   assert.match(worker, /PARSER_DEBUG_ARTIFACTS/);
-  assert.match(worker, /page\.goto\(chat_url, timeout=45_000, wait_until="commit"\)/);
+  assert.match(worker, /page\.goto\(chat_url, timeout=60_000, wait_until="domcontentloaded"\)/);
+  assert.doesNotMatch(worker, /page\.goto\(base_url/);
   assert.match(worker, /if DEBUG_ARTIFACTS and not messages:/);
   assert.match(worker, /DOM-кандидаты=/);
   assert.doesNotMatch(worker, /page\.evaluate\(f["']window\.location\.href/);
@@ -118,4 +121,6 @@ test('пароль прокси не сохраняется в localStorage', as
   assert.doesNotMatch(settings, /localStorage\.setItem\('maks_proxy/);
   assert.doesNotMatch(settings, /setItem\('maks_proxyPass'/);
   assert.match(settings, /\/api\/admin\/auth\/proxy/);
+  assert.match(settings, /max-h-\[180px\]/);
+  assert.match(settings, /whitespace-pre-wrap break-words select-text/);
 });

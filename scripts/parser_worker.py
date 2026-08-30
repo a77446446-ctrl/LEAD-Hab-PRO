@@ -248,14 +248,19 @@ def run_parser(session_id, chat_url):
     relay = None
     browser = None
     context = None
+    stage = "инициализация"
     try:
+        stage = "проверка URL чата"
         chat_url = normalize_chat_target(chat_url)
+        stage = "подключение прокси"
         proxy, relay = build_playwright_proxy(proxy_url)
         with sync_playwright() as playwright:
             launch_options = {"headless": True}
             if proxy:
                 launch_options["proxy"] = proxy
+            stage = "запуск Chromium"
             browser = playwright.chromium.launch(**launch_options)
+            stage = "загрузка сессии браузера"
             context = browser.new_context(
                 storage_state=storage,
                 viewport=stable_viewport(session_id),
@@ -264,22 +269,14 @@ def run_parser(session_id, chat_url):
             )
             page = context.new_page()
 
-            # 1. Загружаем оболочку SPA, чтобы проверить сессию отдельно от маршрута чата.
-            base_url = "https://web.max.ru/a/"
-            response = page.goto(base_url, timeout=45_000, wait_until="domcontentloaded")
+            # Загружаем SPA сразу с маршрутом чата: MAX читает hash при старте приложения.
+            stage = "открытие целевого чата MAX"
+            response = page.goto(chat_url, timeout=60_000, wait_until="domcontentloaded")
             if response and response.status == 429:
                 return result(chat_url, "RATE_LIMITED", error="Превышен лимит запросов MAX (429)")
 
-            # Wait for the app shell to load
-            state = wait_for_app(page, seconds=20, check_messages=False)
-            if state.get("login") and not state.get("shell"):
-                return result(chat_url, "AUTH_REQUIRED", error="Сессия MAX требует повторного входа")
-
-            # 2. Навигацией управляет Playwright: URL не исполняется как JavaScript.
-            page.goto(chat_url, timeout=45_000, wait_until="commit")
-
-            # Wait specifically for messages in the new chat
-            state = wait_for_app(page, seconds=15, check_messages=True)
+            stage = "ожидание сообщений чата"
+            state = wait_for_app(page, seconds=30, check_messages=True)
             
             if state.get("login") and not state.get("ready"):
                 return result(chat_url, "AUTH_REQUIRED", error="Сессия MAX требует повторного входа")
@@ -316,7 +313,7 @@ def run_parser(session_id, chat_url):
                 context.pages[0].screenshot(path=str(directory / f"error_{session_id}_{int(time.time())}.png"))
             except Exception:
                 pass
-        return result(chat_url, status, error=error)
+        return result(chat_url, status, error=f"Этап «{stage}»: {error}")
     finally:
         if context:
             try:

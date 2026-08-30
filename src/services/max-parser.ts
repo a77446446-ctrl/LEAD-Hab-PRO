@@ -517,9 +517,10 @@ async function syncWithoutLease(leaseToken: string): Promise<SyncResult> {
         }
         continue;
       }
-      const title = worker.title || item.chat.name;
-      // UPDATE: Update the target chat name if it was previously saved as the inbox title
-      if (item.chat.targetId && title && title !== item.chat.name) {
+      // Заголовок общей страницы MAX нельзя сохранять как название источника.
+      const parsedTitle = worker.status === 'OK' && worker.messages.length > 0 ? worker.title : null;
+      const title = parsedTitle || item.chat.name;
+      if (item.chat.targetId && parsedTitle && parsedTitle !== item.chat.name) {
         await prisma.targetChat.update({
           where: { id: item.chat.targetId },
           data: { name: title.slice(0, 100) },
@@ -560,7 +561,7 @@ async function syncWithoutLease(leaseToken: string): Promise<SyncResult> {
     pushLog(logs, `Готово. Лидов: ${leadsCount}; ошибок чатов: ${failedChats}`);
     if (failedChats > 0) {
       const errorLog = logs.slice().reverse().find(l => l.includes('ERROR') || l.includes('TIMEOUT') || l.includes('PROXY') || l.includes('AUTH') || l.includes('Ошибка'));
-      const msg = errorLog ? errorLog.slice(0, 100) : `Сбой в ${failedChats} чатах.`;
+      const msg = errorLog ? errorLog.slice(0, 500) : `Сбой в ${failedChats} чатах.`;
       return { success: false, leadsCount, failedChats, message: msg, logs };
     }
     return { success: true, leadsCount, failedChats, logs };

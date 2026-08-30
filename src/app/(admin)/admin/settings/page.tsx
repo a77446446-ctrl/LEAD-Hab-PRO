@@ -1169,11 +1169,11 @@ export default function SettingsPage() {
                   {syncing ? 'ПАРСИНГ' : 'ГОТОВ'}
                 </span>
               </div>
-              <div className="space-y-1 max-h-[60px] overflow-y-auto text-[7px] font-mono text-zinc-300 leading-tight custom-scrollbar uppercase font-bold">
+              <div className="max-h-[180px] space-y-1 overflow-y-auto text-[9px] font-mono font-bold leading-snug text-zinc-300 custom-scrollbar">
                 {logs.map((log, i) => (
-                  <div key={i} className={cn("flex gap-2", log.type === 'success' ? "text-green-600" : log.type === 'error' ? "text-red-600" : "")}>
-                    <span>[{log.time}]</span>
-                    <span>{log.msg}</span>
+                  <div key={i} className={cn("grid grid-cols-[auto_minmax(0,1fr)] items-start gap-2", log.type === 'success' ? "text-green-600" : log.type === 'error' ? "text-red-600" : "")}>
+                    <span className="whitespace-nowrap">[{log.time}]</span>
+                    <span className="min-w-0 whitespace-pre-wrap break-words select-text">{log.msg}</span>
                   </div>
                 ))}
               </div>
