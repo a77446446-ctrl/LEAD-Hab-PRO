@@ -59,17 +59,26 @@ def normalize_chat_target(chat_url):
     query = parsed.query
 
     if fragment:
-        # Настройки МАКС сохраняют URL в hash-формате (web.max.ru/a/#@name),
-        # но MAX использует path-маршрутизацию (web.max.ru/name).
-        # Преобразуем hash обратно в прямой путь.
-        identifier = fragment[1:] if fragment.startswith(("@", "/")) else fragment
-        if not identifier:
-            raise ValueError("Ссылка MAX не содержит идентификатор чата")
-        path = "/" + identifier
-        fragment = ""
+        # Уже имеет hash (web.max.ru/a/#@name) - просто убеждаемся, что путь /a/
+        path = "/a/"
         query = ""
     elif path.lower() in {"/", "/a", "/a/"}:
         raise ValueError("Ссылка MAX не содержит идентификатор чата")
+    else:
+        # Прямая ссылка (web.max.ru/name) - конвертируем в SPA hash-маршрут
+        segment = path.strip("/").split("/")[0]
+        if not segment:
+            raise ValueError("Ссылка MAX не содержит идентификатор чата")
+        if segment.startswith("+"):
+            raise ValueError("Инвайт-ссылки MAX не поддерживаются парсером")
+        
+        # Telegram/MAX Web ожидает:
+        # - числовые ID без префикса (web.max.ru/a/#-12345)
+        # - буквенные имена (username) с префиксом @ (web.max.ru/a/#@name)
+        is_numeric = re.fullmatch(r"-?\d+", segment) is not None
+        fragment = segment if is_numeric else ("@" + segment)
+        path = "/a/"
+        query = ""
 
     return urlunsplit(("https", "web.max.ru", path, query, fragment))
 
