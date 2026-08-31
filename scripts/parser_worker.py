@@ -285,18 +285,27 @@ def run_parser(session_id, chat_url):
             )
             page = context.new_page()
 
-            # Загружаем SPA сразу с маршрутом чата: MAX читает hash при старте приложения.
-            stage = "открытие целевого чата MAX"
-            response = page.goto(chat_url, timeout=60_000, wait_until="domcontentloaded")
+            # 1. Загружаем оболочку SPA, чтобы инициализировать приложение.
+            # Если сразу открыть ссылку с хэшем, MAX может сбросить её при старте.
+            base_url = "https://web.max.ru/a/"
+            stage = "открытие оболочки MAX"
+            response = page.goto(base_url, timeout=45_000, wait_until="domcontentloaded")
             if response and response.status == 429:
                 return result(chat_url, "RATE_LIMITED", error="Превышен лимит запросов MAX (429)")
 
-            stage = "ожидание сообщений чата"
-            state = wait_for_app(page, seconds=30, check_messages=True)
-            
-            if state.get("login") and not state.get("ready"):
+            stage = "ожидание загрузки интерфейса"
+            state = wait_for_app(page, seconds=20, check_messages=False)
+            if state.get("login") and not state.get("shell"):
                 return result(chat_url, "AUTH_REQUIRED", error="Сессия MAX требует повторного входа")
 
+            # 2. Теперь, когда SPA загружено, переходим в нужный чат
+            stage = "открытие целевого чата MAX"
+            page.goto(chat_url, timeout=45_000, wait_until="commit")
+
+            stage = "ожидание сообщений чата"
+            state = wait_for_app(page, seconds=15, check_messages=True)
+            if state.get("login") and not state.get("ready"):
+                return result(chat_url, "AUTH_REQUIRED", error="Сессия MAX требует повторного входа")
             page.wait_for_timeout(random.SystemRandom().randint(600, 1400))
             human_scroll(page)
             title = extract_title(page)
