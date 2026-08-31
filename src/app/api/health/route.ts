@@ -1,4 +1,4 @@
-﻿import { NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
@@ -6,7 +6,7 @@ export async function GET() {
     const start = performance.now();
     
     // Check DB connectivity
-    await prisma.\\SELECT 1\;
+    await prisma.$queryRaw`SELECT 1`;
     
     const duration = performance.now() - start;
 
