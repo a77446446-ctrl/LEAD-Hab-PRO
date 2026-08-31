@@ -80,6 +80,10 @@ model Lead {
   deletedAt     DateTime?
   purchases     Purchase[]
   botDeliveries BotDelivery[]
+
+  @@index([categoryId, status, deletedAt, createdAt])
+  @@index([createdAt])
+  @@index([deletedAt])
 }
 
 model UserCategoryPreference {
@@ -142,6 +146,9 @@ model Purchase {
   price        Int      @default(0)
   deletedAt    DateTime?
   createdAt    DateTime @default(now())
+
+  @@index([userId, deletedAt])
+  @@index([leadId])
 }
 
 model Transaction {
@@ -152,6 +159,8 @@ model Transaction {
   amount        Int      @default(0)
   deletedAt    DateTime?
   createdAt     DateTime @default(now())
+
+  @@index([userId, deletedAt, createdAt])
 }
 
 model Setting {
