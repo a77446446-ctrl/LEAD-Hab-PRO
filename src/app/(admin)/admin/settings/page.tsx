@@ -296,6 +296,15 @@ export default function SettingsPage() {
           let remaining = Math.max(interval, 60) - elapsed;
           if (remaining < 0) remaining = 0;
           setNextRunSeconds(Math.floor(remaining));
+      } else if (!silent) {
+          // If it's missing (never run), save the current time to DB so countdown doesn't reset on every refresh
+          const now = Date.now();
+          fetch('/api/admin/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ key: 'maks_parser_last_run', value: String(now) }),
+          }).catch(console.error);
+          setNextRunSeconds(Math.max(interval, 60));
       }
     } catch (error) { console.error('Failed to fetch settings:', error); }
     finally { if (!silent) setLoading(false); }
@@ -609,7 +618,7 @@ export default function SettingsPage() {
 
     const countdown = setInterval(() => {
       setNextRunSeconds(prev => {
-        if (prev === null) return parseInterval;
+        if (prev === null) return null;
         return prev > 0 ? prev - 1 : 0;
       });
     }, 1000);

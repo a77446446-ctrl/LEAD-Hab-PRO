@@ -524,15 +524,17 @@ async function syncWithoutLease(leaseToken: string): Promise<SyncResult> {
         await new Promise((resolve) => setTimeout(resolve, 3000));
         continue;
       }
-      // Заголовок общей страницы MAX нельзя сохранять как название источника.
-      const parsedTitle = worker.status === 'OK' && worker.messages.length > 0 ? worker.title : null;
-      const title = parsedTitle || item.chat.name;
-      if (item.chat.targetId && parsedTitle && parsedTitle !== item.chat.name) {
-        await prisma.targetChat.update({
-          where: { id: item.chat.targetId },
-          data: { name: title.slice(0, 100) },
-        }).catch(() => {});
-      }
+        let parsedTitle = worker.status === 'OK' && worker.messages.length > 0 ? worker.title : null;
+        if (parsedTitle && (/непрочитан/i.test(parsedTitle) || /сообщен/i.test(parsedTitle))) {
+          parsedTitle = null;
+        }
+        const title = parsedTitle || item.chat.name;
+        if (item.chat.targetId && parsedTitle && parsedTitle !== item.chat.name) {
+          await prisma.targetChat.update({
+            where: { id: item.chat.targetId },
+            data: { name: title.slice(0, 100) },
+          }).catch(() => {});
+        }
 
       let chatLeads = 0;
       for (const message of worker.messages) {

@@ -146,11 +146,9 @@ function fallbackScriptParse(rawText: string, categories: any[]): ProcessedLead 
   }
 
   // 4. Формирование сгенерированного заголовка
-  // Если город не указан и категория "Другое", используем кусок текста как заголовок
-  let title = `${categoryName} (${detectedCity})`;
-  if (detectedCategory === 'other' && detectedCity === 'Не указан') {
-    title = rawText.trim().replace(/\s+/g, ' ').substring(0, 40) + '...';
-  }
+  // Используем начало сообщения как заголовок, чтобы сразу было понятно о чем речь
+  const snippet = rawText.trim().replace(/\s+/g, ' ').substring(0, 50) + (rawText.length > 50 ? '...' : '');
+  const title = snippet || 'Без названия';
 
   return {
     title,
