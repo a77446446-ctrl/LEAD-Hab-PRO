@@ -91,7 +91,7 @@ export async function createPaymentOrder(userId: string, input: {
     const category = await prisma.category.findFirst({ where: { id: input.categoryId, active: true } });
     if (!category || category.subscriptionPrice <= 0 || category.days < 1) throw new Error('PRO-подписка недоступна');
     categoryId = category.id; subscriptionDays = Math.min(category.days, 3650);
-    amount = rublesToKopecks(category.subscriptionPrice);
+    amount = category.subscriptionPrice;
     description = `PRO «${category.name}» на ${subscriptionDays} дней`.slice(0, 128);
   }
 

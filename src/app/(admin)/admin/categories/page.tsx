@@ -100,7 +100,12 @@ export default function AdminCategoriesPage() {
     try {
       const res = await fetch('/api/admin/category');
       const data = await res.json();
-      setCategories(Array.isArray(data) ? data : []);
+      const categories = Array.isArray(data) ? data.map(cat => ({
+        ...cat,
+        leadPrice: cat.leadPrice / 100,
+        subscriptionPrice: cat.subscriptionPrice / 100
+      })) : [];
+      setCategories(categories);
     } catch (e) {
       console.error('Failed to fetch categories');
     } finally {

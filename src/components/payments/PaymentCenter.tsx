@@ -19,7 +19,10 @@ export function PaymentCenter() {
         if (!response.ok) throw new Error('Не удалось загрузить тарифы');
         return response.json() as Promise<{ categories: CategoryPlan[]; topupPresets: number[] }>;
       })
-      .then((data) => { setPlans(data.categories); setPresets(data.topupPresets); })
+      .then((data) => { 
+        setPlans(data.categories.map(c => ({ ...c, subscriptionPrice: c.subscriptionPrice / 100 }))); 
+        setPresets(data.topupPresets); 
+      })
       .catch((reason) => setError(reason instanceof Error ? reason.message : 'Ошибка тарифов'));
   }, []);
 

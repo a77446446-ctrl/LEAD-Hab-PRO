@@ -13,11 +13,17 @@ export async function POST() {
   try {
     console.log('Starting manual parser sync...');
     
-    // Set syncing = true in DB
+    // Set syncing = true in DB and update last run time
+    const nowStr = Date.now().toString();
     await prisma.setting.upsert({
       where: { key: 'syncing' },
       update: { value: 'true' },
       create: { key: 'syncing', value: 'true' }
+    });
+    await prisma.setting.upsert({
+      where: { key: 'maks_parser_last_run' },
+      update: { value: nowStr },
+      create: { key: 'maks_parser_last_run', value: nowStr }
     });
 
     // Background YooKassa reconciliation

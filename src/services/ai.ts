@@ -145,9 +145,12 @@ function fallbackScriptParse(rawText: string, categories: any[]): ProcessedLead 
     }
   }
 
-  // 4. Генерация адекватного заголовка
-  // Строгий шаблон: "Имя Категории (Город)"
-  const title = `${categoryName} (${detectedCity})`;
+  // 4. Формирование сгенерированного заголовка
+  // Если город не указан и категория "Другое", используем кусок текста как заголовок
+  let title = `${categoryName} (${detectedCity})`;
+  if (detectedCategory === 'other' && detectedCity === 'Не указан') {
+    title = rawText.trim().replace(/\s+/g, ' ').substring(0, 40) + '...';
+  }
 
   return {
     title,

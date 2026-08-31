@@ -39,7 +39,7 @@ export default function AdminLeadsPage() {
   const fetchLeads = async (silent = false) => {
     try {
       if (!silent) setLoading(true);
-      const res = await fetch('/api/leads?take=500');
+      const res = await fetch('/api/admin/leads?take=500');
       const data = await res.json();
       setLeads(Array.isArray(data) ? data : []);
     } catch (err) {
@@ -226,7 +226,7 @@ export default function AdminLeadsPage() {
                  <span>ID: {selectedLead.id}</span>
                  <span>Получено: {formatTime(selectedLead.createdAt)}</span>
                </div>
-               <div className="text-xl font-black text-black bg-accent rounded-lg px-4 py-2 shadow-[0_0_15px_rgba(228,255,0,0.2)]">{Number(selectedLead.price)} ₽</div>
+               <div className="text-xl font-black text-black bg-accent rounded-lg px-4 py-2 shadow-[0_0_15px_rgba(228,255,0,0.2)]">{Number((selectedLead.price / 100))} ₽</div>
             </div>
           </div>
         </div>

@@ -52,3 +52,41 @@ export async function DELETE(req: NextRequest) {
     return NextResponse.json({ error: 'Failed to delete lead' }, { status: 500 });
   }
 }
+
+export async function GET(req: NextRequest) {
+  const denied = await adminGuard();
+  if (denied) return denied;
+  try {
+    const { searchParams } = new URL(req.url);
+    const takeParam = Number(searchParams.get('take') || '500');
+    const take = Number.isInteger(takeParam) ? Math.min(Math.max(takeParam, 1), 1000) : 500;
+
+    const leads = await prisma.lead.findMany({
+      where: { deletedAt: null },
+      take,
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        rawText: true,
+        phone: true,
+        city: true,
+        categoryId: true,
+        sourceChat: true,
+        score: true,
+        price: true,
+        status: true,
+        createdAt: true,
+        category: {
+          select: { id: true, name: true, slug: true, paymentMode: true, imageUrl: true },
+        },
+      },
+    });
+
+    return NextResponse.json(leads);
+  } catch (error) {
+    console.error('Failed to fetch leads:', error);
+    return NextResponse.json({ error: 'Failed to fetch leads' }, { status: 500 });
+  }
+}
+

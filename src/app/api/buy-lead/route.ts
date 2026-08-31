@@ -140,7 +140,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       purchaseId: result.purchaseId,
-      newBalance: kopecksToRubles(result.balance),
+      newBalance: result.balance,
       alreadyPurchased: result.alreadyPurchased,
     });
   } catch (error) {

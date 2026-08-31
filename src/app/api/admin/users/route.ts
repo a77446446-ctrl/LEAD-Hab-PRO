@@ -27,7 +27,7 @@ export async function GET() {
       maxId: user.maxId.toString(),
       name: user.name,
       role: user.role,
-      balance: user.balance.toFixed(2),
+      balance: user.balance,
       rating: user.rating,
       createdAt: user.createdAt,
     })));
