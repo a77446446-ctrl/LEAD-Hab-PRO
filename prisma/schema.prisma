@@ -73,6 +73,7 @@ model Lead {
   categoryId    String
   category      Category      @relation(fields: [categoryId], references: [id])
   sourceChat    String?
+  fingerprint   String?       @unique
   score         Int           @default(0)
   price         Float         @default(0)
   status        String        @default("NEW")
