@@ -7,8 +7,14 @@ import random
 import re
 import sys
 import time
+import signal
 from pathlib import Path
 from urllib.parse import urlsplit, urlunsplit
+
+def _handle_sigterm(*args):
+    sys.exit(0)
+
+signal.signal(signal.SIGTERM, _handle_sigterm)
 
 from playwright.sync_api import TimeoutError as PlaywrightTimeoutError
 from playwright.sync_api import sync_playwright
@@ -270,7 +276,28 @@ def run_parser(session_id, chat_url):
         stage = "подключение прокси"
         proxy, relay = build_playwright_proxy(proxy_url)
         with sync_playwright() as playwright:
-            launch_options = {"headless": True}
+            launch_options = {
+                "headless": True,
+                "args": [
+                    "--disable-dev-shm-usage",
+                    "--no-sandbox",
+                    "--disable-gpu",
+                    "--disable-software-rasterizer",
+                    "--disable-extensions",
+                    "--disable-background-networking",
+                    "--disable-background-timer-throttling",
+                    "--disable-client-side-phishing-detection",
+                    "--disable-default-apps",
+                    "--disable-hang-monitor",
+                    "--disable-popup-blocking",
+                    "--disable-prompt-on-repost",
+                    "--disable-sync",
+                    "--metrics-recording-only",
+                    "--no-first-run",
+                    "--safebrowsing-disable-auto-update",
+                    "--mute-audio"
+                ]
+            }
             if proxy:
                 launch_options["proxy"] = proxy
             stage = "запуск Chromium"
