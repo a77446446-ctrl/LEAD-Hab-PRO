@@ -521,6 +521,7 @@ async function syncWithoutLease(leaseToken: string): Promise<SyncResult> {
             data: { lastCheckedAt: new Date(), lastError: 'Не удалось проверить чат активными аккаунтами' },
           });
         }
+        await new Promise((resolve) => setTimeout(resolve, 3000));
         continue;
       }
       // Заголовок общей страницы MAX нельзя сохранять как название источника.
@@ -555,6 +556,7 @@ async function syncWithoutLease(leaseToken: string): Promise<SyncResult> {
       }
       const workerDetail = worker.status === 'EMPTY' && worker.error ? `; ${worker.error}` : '';
       pushLog(logs, `[${item.chat.name}] сообщений: ${worker.messages.length}, новых лидов: ${chatLeads}${workerDetail}`);
+      await new Promise((resolve) => setTimeout(resolve, 3000));
     }
 
     await saveChats(chats);

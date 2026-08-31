@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminGuard } from '@/lib/auth/admin-guard';
 import { prisma } from '@/lib/prisma';
 import { normalizeMaxNumericId } from '@/lib/max-bot';
+import { rublesToKopecks } from '@/lib/money';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,7 +14,7 @@ function parseMoney(value: unknown, field: string): number {
   if (!Number.isFinite(amount) || amount < 0 || amount > 1_000_000) {
     throw new Error(`Поле «${field}» содержит некорректную сумму`);
   }
-  return Math.round(amount * 100) / 100;
+  return rublesToKopecks(amount);
 }
 
 function optionalText(value: unknown, maxLength: number): string | null {

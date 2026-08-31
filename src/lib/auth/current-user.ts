@@ -47,6 +47,7 @@ export function serializeCurrentUser(user: Awaited<ReturnType<typeof requireCurr
     max_id: user.maxId.toString(),
     name: user.name,
     role: isConfiguredAdminMaxId(user.maxId) ? 'admin' : 'user',
+    balance: user.balance,
     rating: user.rating,
     notify_enabled: user.notifyEnabled,
     bot_available: Boolean(user.botStartedAt),

@@ -5,11 +5,7 @@ import { LeadCard } from '@/components/cards/LeadCard';
 import { useUser } from '@/store/useUser';
 import { Search, Filter, Loader2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
-interface CategoryPreference {
-  id: string;
-  name: string;
-  notifyEnabled: boolean;
-}
+
 
 export default function DashboardPage() {
   const { user, setBalance, setNotifyEnabled } = useUser();
@@ -20,7 +16,7 @@ export default function DashboardPage() {
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeCity, setActiveCity] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [categoryPreferences, setCategoryPreferences] = useState<CategoryPreference[]>([]);
+
 
   const fetchLeads = useCallback(async (showLoading = true) => {
     try {
@@ -42,31 +38,13 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchLeads();
-    fetch('/api/preferences/categories', { cache: 'no-store' })
-      .then((response) => response.ok ? response.json() : [])
-      .then((data) => setCategoryPreferences(Array.isArray(data) ? data : []))
-      .catch(() => setCategoryPreferences([]));
+
 
     const intervalId = setInterval(() => fetchLeads(false), 15_000);
     return () => clearInterval(intervalId);
   }, [fetchLeads]);
 
-  const toggleCategoryNotifications = async (category: CategoryPreference) => {
-    const enabled = !category.notifyEnabled;
-    const response = await fetch('/api/preferences/categories', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ categoryId: category.id, enabled }),
-    });
-    const data = await response.json() as { error?: string; code?: string; botUrl?: string };
-    if (!response.ok) {
-      if (data.code === 'BOT_NOT_STARTED' && data.botUrl) window.WebApp?.openMaxLink?.(data.botUrl);
-      alert(data.error || 'Не удалось изменить подписку');
-      return;
-    }
-    setCategoryPreferences((items) => items.map((item) => item.id === category.id ? { ...item, notifyEnabled: enabled } : item));
-    if (enabled) setNotifyEnabled(true);
-  };
+
 
   const [modal, setModal] = useState<{show: boolean, type: 'balance' | 'sub' | 'success' | null, msg: string}>({show: false, type: null, msg: ''});
 
@@ -173,26 +151,7 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {categoryPreferences.length > 0 && (
-        <div className="bg-white border border-black p-4 space-y-3">
-          <div>
-            <div className="text-xs font-black uppercase">Новые лиды в MAX</div>
-            <div className="text-[11px] text-[#666] font-medium">Выберите категории, по которым бот будет присылать тизеры.</div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {categoryPreferences.map((category) => (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => toggleCategoryNotifications(category)}
-                className={`px-3 py-2 text-[10px] font-black uppercase border border-black transition-colors ${category.notifyEnabled ? 'bg-accent text-black' : 'bg-white text-black hover:bg-gray-100'}`}
-              >
-                {category.notifyEnabled ? '🔔 ' : '🔕 '}{category.name}
-              </button>
-            ))}
-          </div>
-        </div>
-      )}
+
       {/* Leads List */}
       <div className="space-y-4">
         <div className="flex justify-between items-center px-1">

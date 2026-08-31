@@ -722,7 +722,7 @@ export default function SettingsPage() {
     } catch { addLog('Не удалось изменить состояние аккаунта', 'error'); }
   };
 
-  const inputClasses = "w-full bg-zinc-900 border border-zinc-700 py-3.5 pl-11 pr-4 text-xs font-medium focus:ring-1 focus:ring-black transition-all text-white placeholder:text-zinc-500 outline-none";
+  const inputClasses = "w-full bg-zinc-950 border border-zinc-700 rounded-lg py-2 pl-11 pr-4 text-xs font-medium focus:ring-1 focus:ring-black transition-all text-white placeholder:text-zinc-500 outline-none";
 
   if (!mounted) return null;
   if (loading) return <div className="flex items-center justify-center h-full"><Loader2 className="animate-spin text-accent" size={32} /></div>;
@@ -737,7 +737,7 @@ export default function SettingsPage() {
           </div>
           <h1 className="text-sm font-black tracking-widest text-white uppercase leading-none">НАСТРОЙКИ</h1>
           
-          <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950 border border-zinc-700 text-accent text-[9px] font-black uppercase tracking-widest transition-all hover:bg-zinc-700 sm:ml-4">
+          <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-accent text-[9px] font-black uppercase tracking-widest transition-all hover:bg-zinc-800 sm:ml-4">
             <div className="flex items-center gap-1.5">
               {saving ? <Loader2 className="animate-spin" size={12} /> : <Save size={12} />}
               <span>СОХРАНИТЬ</span>
@@ -745,7 +745,7 @@ export default function SettingsPage() {
           </button>
         </div>
         
-        <button onClick={() => setShowHelp(!showHelp)} className="flex items-center justify-center gap-2 border border-zinc-700 bg-zinc-900 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-white transition-all hover:bg-zinc-800 sm:w-auto">
+        <button onClick={() => setShowHelp(!showHelp)} className="flex items-center justify-center gap-2 border border-zinc-700 rounded-lg bg-zinc-900 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-white transition-all hover:bg-zinc-800 sm:w-auto">
           <div className="flex items-center gap-1.5">
             <HelpCircle size={14} /> <span>ИНСТРУКЦИЯ</span>
           </div>
@@ -754,24 +754,24 @@ export default function SettingsPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 rounded-xl items-stretch">
         {/* ACCOUNTS CARD */}
-        <div className="flex h-full flex-col rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-8">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-white"><UserIcon size={14} /></div>
+        <div className="flex h-full flex-col rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-6">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 rounded-none flex items-center justify-center text-white"><UserIcon size={14} /></div>
             <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">Аккаунты</h3>
           </div>
 
-          <div className="mb-6 space-y-5 rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-6">
+          <div className="mb-6 space-y-4 rounded-lg border border-zinc-700 p-4 sm:p-5 bg-transparent">
              <div className="flex items-center justify-between">
                 <label className="text-[8px] font-black text-zinc-400 uppercase tracking-[0.2em]">Режим подключения</label>
-                <div className="flex bg-zinc-900 p-1 border border-zinc-700">
+                <div className="flex bg-zinc-950 p-1 border border-zinc-700 rounded-lg">
                    <button 
                       onClick={() => {
                         setCanBypass(false);
                         setProxyStatus('idle');
                       }} // Reset status when switching
                       className={cn(
-                        "px-4 py-1.5 text-[9px] font-black uppercase transition-all border border-transparent",
-                        !canBypass ? "bg-zinc-800 text-white rounded-lg border-zinc-700" : "text-zinc-400 hover:text-white"
+                        "px-4 py-1.5 text-[9px] font-black uppercase transition-all border border-transparent rounded-md",
+                        !canBypass ? "bg-zinc-800 text-white border-zinc-700" : "text-zinc-400 hover:text-white"
                       )}
                       type="button"
                    >
@@ -785,8 +785,8 @@ export default function SettingsPage() {
                         setProxyPort('');
                       }}
                       className={cn(
-                        "px-4 py-1.5 text-[9px] font-black uppercase transition-all border border-transparent",
-                        canBypass ? "bg-zinc-800 text-white rounded-lg border-zinc-700" : "text-zinc-400 hover:text-white"
+                        "px-4 py-1.5 text-[9px] font-black uppercase transition-all border border-transparent rounded-md",
+                        canBypass ? "bg-zinc-800 text-white border-zinc-700" : "text-zinc-400 hover:text-white"
                       )}
                       type="button"
                    >
@@ -803,7 +803,7 @@ export default function SettingsPage() {
                        <select 
                           value={proxyProtocol}
                           onChange={(e) => setProxyProtocol(e.target.value as any)}
-                          className="bg-zinc-900 border border-zinc-700 py-1.5 px-3 text-[9px] font-black text-white uppercase focus:ring-1 focus:ring-black appearance-none cursor-pointer outline-none"
+                          className="bg-zinc-950 border border-zinc-700 rounded-lg py-1.5 px-3 text-[9px] font-black text-white uppercase focus:ring-1 focus:ring-black appearance-none cursor-pointer outline-none"
                        >
                           <option value="http://">HTTP</option>
                           <option value="socks5://">SOCKS5</option>
@@ -834,7 +834,7 @@ export default function SettingsPage() {
                  </div>
                </>
              ) : (
-               <div className="bg-zinc-900 border border-zinc-700 p-4 rounded-lg flex gap-3 items-center">
+               <div className="bg-zinc-950 border border-zinc-700 p-3 rounded-lg flex gap-3 items-center">
                   <div className="text-accent"><ShieldCheck size={20} /></div>
                   <div className="text-[9px] text-white font-black uppercase leading-relaxed">
                     Без прокси: браузер запускается на сервере Calyphity. VPN на вашем устройстве на него не влияет.
@@ -847,11 +847,11 @@ export default function SettingsPage() {
                   onClick={canBypass ? () => startAuthFlow('direct') : handleStartQR} 
                   disabled={authorizing || proxyStatus === 'checking' || (!canBypass && (!proxyIP || !proxyPort))} 
                   className={cn(
-                    "w-full flex items-center justify-center gap-2 py-4 text-xs font-black uppercase tracking-widest transition-all border border-zinc-700",
+                    "w-full flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-black uppercase tracking-widest transition-all border border-zinc-700",
                     (!canBypass && (!proxyIP || !proxyPort)) ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" : 
                     proxyStatus === 'valid' ? "bg-green-500 text-white" : 
                     proxyStatus === 'invalid' ? "bg-red-500 text-white" : 
-                    "bg-accent text-black hover:bg-[#F2FF00] rounded-lg"
+                    "bg-accent text-black hover:bg-[#F2FF00]"
                   )}
                >
                   {proxyStatus === 'checking' || authorizing ? <Loader2 className="animate-spin" size={12}/> : 
@@ -873,7 +873,7 @@ export default function SettingsPage() {
                      initial={{ opacity: 0, y: -10 }}
                      animate={{ opacity: 1, y: 0 }}
                      onClick={() => startAuthFlow('proxy', 'saved')}
-                     className="w-full flex items-center justify-center gap-2 py-3 bg-red-100 border border-red-500 text-red-600 text-[8px] font-black uppercase tracking-widest hover:bg-red-200 transition-all"
+                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-red-100 border border-red-500 text-red-600 text-[8px] font-black uppercase tracking-widest hover:bg-red-200 transition-all"
                    >
                      <Unlock size={12} />
                      <span>Всё равно добавить (Пропустить проверку)</span>
@@ -909,7 +909,7 @@ export default function SettingsPage() {
                      }
                    }}
                    className={cn(
-                     "w-full flex items-center justify-center gap-2 py-2.5 border text-[8px] font-black uppercase tracking-widest transition-all",
+                     "w-full flex items-center justify-center gap-2 py-2 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all",
                      proxyStatus === 'diagnosing' 
                        ? "bg-zinc-800 border-zinc-700 text-zinc-500 cursor-not-allowed" 
                        : "bg-zinc-950 border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-white"
@@ -922,13 +922,13 @@ export default function SettingsPage() {
              </div>
           </div>
 
-          <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar min-h-[150px] max-h-[250px]">
+          <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar min-h-[120px] max-h-[200px]">
             {sessions.map((session) => (
-              <div key={session.id} className="flex items-center justify-between bg-zinc-900 border border-zinc-700 p-4 rounded-lg group">
+              <div key={session.id} className="flex items-center justify-between bg-zinc-950 border border-zinc-700 p-3 rounded-lg group">
                 <div className="flex items-center gap-3">
                   <div className="relative">
-                    <div className="w-8 h-8 bg-zinc-950 flex items-center justify-center text-white"><UserIcon size={14} /></div>
-                    <div className={cn("absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border border-zinc-700", session.active ? "bg-green-500" : "bg-red-500")} />
+                    <div className="w-7 h-7 rounded-lg bg-zinc-900 border border-zinc-700 flex items-center justify-center text-white"><UserIcon size={12} /></div>
+                    <div className={cn("absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-zinc-700", session.active ? "bg-green-500" : "bg-red-500")} />
                   </div>
                   <div className="min-w-0">
                     <h4 className="text-[10px] font-black text-white uppercase tracking-tight leading-none">{session.name}</h4>
@@ -954,93 +954,81 @@ export default function SettingsPage() {
             ))}
           </div>
 
-          <div className="mt-8 pt-6 border-t border-zinc-700 space-y-2">
-            <label className="text-[8px] font-black text-zinc-400 uppercase tracking-[0.3em] block ml-1">Основной канал</label>
-            <div className="relative">
-              <MessageSquare className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={12} />
-              <input 
-                type="text" 
-                value={settings['maks_main_channel'] || ''}
-                onChange={(e) => {
-                  setSettings({ ...settings, maks_main_channel: e.target.value });
-                  setHasUnsavedChanges(true);
-                }}
-                placeholder="maks_lead_source" 
-                className={inputClasses}
-              />
-            </div>
-            <div className="flex items-center justify-between mt-6 mb-2">
-              <label className="text-[8px] font-black text-white uppercase tracking-[0.3em] ml-1">Использовать ИИ (DeepSeek) для анализа</label>
-              <button 
-                onClick={() => {
-                  setSettings({ ...settings, maks_ai_enabled: settings['maks_ai_enabled'] === 'true' ? 'false' : 'true' });
-                  setHasUnsavedChanges(true);
-                }}
-                className={cn(
-                  "w-10 h-5 rounded-full flex items-center transition-colors px-1",
-                  settings['maks_ai_enabled'] === 'true' ? "bg-accent" : "bg-zinc-700"
-                )}
-              >
-                <div className={cn(
-                  "w-3.5 h-3.5 rounded-full bg-black transition-transform",
-                  settings['maks_ai_enabled'] === 'true' ? "translate-x-5" : "translate-x-0"
-                )} />
-              </button>
-            </div>
-            {settings['maks_ai_enabled'] === 'true' && (
-              <>
-                <label className="text-[8px] font-black text-zinc-400 uppercase tracking-[0.3em] block ml-1 mt-4">API Ключ ИИ (DeepSeek / GPT)</label>
-                <div className="flex gap-2">
-                  <div className="relative flex-1">
-                    <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={12} />
-                    <input 
-                      type="password" 
-                      value={settings['maks_ai_api_key'] || ''}
-                      onChange={(e) => {
-                        setSettings({ ...settings, maks_ai_api_key: e.target.value });
-                        setHasUnsavedChanges(true);
-                        setAiStatus('idle');
-                      }}
-                      placeholder="sk-..." 
-                      className={cn(
-                        inputClasses,
-                        aiStatus === 'success' ? "border-green-500 focus:ring-green-500" :
-                        aiStatus === 'error' ? "border-red-500 focus:ring-red-500" :
-                        ""
-                      )}
-                    />
-                  </div>
-                  <button
-                    onClick={handleVerifyAiKey}
-                    disabled={verifyingAi || !settings['maks_ai_api_key']}
+          <div className="mt-6 space-y-5 pt-5 border-t border-zinc-700">
+            <div className="space-y-3">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="text-[8px] font-black text-white uppercase tracking-[0.3em] ml-1">Использовать ИИ (DeepSeek) для анализа</label>
+                  <button 
+                    onClick={() => {
+                      setSettings({ ...settings, maks_ai_enabled: settings['maks_ai_enabled'] === 'true' ? 'false' : 'true' });
+                      setHasUnsavedChanges(true);
+                    }}
                     className={cn(
-                      "px-4 text-[9px] font-black uppercase transition-all flex items-center justify-center gap-2 border border-zinc-700",
-                      verifyingAi ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" :
-                      aiStatus === 'success' ? "bg-green-100 text-green-700 hover:bg-green-200 border-green-500" :
-                      aiStatus === 'error' ? "bg-red-100 text-red-700 hover:bg-red-200 border-red-500" :
-                      "bg-zinc-900 text-white hover:bg-zinc-800"
+                      "w-10 h-5 rounded-full flex items-center transition-colors px-1 shrink-0",
+                      settings['maks_ai_enabled'] === 'true' ? "bg-accent" : "bg-zinc-700"
                     )}
                   >
-                    {verifyingAi ? <Loader2 className="animate-spin" size={14} /> : 
-                     aiStatus === 'success' ? <CheckCircle2 size={14} /> : 
-                     aiStatus === 'error' ? <AlertCircle size={14} /> : 
-                     <Zap size={14} />}
-                    <span>{verifyingAi ? 'Проверка...' : 'Проверить'}</span>
+                    <div className={cn(
+                      "w-3.5 h-3.5 rounded-full bg-black transition-transform",
+                      settings['maks_ai_enabled'] === 'true' ? "translate-x-5" : "translate-x-0"
+                    )} />
                   </button>
                 </div>
-                {aiStatus === 'error' && (
-                  <p className="text-[10px] text-red-500 mt-2 px-1">{aiErrorMsg}</p>
+                {settings['maks_ai_enabled'] === 'true' && (
+                  <div className="space-y-2">
+                    <label className="text-[8px] font-black text-zinc-400 uppercase tracking-[0.3em] block ml-1">API Ключ ИИ</label>
+                    <div className="flex gap-2">
+                      <div className="relative flex-1">
+                        <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={12} />
+                        <input 
+                          type="password" 
+                          value={settings['maks_ai_api_key'] || ''}
+                          onChange={(e) => {
+                            setSettings({ ...settings, maks_ai_api_key: e.target.value });
+                            setHasUnsavedChanges(true);
+                            setAiStatus('idle');
+                          }}
+                          placeholder="sk-..." 
+                          className={cn(
+                            inputClasses,
+                            aiStatus === 'success' ? "border-green-500 focus:ring-green-500" :
+                            aiStatus === 'error' ? "border-red-500 focus:ring-red-500" :
+                            ""
+                          )}
+                        />
+                      </div>
+                      <button
+                        onClick={handleVerifyAiKey}
+                        disabled={verifyingAi || !settings['maks_ai_api_key']}
+                        className={cn(
+                          "px-4 text-[9px] font-black uppercase transition-all flex items-center justify-center gap-2 border border-zinc-700 rounded-lg shrink-0",
+                          verifyingAi ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" :
+                          aiStatus === 'success' ? "bg-green-100 text-green-700 hover:bg-green-200 border-green-500" :
+                          aiStatus === 'error' ? "bg-red-100 text-red-700 hover:bg-red-200 border-red-500" :
+                          "bg-zinc-950 text-white hover:bg-zinc-800"
+                        )}
+                      >
+                        {verifyingAi ? <Loader2 className="animate-spin" size={14} /> : 
+                         aiStatus === 'success' ? <CheckCircle2 size={14} /> : 
+                         aiStatus === 'error' ? <AlertCircle size={14} /> : 
+                         <Zap size={14} />}
+                        <span>{verifyingAi ? 'Проверка...' : 'Проверить'}</span>
+                      </button>
+                    </div>
+                    {aiStatus === 'error' && (
+                      <p className="text-[10px] text-red-500 mt-2 px-1">{aiErrorMsg}</p>
+                    )}
+                    {aiStatus === 'success' && (
+                      <p className="text-[10px] text-green-500 mt-2 px-1">Ключ работает отлично. Баланс активен!</p>
+                    )}
+                  </div>
                 )}
-                {aiStatus === 'success' && (
-                  <p className="text-[10px] text-green-500 mt-2 px-1">Ключ работает отлично. Баланс активен!</p>
-                )}
-              </>
-            )}
+            </div>
 
-            <div className="mt-6 pt-6 border-t border-zinc-700 space-y-2">
-              <label className="text-[8px] font-black text-zinc-400 uppercase tracking-[0.3em] block ml-1">Антиспам / Стоп-слова</label>
-              <div className="relative">
-                <ShieldCheck className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={12} />
+            <div className="pt-4 border-t border-zinc-700 flex flex-col flex-1 min-h-0">
+              <label className="text-[8px] font-black text-zinc-400 uppercase tracking-[0.3em] block ml-1 mb-1.5 shrink-0">Антиспам / Стоп-слова</label>
+              <div className="relative flex-1 min-h-0">
+                <ShieldCheck className="absolute left-4 top-3 text-zinc-500" size={12} />
                 <textarea 
                   value={settings['maks_spam_keywords'] || ''}
                   onChange={(e) => {
@@ -1048,25 +1036,48 @@ export default function SettingsPage() {
                     setHasUnsavedChanges(true);
                   }}
                   placeholder="накрутка, эскорт, ищу работу..." 
-                  className={cn(inputClasses, "min-h-[80px] py-3 resize-y")}
+                  className={cn(inputClasses, "min-h-[60px] h-full py-2.5 resize-y rounded-lg")}
                 />
               </div>
-              <p className="text-[9px] text-zinc-500 ml-1 leading-relaxed font-bold">
-                <span className="text-accent">Как заполнять:</span> Вводите слова или фразы <strong className="text-white">через запятую</strong>. Регистр букв не важен. <br/>
-                Например: <code className="bg-zinc-800 text-zinc-300 px-1 py-0.5 rounded">ищу работу, предлагаю услуги, качественно и недорого</code><br/>
-                Лиды, содержащие эти слова, будут автоматически улетать в СПАМ.
+              <p className="text-[9px] text-zinc-500 ml-1 leading-relaxed font-bold mt-2 shrink-0">
+                <span className="text-accent">Формат:</span> вводите слова <strong className="text-white">через запятую</strong>.
               </p>
             </div>
-
           </div>
         </div>
 
         {/* PARSING CARD */}
-        <div className="flex h-full flex-col rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-8">
-          <div className="flex flex-col gap-4 rounded-lg mb-8">
+        <div className="flex h-full flex-col rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-6">
+          <div className="flex items-center justify-between gap-3 mb-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 rounded-none flex items-center justify-center text-white"><Activity size={14} /></div>
+              <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">Лог событий</h3>
+            </div>
+            <span className="flex items-center gap-1 text-[7px] font-black uppercase tracking-[0.2em] text-zinc-500">
+              {syncing && <Loader2 className="animate-spin" size={8} />}
+              {syncing ? 'ПАРСИНГ' : 'ГОТОВ'}
+            </span>
+          </div>
+          
+          <div className="bg-zinc-950 p-3 rounded-lg border border-zinc-700 space-y-2 mb-6 flex flex-col shrink-0 min-h-[100px] resize-y overflow-hidden" style={{ resize: 'vertical' }}>
+            <div className="flex-1 space-y-1 overflow-y-auto text-[9px] font-mono font-bold leading-snug text-zinc-400 custom-scrollbar pr-2">
+              {logs.length === 0 ? (
+                <div className="text-zinc-600 italic h-full flex items-center justify-center">Ожидание...</div>
+              ) : (
+                logs.map((log, i) => (
+                  <div key={i} className={cn("grid grid-cols-[auto_minmax(0,1fr)] items-start gap-2", log.type === 'success' ? "text-green-500" : log.type === 'error' ? "text-red-500" : "")}>
+                    <span className="whitespace-nowrap">[{log.time}]</span>
+                    <span className="min-w-0 whitespace-pre-wrap break-words select-text">{log.msg}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 mb-6">
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
-                <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-white"><Bot size={14} /></div>
+                <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 rounded-none flex items-center justify-center text-white"><Bot size={14} /></div>
                 <div>
                   <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">Очередь чатов</h3>
                   <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-[0.2em]">Статус парсера</p>
@@ -1076,7 +1087,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={() => handleAutoParseToggle(!autoParseEnabled)}
                 className={cn(
-                  'px-4 py-2 border border-zinc-700 text-[9px] font-black uppercase transition-all',
+                  'px-4 py-2 border border-zinc-700 rounded-lg text-[9px] font-black uppercase transition-all',
                   autoParseEnabled ? 'bg-accent text-black' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:text-white'
                 )}
               >
@@ -1089,7 +1100,7 @@ export default function SettingsPage() {
                 value={parseInterval}
                 onChange={(e) => handleIntervalChange(parseInt(e.target.value, 10))}
                 disabled={!autoParseEnabled}
-                className="shrink-0 bg-zinc-900 border border-zinc-700 py-1.5 px-3 text-[9px] font-black text-white uppercase focus:ring-1 focus:ring-black appearance-none cursor-pointer outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                className="shrink-0 bg-zinc-950 border border-zinc-700 rounded-lg py-1.5 px-3 text-[9px] font-black text-white uppercase focus:ring-1 focus:ring-black appearance-none cursor-pointer outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="60">1 МИН</option>
                 <option value="180">3 МИН</option>
@@ -1118,7 +1129,7 @@ export default function SettingsPage() {
 
           <div className="flex-1 space-y-2 overflow-y-auto pr-2 custom-scrollbar min-h-[150px] max-h-[300px] mb-6">
             {parsingChats.map((chat) => (
-              <div key={chat.url} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 overflow-hidden border border-zinc-700 bg-zinc-900 p-2.5 sm:gap-3 sm:p-3.5">
+              <div key={chat.url} className="grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5 overflow-hidden border border-zinc-700 bg-zinc-950 rounded-lg p-2.5 sm:gap-3 sm:p-3.5">
                 <button type="button" className="min-w-0 cursor-pointer overflow-hidden text-left" onClick={() => editChatName(chat.url)} title={chat.name}>
                   <div className="flex min-w-0 items-center gap-1.5 overflow-hidden">
                       <div className="relative shrink-0">
@@ -1133,8 +1144,8 @@ export default function SettingsPage() {
                       )}>
                         {chat.name}
                       </span>
-                      {chat.parseAll && <span className={cn("shrink-0 border px-1.5 py-0.5 text-[6px] font-black uppercase", sessions.length > 0 ? "rounded-lg border-green-800 bg-green-900/30 text-green-400" : "border-zinc-700 bg-zinc-800 text-zinc-500")}>ВСЁ</span>}
-                      {!chat.parseAll && <span className={cn("shrink-0 border px-1.5 py-0.5 text-[6px] font-black uppercase", sessions.length > 0 ? "rounded-lg border-yellow-800 bg-yellow-900/30 text-yellow-400" : "border-zinc-700 bg-zinc-800 text-zinc-500")}>ЦЕЛЕВЫЕ</span>}
+                      {chat.parseAll && <span className={cn("shrink-0 border px-1.5 py-0.5 text-[6px] font-black uppercase rounded-md", sessions.length > 0 ? "border-green-800 bg-green-900/30 text-green-400" : "border-zinc-700 bg-zinc-800 text-zinc-500")}>ВСЁ</span>}
+                      {!chat.parseAll && <span className={cn("shrink-0 border px-1.5 py-0.5 text-[6px] font-black uppercase rounded-md", sessions.length > 0 ? "border-yellow-800 bg-yellow-900/30 text-yellow-400" : "border-zinc-700 bg-zinc-800 text-zinc-500")}>ЦЕЛЕВЫЕ</span>}
                     </div>
                   <span className="block truncate text-[8px] font-bold uppercase tracking-[0.12em] text-zinc-500">{chat.url}</span>
                   {chat.lastParsedAt && (
@@ -1145,7 +1156,7 @@ export default function SettingsPage() {
                   <button 
                     onClick={() => toggleChatMode(chat.url)} 
                     className={cn(
-                      "shrink-0 border border-zinc-700 p-2 transition-all sm:p-2.5",
+                      "shrink-0 border border-zinc-700 rounded-lg p-2 transition-all sm:p-2.5",
                       chat.parseAll 
                         ? "bg-green-900/30 text-green-400 hover:bg-green-100" 
                         : "bg-yellow-900/30 text-yellow-400 hover:bg-yellow-100"
@@ -1163,42 +1174,24 @@ export default function SettingsPage() {
             ))}
           </div>
 
-          <div className="text-[9px] text-zinc-400 uppercase tracking-widest mb-6 space-y-1.5 bg-zinc-950 p-3 border border-zinc-700">
+          <div className="mb-4 space-y-1.5 ml-1 shrink-0">
             <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-green-500 border border-zinc-700"></div>
-              <span className="font-black">— Парсятся абсолютно все сообщения</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-green-500 border border-zinc-700 shrink-0"></div>
+              <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">— Парсятся абсолютно все сообщения</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 border border-zinc-700"></div>
-              <span className="font-black">— Парсятся только подходящие под категории</span>
+              <div className="w-1.5 h-1.5 rounded-full bg-yellow-500 border border-zinc-700 shrink-0"></div>
+              <span className="text-[8px] text-zinc-500 font-bold uppercase tracking-widest">— Парсятся только подходящие под категории</span>
             </div>
           </div>
 
-          <div className="space-y-4 pt-6 border-t border-zinc-700">
-            <div className="bg-zinc-950 p-4 rounded-lg border border-zinc-700 space-y-2">
-              <div className="flex items-center justify-between text-[7px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                <span className="flex items-center gap-1.5"><Activity size={8} /> Лог событий</span>
-                <span className="flex items-center gap-1">
-                  {syncing && <Loader2 className="animate-spin" size={6} />}
-                  {syncing ? 'ПАРСИНГ' : 'ГОТОВ'}
-                </span>
-              </div>
-              <div className="max-h-[180px] space-y-1 overflow-y-auto text-[9px] font-mono font-bold leading-snug text-zinc-300 custom-scrollbar">
-                {logs.map((log, i) => (
-                  <div key={i} className={cn("grid grid-cols-[auto_minmax(0,1fr)] items-start gap-2", log.type === 'success' ? "text-green-600" : log.type === 'error' ? "text-red-600" : "")}>
-                    <span className="whitespace-nowrap">[{log.time}]</span>
-                    <span className="min-w-0 whitespace-pre-wrap break-words select-text">{log.msg}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
+          <div className="pt-4 border-t border-zinc-700 shrink-0">
             {!autoParseEnabled && (
               <button 
                 onClick={handleSync}
                 disabled={syncing || sessions.length === 0}
                 className={cn(
-                  "neon-button w-full flex items-center justify-center gap-3",
+                  "neon-button w-full flex items-center justify-center gap-3 rounded-lg",
                   sessions.length === 0 ? "opacity-50 cursor-not-allowed hover:bg-accent" : ""
                 )}
               >
@@ -1305,8 +1298,8 @@ export default function SettingsPage() {
                 <li><strong className="text-white">Очередь чатов:</strong> добавьте ссылки на чаты (вида web.max.ru/...).</li>
                 <li><strong className="text-white">Режим парсинга:</strong> кнопка <Activity className="inline-block" size={10}/> напротив чата позволяет выбрать:
                   <div className="mt-2 pl-2 space-y-1">
-                    <div className="text-green-600 font-black border border-green-600 bg-green-50 px-2 py-1 inline-block mt-1">«Зеленый статус» — собираются абсолютно все сообщения.</div>
-                    <div className="text-yellow-600 font-black border border-yellow-600 bg-yellow-50 px-2 py-1 inline-block mt-1">«Желтый статус» — только целевые (подходящие под категории).</div>
+                    <div className="text-green-500 font-black py-1">«Зеленый статус» — собираются абсолютно все сообщения.</div>
+                    <div className="text-yellow-500 font-black py-1">«Желтый статус» — только целевые (подходящие под категории).</div>
                   </div>
                 </li>
               </ul>

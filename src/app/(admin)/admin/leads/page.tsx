@@ -41,7 +41,7 @@ export default function AdminLeadsPage() {
       if (!silent) setLoading(true);
       const res = await fetch('/api/leads?take=500');
       const data = await res.json();
-      setLeads(data);
+      setLeads(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Failed to fetch leads', err);
     } finally {
@@ -107,82 +107,90 @@ export default function AdminLeadsPage() {
         </div>
       </div>
 
-      <div className="relative z-10 overflow-x-auto rounded-xl border border-zinc-700 bg-zinc-900 p-0 shadow-lg">
-        <div className="flex min-w-max gap-4 border-b border-zinc-700 bg-zinc-800/50 p-4 sm:gap-6 sm:p-6">
-          <button onClick={() => setActiveTab('ALL')} className={cn("text-xs font-black pb-2 border-b-4 transition-all uppercase tracking-wider", activeTab === 'ALL' ? "text-white border-accent" : "text-zinc-500 border-transparent hover:text-white")}>ВСЕ</button>
-          <button onClick={() => setActiveTab('NEW')} className={cn("text-xs font-black pb-2 border-b-4 transition-all uppercase tracking-wider", activeTab === 'NEW' ? "text-white border-accent" : "text-zinc-500 border-transparent hover:text-white")}>НОВЫЕ</button>
-          <button onClick={() => setActiveTab('SOLD')} className={cn("text-xs font-black pb-2 border-b-4 transition-all uppercase tracking-wider", activeTab === 'SOLD' ? "text-white border-accent" : "text-zinc-500 border-transparent hover:text-white")}>ПРОДАННЫЕ</button>
-          <button onClick={() => setActiveTab('ARCHIVED')} className={cn("text-xs font-black pb-2 border-b-4 transition-all uppercase tracking-wider", activeTab === 'ARCHIVED' ? "text-white border-accent" : "text-zinc-500 border-transparent hover:text-white")}>АРХИВ</button>
-          <button onClick={() => setActiveTab('SPAM')} className={cn("text-xs font-black pb-2 border-b-4 transition-all uppercase tracking-wider", activeTab === 'SPAM' ? "text-red-500 border-red-500" : "text-zinc-500 border-transparent hover:text-red-400")}>СПАМ</button>
+      <div className="flex flex-col rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-lg">
+        <div className="flex items-center gap-3 p-4 sm:p-8 border-b border-zinc-800">
+           <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-zinc-400">
+              <Database size={14} />
+           </div>
+           <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">СПИСОК ЛИДОВ</h3>
         </div>
-
-        {loading ? (
-          <div className="flex items-center justify-center py-20 text-white">
-            <Loader2 className="animate-spin" size={32} />
+        <div className="relative z-10 overflow-x-auto p-0">
+          <div className="flex min-w-max gap-4 border-b border-zinc-700 bg-zinc-800/30 p-4 sm:gap-6 sm:px-8">
+            <button onClick={() => setActiveTab('ALL')} className={cn("text-xs font-black pb-2 border-b-4 transition-all uppercase tracking-wider", activeTab === 'ALL' ? "text-white border-accent" : "text-zinc-500 border-transparent hover:text-white")}>ВСЕ</button>
+            <button onClick={() => setActiveTab('NEW')} className={cn("text-xs font-black pb-2 border-b-4 transition-all uppercase tracking-wider", activeTab === 'NEW' ? "text-white border-accent" : "text-zinc-500 border-transparent hover:text-white")}>НОВЫЕ</button>
+            <button onClick={() => setActiveTab('SOLD')} className={cn("text-xs font-black pb-2 border-b-4 transition-all uppercase tracking-wider", activeTab === 'SOLD' ? "text-white border-accent" : "text-zinc-500 border-transparent hover:text-white")}>ПРОДАННЫЕ</button>
+            <button onClick={() => setActiveTab('ARCHIVED')} className={cn("text-xs font-black pb-2 border-b-4 transition-all uppercase tracking-wider", activeTab === 'ARCHIVED' ? "text-white border-accent" : "text-zinc-500 border-transparent hover:text-white")}>АРХИВ</button>
+            <button onClick={() => setActiveTab('SPAM')} className={cn("text-xs font-black pb-2 border-b-4 transition-all uppercase tracking-wider", activeTab === 'SPAM' ? "text-red-500 border-red-500" : "text-zinc-500 border-transparent hover:text-red-400")}>СПАМ</button>
           </div>
-        ) : (
-          <table className="w-full min-w-[900px] text-left" ref={menuRef}>
-            <thead className="bg-zinc-900 text-[9px] uppercase font-black text-zinc-400 tracking-[0.2em] border-b border-zinc-700">
-              <tr>
-                <th className="px-6 py-5">Лид</th>
-                <th className="px-6 py-5">Город</th>
-                <th className="px-6 py-5">Цена</th>
-                <th className="px-6 py-5">Статус</th>
-                <th className="px-6 py-5">Время</th>
-                <th className="px-6 py-5 text-right">Действия</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-800 bg-zinc-900">
-              {filteredLeads.length === 0 ? (
-                <tr><td colSpan={6} className="text-center py-12 text-zinc-500 font-black text-xs uppercase tracking-widest">Лидов не найдено</td></tr>
-              ) : filteredLeads.map((lead) => (
-                <tr key={lead.id} className="hover:bg-zinc-800 transition-colors group cursor-pointer" onClick={() => setSelectedLead(lead)}>
-                  <td className="px-6 py-5">
-                    <div className="font-black text-sm text-white group-hover:text-accent transition-colors">{lead.title}</div>
-                    <div className="text-[9px] text-zinc-500 uppercase tracking-widest mt-1 flex gap-2 items-center font-bold">
-                      <span>ID: {lead.id.substring(0, 8)}</span>
-                      {lead.sourceChat && (
-                        <span className="text-zinc-600 truncate max-w-[150px]" title={lead.sourceChat}>
-                          • {lead.sourceChat.replace('https://web.max.ru/', '')}
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-6 py-5 text-xs text-zinc-400 font-bold">{lead.city}</td>
-                  <td className="px-6 py-5 text-sm font-black text-white">{Number((lead.price / 100))}₽</td>
-                  <td className="px-6 py-5">
-                    {lead.status === 'NEW' && <span className="bg-blue-900/30 text-blue-400 text-[9px] font-black px-2 py-0.5 border border-blue-800 rounded uppercase flex items-center gap-1.5 w-fit"><Clock size={10}/> Новый</span>}
-                    {lead.status === 'SOLD' && <span className="bg-green-900/30 text-green-400 text-[9px] font-black px-2 py-0.5 border border-green-800 rounded uppercase flex items-center gap-1.5 w-fit"><CheckCircle size={10}/> Продан</span>}
-                    {lead.status === 'SPAM' && <span className="bg-red-900/30 text-red-400 text-[9px] font-black px-2 py-0.5 border border-red-800 rounded uppercase flex items-center gap-1.5 w-fit"><AlertCircle size={10}/> Спам</span>}
-                    {lead.status === 'ARCHIVED' && <span className="bg-zinc-800 text-zinc-400 text-[9px] font-black px-2 py-0.5 border border-zinc-700 rounded uppercase flex items-center gap-1.5 w-fit"><Archive size={10}/> Архив</span>}
-                  </td>
-                  <td className="px-6 py-5 text-[10px] text-zinc-500 font-black">{formatTime(lead.createdAt)}</td>
-                  <td className="px-6 py-5 text-right relative">
-                    <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === lead.id ? null : lead.id)}} className="p-2.5 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-all border border-transparent hover:border-zinc-600 bg-zinc-800 rounded-lg"><MoreVertical size={14} /></button>
-                    
-                    {openMenuId === lead.id && (
-                      <div className="absolute right-8 top-12 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl overflow-hidden z-50 min-w-[160px] flex flex-col text-left" onClick={e => e.stopPropagation()}>
-                        {lead.status !== 'ARCHIVED' && (
-                          <button onClick={() => handleUpdateStatus(lead.id, 'ARCHIVED')} className="px-4 py-3 text-[10px] font-black text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center gap-2.5 transition-colors uppercase tracking-widest border-b border-zinc-800">
-                            <Archive size={12} /> В архив
-                          </button>
-                        )}
-                        {lead.status === 'ARCHIVED' && (
-                          <button onClick={() => handleUpdateStatus(lead.id, 'NEW')} className="px-4 py-3 text-[10px] font-black text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center gap-2.5 transition-colors uppercase tracking-widest border-b border-zinc-800">
-                            <Clock size={12} /> Вернуть
-                          </button>
-                        )}
-                        <button onClick={() => handleDelete(lead.id)} className="px-4 py-3 text-[10px] font-black text-red-500 hover:bg-red-950 flex items-center gap-2.5 transition-colors uppercase tracking-widest">
-                          <Trash2 size={12} /> Удалить
-                        </button>
-                      </div>
-                    )}
-                  </td>
+
+          {loading ? (
+            <div className="flex items-center justify-center py-20 text-white">
+              <Loader2 className="animate-spin" size={32} />
+            </div>
+          ) : (
+            <table className="w-full min-w-[900px] text-left" ref={menuRef}>
+              <thead className="bg-zinc-900/50 text-[9px] uppercase font-black text-zinc-400 tracking-[0.2em] border-b border-zinc-800">
+                <tr>
+                  <th className="px-8 py-5">Лид</th>
+                  <th className="px-6 py-5">Город</th>
+                  <th className="px-6 py-5">Цена</th>
+                  <th className="px-6 py-5">Статус</th>
+                  <th className="px-6 py-5">Время</th>
+                  <th className="px-8 py-5 text-right">Действия</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
+              </thead>
+              <tbody className="divide-y divide-zinc-800/50 bg-transparent">
+                {filteredLeads.length === 0 ? (
+                  <tr><td colSpan={6} className="text-center py-12 text-zinc-500 font-black text-xs uppercase tracking-widest">Лидов не найдено</td></tr>
+                ) : filteredLeads.map((lead) => (
+                  <tr key={lead.id} className="hover:bg-zinc-800/50 transition-colors group cursor-pointer" onClick={() => setSelectedLead(lead)}>
+                    <td className="px-8 py-5">
+                      <div className="font-black text-sm text-white group-hover:text-accent transition-colors">{lead.title}</div>
+                      <div className="text-[9px] text-zinc-500 uppercase tracking-widest mt-1 flex gap-2 items-center font-bold">
+                        <span>ID: {lead.id.substring(0, 8)}</span>
+                        {lead.sourceChat && (
+                          <span className="text-zinc-600 truncate max-w-[150px]" title={lead.sourceChat}>
+                            • {lead.sourceChat.replace('https://web.max.ru/', '')}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-6 py-5 text-xs text-zinc-400 font-bold">{lead.city}</td>
+                    <td className="px-6 py-5 text-sm font-black text-white">{Number((lead.price / 100))}₽</td>
+                    <td className="px-6 py-5">
+                      {lead.status === 'NEW' && <span className="bg-blue-900/30 text-blue-400 text-[9px] font-black px-2 py-0.5 border border-blue-800 rounded uppercase flex items-center gap-1.5 w-fit"><Clock size={10}/> Новый</span>}
+                      {lead.status === 'SOLD' && <span className="bg-green-900/30 text-green-400 text-[9px] font-black px-2 py-0.5 border border-green-800 rounded uppercase flex items-center gap-1.5 w-fit"><CheckCircle size={10}/> Продан</span>}
+                      {lead.status === 'SPAM' && <span className="bg-red-900/30 text-red-400 text-[9px] font-black px-2 py-0.5 border border-red-800 rounded uppercase flex items-center gap-1.5 w-fit"><AlertCircle size={10}/> Спам</span>}
+                      {lead.status === 'ARCHIVED' && <span className="bg-zinc-800 text-zinc-400 text-[9px] font-black px-2 py-0.5 border border-zinc-700 rounded uppercase flex items-center gap-1.5 w-fit"><Archive size={10}/> Архив</span>}
+                    </td>
+                    <td className="px-6 py-5 text-[10px] text-zinc-500 font-black">{formatTime(lead.createdAt)}</td>
+                    <td className="px-8 py-5 text-right relative">
+                      <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === lead.id ? null : lead.id)}} className="p-2.5 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-all border border-transparent hover:border-zinc-600 bg-zinc-800 rounded-lg"><MoreVertical size={14} /></button>
+                      
+                      {openMenuId === lead.id && (
+                        <div className="absolute right-8 top-12 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl overflow-hidden z-50 min-w-[160px] flex flex-col text-left" onClick={e => e.stopPropagation()}>
+                          {lead.status !== 'ARCHIVED' && (
+                            <button onClick={() => handleUpdateStatus(lead.id, 'ARCHIVED')} className="px-4 py-3 text-[10px] font-black text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center gap-2.5 transition-colors uppercase tracking-widest border-b border-zinc-800">
+                              <Archive size={12} /> В архив
+                            </button>
+                          )}
+                          {lead.status === 'ARCHIVED' && (
+                            <button onClick={() => handleUpdateStatus(lead.id, 'NEW')} className="px-4 py-3 text-[10px] font-black text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center gap-2.5 transition-colors uppercase tracking-widest border-b border-zinc-800">
+                              <Clock size={12} /> Вернуть
+                            </button>
+                          )}
+                          <button onClick={() => handleDelete(lead.id)} className="px-4 py-3 text-[10px] font-black text-red-500 hover:bg-red-950 flex items-center gap-2.5 transition-colors uppercase tracking-widest">
+                            <Trash2 size={12} /> Удалить
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
       </div>
 
       {/* MODAL VIEW */}

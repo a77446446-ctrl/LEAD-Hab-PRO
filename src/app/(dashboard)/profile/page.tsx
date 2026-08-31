@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUser } from '@/store/useUser';
+import { useUser } from '@/store/useUser';
 
 
 import { Settings, LogOut, Award, History, TrendingUp } from 'lucide-react';
@@ -12,14 +13,33 @@ export default function ProfilePage() {
   const router = useRouter();
   const { user, logout, setNotifyEnabled } = useUser();
   const [savingNotifications, setSavingNotifications] = useState(false);
+  const [categoryPreferences, setCategoryPreferences] = useState<any[]>([]);
 
   useEffect(() => {
-    if (user && user.role !== 'admin') router.replace('/dashboard');
-  }, [router, user]);
+    fetch('/api/preferences/categories', { cache: 'no-store' })
+      .then((res) => res.ok ? res.json() : [])
+      .then((data) => setCategoryPreferences(Array.isArray(data) ? data : []))
+      .catch(() => setCategoryPreferences([]));
+  }, []);
 
-  if (!user || user.role !== 'admin') return null;
+  if (!user) return null;
 
-
+  const toggleCategoryNotifications = async (category: any) => {
+    const enabled = !category.notifyEnabled;
+    const response = await fetch('/api/preferences/categories', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ categoryId: category.id, enabled }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      if (data.code === 'BOT_NOT_STARTED' && data.botUrl) window.WebApp?.openMaxLink?.(data.botUrl);
+      alert(data.error || 'Не удалось изменить подписку');
+      return;
+    }
+    setCategoryPreferences((items) => items.map((item) => item.id === category.id ? { ...item, notifyEnabled: enabled } : item));
+    if (enabled) setNotifyEnabled(true);
+  };
 
   const changeNotifications = async (enabled: boolean) => {
     setSavingNotifications(true);
@@ -76,6 +96,28 @@ export default function ProfilePage() {
           </div>
         ))}
       </div>
+
+      {/* Category Subscriptions */}
+      {categoryPreferences.length > 0 && (
+        <div className="bg-white border border-black p-4 space-y-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+          <div>
+            <div className="text-xs font-black uppercase">Мои категории</div>
+            <div className="text-[11px] text-[#666] font-medium">Выберите, по каким лидам получать уведомления от бота.</div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {categoryPreferences.map((category) => (
+              <button
+                key={category.id}
+                type="button"
+                onClick={() => toggleCategoryNotifications(category)}
+                className={`px-3 py-2 text-[10px] font-black uppercase border border-black transition-colors ${category.notifyEnabled ? 'bg-accent text-black' : 'bg-white text-black hover:bg-gray-100'}`}
+              >
+                {category.notifyEnabled ? '🔔 ' : '🔕 '}{category.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Menu */}
       <div className="space-y-2">

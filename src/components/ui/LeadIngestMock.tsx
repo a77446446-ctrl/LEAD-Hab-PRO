@@ -27,10 +27,12 @@ export const LeadIngestMock = () => {
   };
 
   return (
-    <div className="bg-zinc-900 p-6 space-y-4">
-      <div className="flex items-center gap-2 mb-2">
-        <Cpu size={20} className="text-accent" />
-        <h3 className="font-bold text-white">AI Lead Ingest (Test)</h3>
+    <div className="flex flex-col h-full rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-8 space-y-4">
+      <div className="flex items-center gap-3 mb-8">
+        <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-accent">
+          <Cpu size={14} />
+        </div>
+        <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">AI ПАРСЕР (ТЕСТ)</h3>
       </div>
       
       <textarea 

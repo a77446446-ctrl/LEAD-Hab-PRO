@@ -153,25 +153,33 @@ export default function UsersPage() {
             ))}
           </div>
 
-          <div className="hidden overflow-x-auto rounded-xl border border-zinc-700 bg-zinc-900 shadow-lg md:block">
-            <table className="w-full min-w-[900px] border-collapse text-left">
-              <thead>
-                <tr className="border-b border-zinc-700 bg-zinc-800/50 text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400">
-                  <th className="px-6 py-5">Пользователь</th><th className="px-6 py-5">Роль</th><th className="px-6 py-5">Баланс</th><th className="px-6 py-5">Рейтинг</th><th className="px-6 py-5">Регистрация</th>
-                </tr>
-              </thead>
-              <tbody className="text-sm">
-                {filteredUsers.map((user) => (
-                  <tr key={user.id} className="group border-b border-zinc-800 transition-colors hover:bg-zinc-800">
-                    <td className="px-6 py-5"><div className="font-black text-white group-hover:text-accent">{user.name}</div><div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500">ID: {user.maxId}</div></td>
-                    <td className="px-6 py-5"><RoleBadge role={user.role} /></td>
-                    <td className="px-6 py-5 font-black text-white">{(user.balance / 100)} ₽</td>
-                    <td className="px-6 py-5 font-black text-zinc-200"><span className="text-accent">★</span> {user.rating.toFixed(1)}</td>
-                    <td className="px-6 py-5 text-[11px] font-bold uppercase text-zinc-400">{formatDate(user.createdAt)}</td>
+          <div className="hidden md:flex flex-col rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-lg mt-6">
+            <div className="flex items-center gap-3 p-4 sm:p-8 border-b border-zinc-800">
+               <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-zinc-400">
+                  <UsersIcon size={14} />
+               </div>
+               <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">СПИСОК ПОЛЬЗОВАТЕЛЕЙ</h3>
+            </div>
+            <div className="overflow-x-auto p-0">
+              <table className="w-full min-w-[900px] border-collapse text-left">
+                <thead>
+                  <tr className="border-b border-zinc-800 bg-zinc-900/50 text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                    <th className="px-8 py-5">Пользователь</th><th className="px-6 py-5">Роль</th><th className="px-6 py-5">Баланс</th><th className="px-6 py-5">Рейтинг</th><th className="px-8 py-5">Регистрация</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody className="text-sm bg-transparent">
+                  {filteredUsers.map((user) => (
+                    <tr key={user.id} className="group border-b border-zinc-800/50 transition-colors hover:bg-zinc-800/50">
+                      <td className="px-8 py-5"><div className="font-black text-white group-hover:text-accent">{user.name}</div><div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500">ID: {user.maxId}</div></td>
+                      <td className="px-6 py-5"><RoleBadge role={user.role} /></td>
+                      <td className="px-6 py-5 font-black text-white">{(user.balance / 100)} ₽</td>
+                      <td className="px-6 py-5 font-black text-zinc-200"><span className="text-accent">★</span> {user.rating.toFixed(1)}</td>
+                      <td className="px-8 py-5 text-[11px] font-bold uppercase text-zinc-400">{formatDate(user.createdAt)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
 
           {filteredUsers.length === 0 && !error && (

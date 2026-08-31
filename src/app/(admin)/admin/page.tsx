@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from 'react';
 import { 
   TrendingUp, 
+  LayoutDashboard,
+  BarChart3,
   Users as UsersIcon, 
   Database, 
   CreditCard,
@@ -11,6 +13,7 @@ import {
 } from 'lucide-react';
 
 import { LeadIngestMock } from '@/components/ui/LeadIngestMock';
+import { DashboardChart } from '@/components/ui/DashboardChart';
 
 export default function AdminDashboardPage() {
   const [statsData, setStatsData] = useState<any>(null);
@@ -52,33 +55,44 @@ export default function AdminDashboardPage() {
       <div className="flex flex-col gap-4 border-b border-zinc-700 py-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-3 sm:gap-4">
           <div className="bg-accent border border-zinc-700 p-2.5 text-black rounded-lg">
-            <TrendingUp size={20} />
+            <LayoutDashboard size={20} />
           </div>
           <h1 className="text-sm font-black tracking-widest text-white uppercase leading-none">ОБЗОР СИСТЕМЫ</h1>
         </div>
-        <div className="flex bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 text-xs font-black text-white uppercase shadow-sm">
-          {new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+        <div className="flex items-center bg-zinc-900 border border-zinc-700 rounded-lg shadow-sm">
+          <button className="p-3 text-zinc-400 hover:text-white transition-colors hover:bg-zinc-800 rounded-l-lg border-r border-zinc-700">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
+          </button>
+          <div className="relative flex items-center">
+            <input 
+              type="date" 
+              className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            />
+            <div className="px-4 py-2 text-xs font-black text-white uppercase cursor-pointer">
+              {new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </div>
+          </div>
+          <button className="p-3 text-zinc-400 hover:text-white transition-colors hover:bg-zinc-800 rounded-r-lg border-l border-zinc-700">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 items-stretch">
         {stats.map((stat, i) => (
-          <div key={i} className="bg-zinc-900 border border-zinc-700 rounded-xl shadow-lg p-6 space-y-4">
-            <div className="flex justify-between items-start">
+          <div key={i} className="flex h-full flex-col rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-8">
+            <div className="flex items-center gap-3 mb-8">
               <div 
-                className="w-12 h-12 border border-zinc-700 rounded-lg flex items-center justify-center bg-zinc-950"
+                className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center"
                 style={{ color: stat.color === '#E6F000' || stat.color === '#E4FF00' ? '#E4FF00' : stat.color }}
               >
-                <stat.icon size={24} />
+                <stat.icon size={14} />
               </div>
-              <div className="text-green-400 text-[10px] font-black border border-green-800 rounded bg-green-900/30 px-2 py-1 uppercase tracking-wider hidden">
-                {stat.trend}
-              </div>
+              <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">{stat.label}</h3>
             </div>
-            <div>
-              <div className="text-3xl font-black tracking-tighter text-white">{stat.value}</div>
-              <div className="text-[10px] text-zinc-500 font-black uppercase tracking-[0.2em] mt-1">{stat.label}</div>
+            <div className="mt-auto">
+              <div className="text-4xl font-light tracking-tight text-white">{stat.value}</div>
             </div>
           </div>
         ))}
@@ -86,10 +100,19 @@ export default function AdminDashboardPage() {
 
       {/* Main Grid */}
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="flex h-64 items-center justify-center rounded-xl border-2 border-dashed border-zinc-700 bg-zinc-900 p-6 text-center text-base font-black uppercase tracking-widest text-zinc-600 shadow-lg sm:h-80 sm:text-xl xl:col-span-2">
-          График доходности
+        <div className="flex flex-col min-h-[400px] rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-8 xl:col-span-2">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-zinc-400">
+              <BarChart3 size={14} />
+            </div>
+            <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">ГРАФИК ДОХОДНОСТИ</h3>
+          </div>
+          <div className="flex-1 flex w-full h-full">
+            <DashboardChart />
+          </div>
         </div>
-        <div className="overflow-hidden rounded-xl border border-zinc-700 shadow-lg xl:col-span-1">
+        
+        <div className="xl:col-span-1">
           <LeadIngestMock />
         </div>
       </div>

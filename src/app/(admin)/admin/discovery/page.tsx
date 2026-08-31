@@ -87,20 +87,46 @@ export default function DiscoveryPage() {
         </button>
       </div>
       {error && <div className="rounded-xl border border-red-700 bg-red-950/40 p-4 text-sm text-red-200">{error}</div>}
-      <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5">
-        <h2 className="mb-4 font-black uppercase">Добавить MAX-чат вручную</h2>
-        <div className="flex flex-col gap-3 sm:flex-row"><input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://max.ru/..." className="min-w-0 flex-1 rounded-xl border border-zinc-700 bg-zinc-950 px-4 py-3 outline-none focus:border-accent" /><button onClick={() => void add()} className="flex min-h-11 items-center justify-center gap-2 rounded-xl border border-zinc-700 px-5 font-bold hover:border-accent"><Plus size={18} /> Добавить</button></div>
+      <section className="flex flex-col rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-lg mt-6">
+        <div className="flex items-center gap-3 p-4 sm:p-8 border-b border-zinc-800">
+           <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-zinc-400">
+              <Plus size={14} />
+           </div>
+           <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">ДОБАВИТЬ MAX-ЧАТ ВРУЧНУЮ</h3>
+        </div>
+        <div className="p-4 sm:p-8">
+          <div className="flex flex-col gap-3 sm:flex-row"><input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://max.ru/..." className="min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-950 px-4 py-3 outline-none focus:border-accent font-black text-sm text-white" /><button onClick={() => void add()} className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-zinc-700 px-5 font-black uppercase text-xs hover:border-accent text-white"><Plus size={16} /> Добавить</button></div>
+        </div>
       </section>
-      <section className="overflow-hidden rounded-2xl border border-zinc-800 bg-zinc-900">
-        <div className="border-b border-zinc-800 p-5 font-black uppercase">Источники: {chats.length}</div>
-        {loading ? <div className="p-8 text-zinc-400">Загрузка…</div> : chats.length === 0 ? <div className="p-8 text-zinc-400">Источники пока не найдены</div> : <div className="divide-y divide-zinc-800">{chats.map((chat) => (
-          <div key={chat.id} className="grid gap-4 p-5 lg:grid-cols-[1fr_auto]">
-            <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="font-bold">{chat.name || 'MAX-чат'}</span><span className="rounded bg-zinc-800 px-2 py-1 text-[10px] font-black">{chat.provider}</span><span className="text-xs text-accent">оценка {chat.score}</span></div><a href={chat.url} target="_blank" rel="noreferrer" className="mt-2 block truncate text-sm text-zinc-400 hover:text-white">{chat.url}</a><p className="mt-2 text-xs text-zinc-500">Найден {chat.discoveryCount} раз · {new Date(chat.lastDiscoveredAt).toLocaleString('ru-RU')}</p>{chat.lastError && <p className="mt-2 text-xs text-red-300">{chat.lastError}</p>}</div>
-            <div className="flex items-center gap-2"><button title="Активировать" onClick={() => void setStatus(chat.id, 'ACTIVE')} className="rounded-lg border border-zinc-700 p-2 hover:border-green-500"><Check size={17} /></button><button title="На проверку" onClick={() => void setStatus(chat.id, 'PENDING')} className="rounded-lg border border-zinc-700 p-2 hover:border-yellow-500">{chat.active ? <Pause size={17} /> : <Play size={17} />}</button><button title="Отклонить" onClick={() => void setStatus(chat.id, 'REJECTED')} className="rounded-lg border border-zinc-700 p-2 hover:border-red-500"><X size={17} /></button><button title="Удалить навсегда" onClick={() => void deleteChat(chat.id, chat.name)} className="rounded-lg border border-zinc-700 p-2 hover:border-red-600 hover:bg-red-950/50"><Trash2 size={17} /></button></div>
-          </div>
-        ))}</div>}
+      <section className="flex flex-col rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-lg mt-6">
+        <div className="flex items-center justify-between p-4 sm:p-8 border-b border-zinc-800">
+           <div className="flex items-center gap-3">
+             <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-zinc-400">
+                <Search size={14} />
+             </div>
+             <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">ИСТОЧНИКИ: {chats.length}</h3>
+           </div>
+        </div>
+        <div className="p-0">
+          {loading ? <div className="p-8 text-zinc-400 font-black uppercase tracking-widest text-xs">Загрузка…</div> : chats.length === 0 ? <div className="p-8 text-zinc-500 font-black uppercase tracking-widest text-xs">Источники пока не найдены</div> : <div className="divide-y divide-zinc-800/50">{chats.map((chat) => (
+            <div key={chat.id} className="grid gap-4 p-5 lg:grid-cols-[1fr_auto] hover:bg-zinc-800/30 transition-colors">
+              <div className="min-w-0"><div className="flex flex-wrap items-center gap-2"><span className="font-black text-white">{chat.name || 'MAX-чат'}</span><span className="rounded border border-zinc-700 bg-zinc-800 px-2 py-0.5 text-[9px] font-black uppercase tracking-widest text-zinc-400">{chat.provider}</span><span className="text-[9px] border border-accent/30 font-black uppercase tracking-widest bg-accent/10 px-2 py-0.5 rounded text-accent">оценка {chat.score}</span></div><a href={chat.url} target="_blank" rel="noreferrer" className="mt-2 block truncate text-xs text-zinc-400 hover:text-white font-bold">{chat.url}</a><p className="mt-2 text-[10px] uppercase tracking-widest font-black text-zinc-500">Найден {chat.discoveryCount} раз · {new Date(chat.lastDiscoveredAt).toLocaleString('ru-RU')}</p>{chat.lastError && <p className="mt-2 text-xs font-bold text-red-400">{chat.lastError}</p>}</div>
+              <div className="flex items-center gap-2"><button title="Активировать" onClick={() => void setStatus(chat.id, 'ACTIVE')} className="rounded-lg border border-zinc-700 p-2.5 bg-zinc-800 text-zinc-400 hover:text-green-400 hover:border-green-500 transition-all"><Check size={14} /></button><button title="На проверку" onClick={() => void setStatus(chat.id, 'PENDING')} className="rounded-lg border border-zinc-700 p-2.5 bg-zinc-800 text-zinc-400 hover:text-yellow-400 hover:border-yellow-500 transition-all">{chat.active ? <Pause size={14} /> : <Play size={14} />}</button><button title="Отклонить" onClick={() => void setStatus(chat.id, 'REJECTED')} className="rounded-lg border border-zinc-700 p-2.5 bg-zinc-800 text-zinc-400 hover:text-red-400 hover:border-red-500 transition-all"><X size={14} /></button><button title="Удалить навсегда" onClick={() => void deleteChat(chat.id, chat.name)} className="rounded-lg border border-zinc-700 p-2.5 bg-zinc-800 text-zinc-500 hover:text-red-500 hover:border-red-600 hover:bg-red-950/50 transition-all"><Trash2 size={14} /></button></div>
+            </div>
+          ))}</div>}
+        </div>
       </section>
-      <section className="rounded-2xl border border-zinc-800 bg-zinc-900 p-5"><h2 className="mb-4 font-black uppercase">Последние запуски</h2><div className="space-y-2">{runs.slice(0, 10).map((item) => <div key={item.id} className="flex flex-wrap justify-between gap-3 rounded-xl bg-zinc-950 p-3 text-sm"><span>{new Date(item.startedAt).toLocaleString('ru-RU')} · {item.status}</span><span className="text-zinc-400">запросов {item.queries}, найдено {item.candidates}, активировано {item.activated}</span></div>)}</div></section>
+      <section className="flex flex-col rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-lg mt-6">
+        <div className="flex items-center gap-3 p-4 sm:p-8 border-b border-zinc-800">
+           <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-zinc-400">
+              <Play size={14} />
+           </div>
+           <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">ПОСЛЕДНИЕ ЗАПУСКИ</h3>
+        </div>
+        <div className="p-4 sm:p-8">
+           <div className="space-y-3">{runs.slice(0, 10).map((item) => <div key={item.id} className="flex flex-wrap justify-between items-center gap-3 rounded-lg border border-zinc-800 bg-zinc-950 p-4 text-xs font-black uppercase tracking-widest"><span className="text-white">{new Date(item.startedAt).toLocaleString('ru-RU')} <span className="text-zinc-500 mx-2">•</span> <span className={item.status === 'COMPLETED' ? 'text-green-500' : item.status === 'ERROR' ? 'text-red-500' : 'text-accent'}>{item.status}</span></span><span className="text-zinc-500">ЗАПРОСОВ: <span className="text-white">{item.queries}</span> / НАЙДЕНО: <span className="text-white">{item.candidates}</span> / АКТИВИРОВАНО: <span className="text-white">{item.activated}</span></span></div>)}</div>
+        </div>
+      </section>
     </div>
   );
 }

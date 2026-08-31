@@ -100,7 +100,7 @@ export default function AdminCategoriesPage() {
     try {
       const res = await fetch('/api/admin/category');
       const data = await res.json();
-      setCategories(data);
+      setCategories(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error('Failed to fetch categories');
     } finally {
@@ -270,19 +270,20 @@ export default function AdminCategoriesPage() {
       </div>
 
       {/* EDIT/ADD FORM */}
-      <div className="relative space-y-8 overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-lg sm:p-8">
-        <div className="absolute top-0 right-0 p-8 opacity-5">
-           <Zap size={120} className="text-white" />
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="bg-zinc-800 text-white p-2.5 border border-zinc-700 rounded-lg">
-            {editingId ? <Edit2 size={20} /> : <Plus size={20} />}
+      <div className="flex flex-col rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-lg">
+        <div className="flex items-center gap-3 p-4 sm:p-8 border-b border-zinc-800 relative overflow-hidden">
+          <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+             <Zap size={64} className="text-white" />
           </div>
-          <h3 className="font-black text-xs uppercase tracking-[0.2em] text-zinc-300">
-            {editingId ? 'Редактировать категорию' : 'Добавить новую категорию'}
+          <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-zinc-400 z-10">
+            {editingId ? <Edit2 size={14} /> : <Plus size={14} />}
+          </div>
+          <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400 z-10">
+            {editingId ? 'РЕДАКТИРОВАТЬ КАТЕГОРИЮ' : 'ДОБАВИТЬ НОВУЮ КАТЕГОРИЮ'}
           </h3>
         </div>
+        
+        <div className="p-4 sm:p-8 space-y-8">
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
           <div className="space-y-3 md:col-span-4">
@@ -494,11 +495,20 @@ export default function AdminCategoriesPage() {
             {editingId ? 'СОХРАНИТЬ ИЗМЕНЕНИЯ' : 'СОЗДАТЬ КАТЕГОРИЮ'}
           </button>
         </div>
+        </div>
       </div>
 
       {/* CATEGORIES LIST */}
-      <div className="grid grid-cols-1 gap-6">
-        {categories.map((cat) => (
+      <div className="flex flex-col rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-lg mt-6">
+        <div className="flex items-center gap-3 p-4 sm:p-8 border-b border-zinc-800">
+           <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-zinc-400">
+              <TagIcon size={14} />
+           </div>
+           <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">СПИСОК КАТЕГОРИЙ</h3>
+        </div>
+        <div className="p-4 sm:p-8">
+          <div className="grid grid-cols-1 gap-6">
+            {categories.map((cat) => (
           <div key={cat.id} className="group relative overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm transition-all hover:bg-zinc-800/80 sm:p-8">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
               <div className="space-y-2 max-w-xs">
@@ -564,6 +574,8 @@ export default function AdminCategoriesPage() {
              <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-50 text-white">Категории не настроены</p>
           </div>
         )}
+          </div>
+        </div>
       </div>
     </div>
   );

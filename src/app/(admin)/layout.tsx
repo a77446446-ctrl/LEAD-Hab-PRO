@@ -24,7 +24,7 @@ const adminNav = [
   { icon: Users, label: 'Пользователи', href: '/admin/users' },
   { icon: CreditCard, label: 'Платежи', href: '/admin/payments' },
   { icon: Search, label: 'Детектив', href: '/admin/discovery' },
-  { icon: Settings, label: 'Настройки МАКС', href: '/admin/settings' },
+  { icon: Settings, label: 'Настройки', href: '/admin/settings' },
 ];
 
 export default function AdminLayout({
@@ -84,11 +84,11 @@ export default function AdminLayout({
     <div className="flex min-h-screen min-w-0 bg-zinc-950 text-white">
       <aside className="hidden w-64 shrink-0 flex-col gap-8 rounded-br-2xl rounded-tr-2xl border-r border-zinc-800 bg-zinc-900 p-6 lg:flex">
         <div>
-          <div className="flex flex-col">
-            <span className="text-xl font-black uppercase tracking-widest text-white leading-none">MAKS</span>
-            <span className="text-[10px] font-bold text-accent tracking-[0.2em] uppercase mt-1">Lead Hub PRO</span>
+          <div className="flex items-center overflow-hidden rounded-none border border-zinc-700 w-fit font-black mt-2">
+            <span className="bg-zinc-950 text-white px-2 py-1.5 text-[11px] sm:text-xs tracking-widest leading-none">LEAD HUB</span>
+            <span className="bg-accent text-black px-2 py-1.5 text-[11px] sm:text-xs tracking-widest leading-none">PRO</span>
           </div>
-          <p className="mt-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Control Center</p>
+          <p className="mt-3 text-[9px] font-bold uppercase tracking-widest text-zinc-500">Control Center</p>
         </div>
 
         {navigation}
@@ -96,9 +96,9 @@ export default function AdminLayout({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-40 flex min-h-16 items-center justify-between border-b border-zinc-800 bg-zinc-950/95 px-4 backdrop-blur lg:hidden">
-          <div className="flex flex-col">
-            <span className="text-lg font-black uppercase tracking-widest text-white leading-none">MAKS</span>
-            <span className="text-[8px] font-bold text-accent tracking-[0.2em] uppercase mt-0.5">Lead Hub PRO</span>
+          <div className="flex items-center overflow-hidden rounded-none border border-zinc-700 w-fit font-black">
+            <span className="bg-zinc-950 text-white px-2 py-1 text-[10px] tracking-widest leading-none">LEAD HUB</span>
+            <span className="bg-accent text-black px-2 py-1 text-[10px] tracking-widest leading-none">PRO</span>
           </div>
           <button
             type="button"
@@ -127,11 +127,11 @@ export default function AdminLayout({
           <aside className="absolute inset-y-0 right-0 flex w-[min(86vw,22rem)] flex-col gap-6 overflow-y-auto border-l border-zinc-700 bg-zinc-900 p-5 shadow-2xl">
             <div className="flex items-center justify-between">
               <div>
-                <div className="flex flex-col">
-                  <span className="text-xl font-black uppercase tracking-widest text-white leading-none">MAKS</span>
-                  <span className="text-[10px] font-bold text-accent tracking-[0.2em] uppercase mt-1">Lead Hub PRO</span>
+                <div className="flex items-center overflow-hidden rounded-none border border-zinc-700 w-fit font-black mt-2">
+                  <span className="bg-zinc-950 text-white px-2 py-1.5 text-[11px] sm:text-xs tracking-widest leading-none">LEAD HUB</span>
+                  <span className="bg-accent text-black px-2 py-1.5 text-[11px] sm:text-xs tracking-widest leading-none">PRO</span>
                 </div>
-                <p className="mt-4 text-[10px] font-bold uppercase tracking-widest text-zinc-500">Control Center</p>
+                <p className="mt-3 text-[9px] font-bold uppercase tracking-widest text-zinc-500">Control Center</p>
               </div>
               <button
                 type="button"
