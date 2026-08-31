@@ -51,7 +51,7 @@ async function requestYoo(path: string, init?: { method?: 'POST'; body?: unknown
   } finally { clearTimeout(timer); }
 }
 
-function amountValue(kopecks: bigint): string {
+function amountValue(kopecks: number): string {
   return kopecksToRubles(kopecks).toFixed(2);
 }
 
@@ -66,7 +66,7 @@ function returnUrl(orderId: string): string {
 }
 
 export async function createPaymentOrder(userId: string, input: {
-  kind?: unknown; amountKopecks?: unknown; categoryId?: unknown; receiptEmail?: unknown; clientRequestId?: unknown;
+  kind?: unknown; amount?: unknown; categoryId?: unknown; receiptEmail?: unknown; clientRequestId?: unknown;
 }) {
   credentials();
   const legal = getLegalConfig();
@@ -77,21 +77,21 @@ export async function createPaymentOrder(userId: string, input: {
   const kind = input.kind === 'SUBSCRIPTION' ? 'SUBSCRIPTION' : input.kind === 'TOPUP' ? 'TOPUP' : null;
   if (!kind) throw new Error('Некорректный тип платежа');
 
-  let amountKopecks: bigint;
+  let amount: number;
   let categoryId: string | null = null;
   let subscriptionDays: number | null = null;
   let description: string;
   if (kind === 'TOPUP') {
-    if (typeof input.amountKopecks !== 'number' || !Number.isSafeInteger(input.amountKopecks)) throw new Error('Некорректная сумма');
-    amountKopecks = BigInt(input.amountKopecks);
-    if (amountKopecks < 10_000n || amountKopecks > 10_000_000n) throw new Error('Сумма пополнения должна быть от 100 до 100 000 ₽');
-    description = `Пополнение баланса ПО ДЕЛАМ на ${amountValue(amountKopecks)} ₽`;
+    if (typeof input.amount !== 'number' || !Number.isSafeInteger(input.amount)) throw new Error('Некорректная сумма');
+    amount = Number(input.amount);
+    if (amount < 10_000 || amount > 10_000_000) throw new Error('Сумма пополнения должна быть от 100 до 100 000 ₽');
+    description = `Пополнение баланса ПО ДЕЛАМ на ${amountValue(amount)} ₽`;
   } else {
     if (typeof input.categoryId !== 'string' || !UUID.test(input.categoryId)) throw new Error('Некорректная категория');
     const category = await prisma.category.findFirst({ where: { id: input.categoryId, active: true } });
     if (!category || category.subscriptionPrice <= 0 || category.days < 1) throw new Error('PRO-подписка недоступна');
     categoryId = category.id; subscriptionDays = Math.min(category.days, 3650);
-    amountKopecks = rublesToKopecks(category.subscriptionPrice);
+    amount = rublesToKopecks(category.subscriptionPrice);
     description = `PRO «${category.name}» на ${subscriptionDays} дней`.slice(0, 128);
   }
 
@@ -100,7 +100,7 @@ export async function createPaymentOrder(userId: string, input: {
   try {
     order = await prisma.paymentOrder.create({ data: {
       userId, categoryId, clientRequestId: input.clientRequestId, idempotencyKey, kind,
-      amountKopecks, receiptEmail: input.receiptEmail.toLowerCase(), description, subscriptionDays,
+      amount, receiptEmail: input.receiptEmail.toLowerCase(), description, subscriptionDays,
     } });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -113,11 +113,11 @@ export async function createPaymentOrder(userId: string, input: {
   const vatCode = Math.min(6, Math.max(1, Number.parseInt(process.env.YOOKASSA_VAT_CODE || '1', 10) || 1));
   try {
     const payment = await requestYoo('/payments', { method: 'POST', idempotencyKey, body: {
-      amount: { value: amountValue(amountKopecks), currency: 'RUB' }, capture: true,
+      amount: { value: amountValue(amount), currency: 'RUB' }, capture: true,
       confirmation: { type: 'redirect', return_url: returnUrl(order.id) }, description,
       metadata: { order_id: order.id, user_id: userId, kind },
       receipt: { customer: { email: input.receiptEmail.toLowerCase() }, items: [{
-        description, quantity: '1.00', amount: { value: amountValue(amountKopecks), currency: 'RUB' },
+        description, quantity: '1.00', amount: { value: amountValue(amount), currency: 'RUB' },
         vat_code: vatCode, payment_mode: kind === 'TOPUP' ? 'advance' : 'full_payment', payment_subject: 'service',
       }] },
     } });
@@ -142,15 +142,15 @@ async function fulfill(orderId: string, payment: YooPayment): Promise<'credited'
         const claimed = await tx.paymentOrder.updateMany({ where: { id: order.id, creditedAt: null }, data: { status: 'SUCCEEDED', creditedAt: new Date(), lastError: null } });
         if (claimed.count !== 1) return 'duplicate';
         if (order.kind === 'TOPUP') {
-          await tx.user.update({ where: { id: order.userId }, data: { balanceKopecks: { increment: order.amountKopecks }, balance: { increment: kopecksToRubles(order.amountKopecks) } } });
-          await tx.transaction.create({ data: { userId: order.userId, type: 'TOPUP', amount: kopecksToRubles(order.amountKopecks), amountKopecks: order.amountKopecks } });
+          await tx.user.update({ where: { id: order.userId }, data: { balance: { increment: order.amount } } });
+          await tx.transaction.create({ data: { userId: order.userId, type: 'TOPUP',  amount: order.amount } });
         } else if (order.kind === 'SUBSCRIPTION' && order.categoryId && order.subscriptionDays) {
           const current = await tx.subscription.findFirst({ where: { userId: order.userId, categoryId: order.categoryId }, orderBy: { expiresAt: 'desc' } });
           const base = current && current.expiresAt > new Date() ? current.expiresAt : new Date();
           const expiresAt = new Date(base.getTime() + order.subscriptionDays * 86_400_000);
           if (current) await tx.subscription.update({ where: { id: current.id }, data: { expiresAt } });
           else await tx.subscription.create({ data: { userId: order.userId, categoryId: order.categoryId, expiresAt } });
-          await tx.transaction.create({ data: { userId: order.userId, type: 'SUBSCRIPTION', amount: kopecksToRubles(order.amountKopecks), amountKopecks: order.amountKopecks } });
+          await tx.transaction.create({ data: { userId: order.userId, type: 'SUBSCRIPTION',  amount: order.amount } });
         }
         return 'credited';
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
@@ -166,7 +166,7 @@ export async function processYooWebhook(paymentId: string, event: string) {
   const payment = await requestYoo(`/payments/${encodeURIComponent(paymentId)}`);
   const order = await prisma.paymentOrder.findUnique({ where: { providerPaymentId: payment.id } });
   if (!order || payment.metadata?.order_id !== order.id || payment.metadata?.user_id !== order.userId) throw new Error('Платёж не связан с заказом');
-  if (payment.amount?.currency !== 'RUB' || payment.amount.value !== amountValue(order.amountKopecks)) throw new Error('Сумма платежа не совпадает с заказом');
+  if (payment.amount?.currency !== 'RUB' || payment.amount.value !== amountValue(order.amount)) throw new Error('Сумма платежа не совпадает с заказом');
   if (event === 'payment.canceled' || payment.status === 'canceled') {
     if (!order.creditedAt) await prisma.paymentOrder.update({ where: { id: order.id }, data: { status: 'CANCELED' } });
     return { status: 'canceled' };

@@ -10,7 +10,7 @@ interface User {
   maxId: string;
   name: string;
   role: string;
-  balance: string;
+  balance: number;
   rating: number;
   createdAt: string;
 }
@@ -147,7 +147,7 @@ export default function UsersPage() {
                   <RoleBadge role={user.role} />
                 </div>
                 <dl className="mt-4 grid grid-cols-3 gap-2 border-t border-zinc-800 pt-4 text-center">
-                  <div><dt className="text-[9px] font-black uppercase text-zinc-500">Баланс</dt><dd className="mt-1 text-sm font-black text-white">{user.balance} ₽</dd></div>
+                  <div><dt className="text-[9px] font-black uppercase text-zinc-500">Баланс</dt><dd className="mt-1 text-sm font-black text-white">{(user.balance / 100)} ₽</dd></div>
                   <div><dt className="text-[9px] font-black uppercase text-zinc-500">Рейтинг</dt><dd className="mt-1 text-sm font-black text-white"><span className="text-accent">★</span> {user.rating.toFixed(1)}</dd></div>
                   <div><dt className="text-[9px] font-black uppercase text-zinc-500">Регистрация</dt><dd className="mt-1 text-xs font-bold text-zinc-300">{formatDate(user.createdAt)}</dd></div>
                 </dl>
@@ -167,7 +167,7 @@ export default function UsersPage() {
                   <tr key={user.id} className="group border-b border-zinc-800 transition-colors hover:bg-zinc-800">
                     <td className="px-6 py-5"><div className="font-black text-white group-hover:text-accent">{user.name}</div><div className="mt-1 text-[10px] font-bold uppercase tracking-widest text-zinc-500">ID: {user.maxId}</div></td>
                     <td className="px-6 py-5"><RoleBadge role={user.role} /></td>
-                    <td className="px-6 py-5 font-black text-white">{user.balance} ₽</td>
+                    <td className="px-6 py-5 font-black text-white">{(user.balance / 100)} ₽</td>
                     <td className="px-6 py-5 font-black text-zinc-200"><span className="text-accent">★</span> {user.rating.toFixed(1)}</td>
                     <td className="px-6 py-5 text-[11px] font-bold uppercase text-zinc-400">{formatDate(user.createdAt)}</td>
                   </tr>

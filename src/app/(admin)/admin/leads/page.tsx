@@ -147,7 +147,7 @@ export default function AdminLeadsPage() {
                     </div>
                   </td>
                   <td className="px-6 py-5 text-xs text-zinc-400 font-bold">{lead.city}</td>
-                  <td className="px-6 py-5 text-sm font-black text-white">{Number(lead.price)}₽</td>
+                  <td className="px-6 py-5 text-sm font-black text-white">{Number((lead.price / 100))}₽</td>
                   <td className="px-6 py-5">
                     {lead.status === 'NEW' && <span className="bg-blue-900/30 text-blue-400 text-[9px] font-black px-2 py-0.5 border border-blue-800 rounded uppercase flex items-center gap-1.5 w-fit"><Clock size={10}/> Новый</span>}
                     {lead.status === 'SOLD' && <span className="bg-green-900/30 text-green-400 text-[9px] font-black px-2 py-0.5 border border-green-800 rounded uppercase flex items-center gap-1.5 w-fit"><CheckCircle size={10}/> Продан</span>}

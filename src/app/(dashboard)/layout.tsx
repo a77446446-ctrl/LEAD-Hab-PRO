@@ -72,7 +72,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
         <div className="flex items-center gap-2 bg-white px-3 py-1.5 border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
           <Wallet size={16} className="text-black" />
-          <span className="text-sm font-black">{user.balance.toFixed(2)} ₽</span>
+          <span className="text-sm font-black">{(user.balance / 100).toFixed(2)} ₽</span>
         </div>
       </header>
 

@@ -44,7 +44,7 @@ export async function PATCH(request: Request) {
         maxId: true,
         name: true,
         role: true,
-        balanceKopecks: true,
+        balance: true,
         rating: true,
         notifyEnabled: true,
         botStartedAt: true,

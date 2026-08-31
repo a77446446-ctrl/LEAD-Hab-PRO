@@ -85,7 +85,7 @@ export function verifyMaxInitData(
   }
 
   const maxId = BigInt(id);
-  if (maxId <= 0n || maxId > MAX_POSTGRES_BIGINT) throw new Error('MAX передал некорректный ID');
+  if (maxId <= 0n || maxId > MAX_POSTGRES_BIGINT) throw new Error('MAX вернул некорректный ID');
 
   return {
     maxId,

@@ -7,11 +7,11 @@ import { isConfiguredAdminMaxId } from '@/lib/auth/admin-config';
 
 export const runtime = 'nodejs';
 
-function getOnboardingBonus(): bigint {
+function getOnboardingBonus(): number {
   const raw = process.env.ONBOARDING_BONUS_KOPECKS || '30000';
   if (!/^\d{1,10}$/.test(raw)) throw new Error('ONBOARDING_BONUS_KOPECKS настроен некорректно');
-  const value = BigInt(raw);
-  if (value > 100_000_000n) throw new Error('Стартовый бонус превышает допустимый предел');
+  const value = Math.round(Number(raw));
+  if (value > 100_000_000) throw new Error('Стартовый бонус превышает допустимый предел');
   return value;
 }
 
@@ -54,18 +54,18 @@ export async function POST(request: Request) {
         where: { id: current.id, onboardingBonusGrantedAt: null },
         data: {
           onboardingBonusGrantedAt: now,
-          balanceKopecks: { increment: bonusKopecks },
-          balance: { increment: Number(bonusKopecks) / 100 },
+          balance: { increment: bonusKopecks },
+          
         },
       });
 
-      if (bonusGrant.count === 1 && bonusKopecks > 0n) {
+      if (bonusGrant.count === 1 && bonusKopecks > 0) {
         await tx.transaction.create({
           data: {
             userId: current.id,
             type: 'ONBOARDING_BONUS',
-            amount: Number(bonusKopecks) / 100,
-            amountKopecks: bonusKopecks,
+            
+            amount: bonusKopecks,
           },
         });
       }
@@ -77,7 +77,7 @@ export async function POST(request: Request) {
           maxId: true,
           name: true,
           role: true,
-          balanceKopecks: true,
+          balance: true,
           rating: true,
           notifyEnabled: true,
           botStartedAt: true,

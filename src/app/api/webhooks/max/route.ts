@@ -69,9 +69,9 @@ export async function POST(request: Request) {
 
       await prisma.$transaction(async (tx) => {
         const user = await tx.user.upsert({
-          where: { maxId: BigInt(maxId) },
+          where: { maxId: Number(maxId) },
           create: {
-            maxId: BigInt(maxId),
+            maxId: Number(maxId),
             name,
             notifyEnabled: true,
             botStartedAt: startedAt,
@@ -90,7 +90,7 @@ export async function POST(request: Request) {
       const maxId = normalizeMaxNumericId(maxUser?.user_id ?? maxUser?.id);
       if (maxId) {
         await prisma.user.updateMany({
-          where: { maxId: BigInt(maxId) },
+          where: { maxId: Number(maxId) },
           data: { notifyEnabled: false },
         });
       }
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
       const maxId = normalizeMaxNumericId(maxUser?.user_id ?? maxUser?.id);
       if (maxId) {
         await prisma.user.updateMany({
-          where: { maxId: BigInt(maxId), botStartedAt: { not: null } },
+          where: { maxId: Number(maxId), botStartedAt: { not: null } },
           data: { notifyEnabled: true },
         });
       }

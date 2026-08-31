@@ -15,8 +15,7 @@ model User {
   maxId                    BigInt                   @unique
   name                     String                   @default("Пользователь MAX")
   role                     String                   @default("USER")
-  balance                  Float                    @default(0)
-  balanceKopecks           BigInt                   @default(0)
+  balance                  Int                      @default(0)
   rating                   Float                    @default(5.0)
   notifyEnabled            Boolean                  @default(false)
   onboardingBonusGrantedAt DateTime?
@@ -40,8 +39,8 @@ model Category {
   plusKeywords      String?
   minusKeywords     String?
   paymentMode       String                   @default("LEAD")
-  leadPrice         Float                    @default(0)
-  subscriptionPrice Float                    @default(0)
+  leadPrice         Int                      @default(0)
+  subscriptionPrice Int                      @default(0)
   days              Int                      @default(30)
   ttlMinutes        Int                      @default(1440) // Default 24 hours (1440 mins)
   active            Boolean                  @default(true)
@@ -75,7 +74,7 @@ model Lead {
   sourceChat    String?
   fingerprint   String?       @unique
   score         Int           @default(0)
-  price         Float         @default(0)
+  price         Int           @default(0)
   status        String        @default("NEW")
   createdAt     DateTime      @default(now())
   purchases     Purchase[]
@@ -139,8 +138,7 @@ model Purchase {
   user         User     @relation(fields: [userId], references: [id])
   leadId       String
   lead         Lead     @relation(fields: [leadId], references: [id])
-  price        Float
-  priceKopecks BigInt   @default(0)
+  price        Int      @default(0)
   createdAt    DateTime @default(now())
 }
 
@@ -149,8 +147,7 @@ model Transaction {
   userId        String
   user          User     @relation(fields: [userId], references: [id])
   type          String
-  amount        Float
-  amountKopecks BigInt   @default(0)
+  amount        Int      @default(0)
   createdAt     DateTime @default(now())
 }
 
@@ -255,7 +252,7 @@ model PaymentOrder {
   providerPaymentId String?   @unique
   kind              String
   status            String    @default("CREATED")
-  amountKopecks     BigInt
+  amount            Int
   currency          String    @default("RUB")
   receiptEmail      String
   description       String

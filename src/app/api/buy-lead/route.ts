@@ -46,17 +46,17 @@ export async function POST(request: Request) {
     const result = await runSerializablePurchase(() => prisma.$transaction(async (tx) => {
       const existingPurchase = await tx.purchase.findFirst({
         where: { userId: currentUser.id, leadId: body.leadId as string },
-        select: { id: true, priceKopecks: true },
+        select: { id: true, price: true },
       });
       if (existingPurchase) {
         const existingUser = await tx.user.findUniqueOrThrow({
           where: { id: currentUser.id },
-          select: { balanceKopecks: true },
+          select: { balance: true },
         });
         return {
           purchaseId: existingPurchase.id,
-          priceKopecks: existingPurchase.priceKopecks,
-          balanceKopecks: existingUser.balanceKopecks,
+          price: existingPurchase.price,
+          balance: existingUser.balance,
           alreadyPurchased: true,
         };
       }
@@ -82,19 +82,18 @@ export async function POST(request: Request) {
         throw new PurchaseError('SUBSCRIPTION_REQUIRED', 'Для этой категории требуется подписка', 402);
       }
 
-      const priceKopecks = subscription ? 0n : rublesToKopecks(lead.price);
+      const price = subscription ? 0 : rublesToKopecks(lead.price);
       const claimed = await tx.lead.updateMany({
         where: { id: lead.id, status: 'NEW' },
         data: { status: 'SOLD' },
       });
       if (claimed.count !== 1) throw new PurchaseError('LEAD_UNAVAILABLE', 'Лид уже забрал другой пользователь', 409);
 
-      if (priceKopecks > 0n) {
+      if (price > 0) {
         const debited = await tx.user.updateMany({
-          where: { id: currentUser.id, balanceKopecks: { gte: priceKopecks } },
+          where: { id: currentUser.id, balance: { gte: price } },
           data: {
-            balanceKopecks: { decrement: priceKopecks },
-            balance: { decrement: kopecksToRubles(priceKopecks) },
+            balance: { decrement: price },
           },
         });
         if (debited.count !== 1) throw new PurchaseError('INSUFFICIENT_BALANCE', 'Недостаточно средств', 402);
@@ -104,8 +103,7 @@ export async function POST(request: Request) {
         data: {
           userId: currentUser.id,
           leadId: lead.id,
-          price: kopecksToRubles(priceKopecks),
-          priceKopecks,
+          price,
         },
         select: { id: true },
       });
@@ -114,14 +112,14 @@ export async function POST(request: Request) {
         data: {
           userId: currentUser.id,
           type: 'BUY',
-          amount: kopecksToRubles(priceKopecks),
-          amountKopecks: priceKopecks,
+          
+          amount: price,
         },
       });
 
       const updatedUser = await tx.user.findUniqueOrThrow({
         where: { id: currentUser.id },
-        select: { balanceKopecks: true, maxId: true, notifyEnabled: true, botStartedAt: true },
+        select: { balance: true, maxId: true, notifyEnabled: true, botStartedAt: true },
       });
       await enqueuePurchaseDelivery(tx, {
         purchaseId: purchase.id,
@@ -133,8 +131,8 @@ export async function POST(request: Request) {
       });
       return {
         purchaseId: purchase.id,
-        priceKopecks,
-        balanceKopecks: updatedUser.balanceKopecks,
+        price,
+        balance: updatedUser.balance,
         alreadyPurchased: false,
       };
     }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable }));
@@ -142,8 +140,7 @@ export async function POST(request: Request) {
     return NextResponse.json({
       success: true,
       purchaseId: result.purchaseId,
-      price: kopecksToRubles(result.priceKopecks),
-      newBalance: kopecksToRubles(result.balanceKopecks),
+      newBalance: kopecksToRubles(result.balance),
       alreadyPurchased: result.alreadyPurchased,
     });
   } catch (error) {
