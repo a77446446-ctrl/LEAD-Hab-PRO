@@ -75,8 +75,8 @@ export async function GET(request: Request) {
       isPurchased: true,
     } : {
       ...lead,
-      title: redactContactInfo(lead.title),
-      rawText: redactContactInfo(lead.rawText),
+      title: redactContactInfo(lead.title, true),
+      rawText: redactContactInfo(lead.rawText, true),
       phone: null,
       sourceChat: null,
       isPurchased: false,

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MapPin, Zap, Clock } from 'lucide-react';
+import { MapPin, Zap, Clock, Phone, Link as LinkIcon } from 'lucide-react';
 
 interface LeadCardProps {
   lead: any;
@@ -18,7 +18,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
 
   const renderTextWithLinks = (text: string, truncateAt?: number) => {
     if (!text) return null;
-    const combinedRegex = /(https?:\/\/[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/[^\s]*|@[a-zA-Z0-9_]+|(?:\+?7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}|\b\d{10}\b)/g;
+    const combinedRegex = /(\[контакт скрыт(?::(?:phone|link|yandex))?\]|https?:\/\/[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/[^\s]*|@[a-zA-Z0-9_]+|(?:\+?7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}|\b\d{10}\b)/g;
     
     let currentLength = 0;
     const parts = text.split(combinedRegex);
@@ -31,12 +31,21 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
       let nodeToAdd: React.ReactNode = part;
       let charsToAdd = part.length;
       
-      if (part.match(/(https?:\/\/[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/[^\s]*|@[a-zA-Z0-9_]+)/)) {
+      if (part.startsWith('[контакт скрыт')) {
+        charsToAdd = 16;
+        if (part === '[контакт скрыт:phone]') {
+          nodeToAdd = <span key={i} className="inline-flex items-center gap-1 bg-accent text-black px-1.5 py-0.5 rounded text-[11px] font-black border border-black whitespace-nowrap mx-1"><Phone size={10} /> КОНТАКТ СКРЫТ</span>;
+        } else if (part === '[контакт скрыт:yandex]') {
+          nodeToAdd = <span key={i} className="inline-flex items-center gap-1 bg-[#FFCC00] text-black px-1.5 py-0.5 rounded text-[11px] font-black border border-black whitespace-nowrap mx-1"><MapPin size={10} /> КОНТАКТ СКРЫТ</span>;
+        } else {
+          nodeToAdd = <span key={i} className="inline-flex items-center gap-1 bg-black text-white px-1.5 py-0.5 rounded text-[11px] font-black border border-black whitespace-nowrap mx-1"><LinkIcon size={10} /> КОНТАКТ СКРЫТ</span>;
+        }
+      } else if (part.match(/(https?:\/\/[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/[^\s]*|@[a-zA-Z0-9_]+)/)) {
         charsToAdd = 16; 
         const isMapLink = /(yandex\.(ru|com)\/maps|maps\.yandex\.(ru|com)|2gis\.(ru|com)|go\.2gis\.com|maps\.google|goo\.gl\/maps)/i.test(part);
         
         if (shouldMask && !isMapLink) {
-          nodeToAdd = <span key={i} className="bg-black text-white px-1.5 py-0.5 rounded text-xs font-bold whitespace-nowrap mx-1">Контакт скрыт 🔐</span>;
+          nodeToAdd = <span key={i} className="inline-flex items-center gap-1 bg-black text-white px-1.5 py-0.5 rounded text-[11px] font-black border border-black whitespace-nowrap mx-1"><LinkIcon size={10} /> КОНТАКТ СКРЫТ</span>;
         } else {
           let href = part;
           if (part.startsWith('@')) href = `https://t.me/${part.substring(1)}`;
@@ -61,7 +70,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
       } else if (part.match(/(?:\+?7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}|\b\d{10}\b/)) {
         charsToAdd = 16;
         if (shouldMask) {
-          nodeToAdd = <span key={i} className="bg-accent text-black px-1.5 py-0.5 rounded text-xs font-bold border border-black whitespace-nowrap mx-1">Контакт скрыт 🔐</span>;
+          nodeToAdd = <span key={i} className="inline-flex items-center gap-1 bg-accent text-black px-1.5 py-0.5 rounded text-[11px] font-black border border-black whitespace-nowrap mx-1"><Phone size={10} /> КОНТАКТ СКРЫТ</span>;
         } else {
           const cleanPhone = part.replace(/[^\d+]/g, '');
           nodeToAdd = <a key={i} href={`tel:${cleanPhone}`} className="bg-accent text-black px-1.5 py-0.5 rounded text-xs font-bold border border-black hover:bg-black hover:text-accent transition-colors mx-1" onClick={(e) => e.stopPropagation()}>{part}</a>;

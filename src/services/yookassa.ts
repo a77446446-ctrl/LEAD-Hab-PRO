@@ -84,7 +84,7 @@ export async function createPaymentOrder(userId: string, input: {
   if (kind === 'TOPUP') {
     if (typeof input.amount !== 'number' || !Number.isSafeInteger(input.amount)) throw new Error('Некорректная сумма');
     amount = Number(input.amount);
-    if (amount < 10_000 || amount > 10_000_000) throw new Error('Сумма пополнения должна быть от 100 до 100 000 ₽');
+    if (amount < 100 || amount > 100_000) throw new Error('Сумма пополнения должна быть от 100 до 100 000 ₽');
     description = `Пополнение баланса ПО ДЕЛАМ на ${amountValue(amount)} ₽`;
   } else {
     if (typeof input.categoryId !== 'string' || !UUID.test(input.categoryId)) throw new Error('Некорректная категория');

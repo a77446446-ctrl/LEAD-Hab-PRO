@@ -2,7 +2,7 @@ import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma';
 
 const LEASE_ID = 'max-parser';
-const DEFAULT_LEASE_MS = 20 * 60_000;
+const DEFAULT_LEASE_MS = 5 * 60_000;
 
 export async function acquireParserLease(durationMs = DEFAULT_LEASE_MS): Promise<string | null> {
   const token = randomUUID();

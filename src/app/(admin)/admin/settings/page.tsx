@@ -257,10 +257,15 @@ export default function SettingsPage() {
                     changed = true;
                 }
                 let name = typeof c === 'string' ? 'Новый чат' : c.name;
-                if (name && (name.includes('Быстрое') || name.includes('приложение'))) {
-                    const parts = url.split('/');
-                    const slug = parts[parts.length-1] || parts[parts.length-2] || 'Чат';
-                    name = slug.replace(/_/g, ' ').replace(/-/g, ' ').split(' ').map((w:string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                if (name && (name.includes('Новый чат') || name.includes('MAX') || name.includes('непрочитан') || name.includes('сообщен') || name.includes('Синхронизация'))) {
+                    const match = url.match(/@([^/&\?]+)/);
+                    if (match) {
+                        name = match[1];
+                    } else {
+                        const parts = url.split('/');
+                        const slug = parts[parts.length-1] || parts[parts.length-2] || 'Чат';
+                        name = slug.replace(/_/g, ' ').replace(/-/g, ' ').split(' ').map((w:string) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+                    }
                     changed = true;
                 }
                 if (typeof c === 'string') return { name, url, parseAll: true, count: 0, lastParsedAt: null };

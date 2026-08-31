@@ -102,8 +102,8 @@ export default function AdminCategoriesPage() {
       const data = await res.json();
       const categories = Array.isArray(data) ? data.map(cat => ({
         ...cat,
-        leadPrice: cat.leadPrice / 100,
-        subscriptionPrice: cat.subscriptionPrice / 100
+        leadPrice: cat.leadPrice,
+        subscriptionPrice: cat.subscriptionPrice
       })) : [];
       setCategories(categories);
     } catch (e) {
