@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { maxParser } from '@/services/max-parser';
+import { reconcilePayments } from '@/services/yookassa';
 
 export async function POST() {
   const denied = await adminGuard();
@@ -16,6 +17,12 @@ export async function POST() {
       update: { value: 'true' },
       create: { key: 'syncing', value: 'true' }
     });
+
+    // Background YooKassa reconciliation
+    try {
+      const reconciled = await reconcilePayments();
+      if (reconciled > 0) console.log(`Reconciled ${reconciled} payments.`);
+    } catch(e) { console.error('Reconciliation error:', e); }
 
     const result = await maxParser.sync();
     

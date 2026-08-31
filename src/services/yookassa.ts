@@ -174,3 +174,40 @@ export async function processYooWebhook(paymentId: string, event: string) {
   if (event !== 'payment.succeeded' || payment.status !== 'succeeded' || payment.paid !== true) throw new Error('Платёж ещё не подтверждён');
   return { status: await fulfill(order.id, payment) };
 }
+
+
+export async function reconcilePayments() {
+  const pendingOrders = await prisma.paymentOrder.findMany({
+    where: {
+      status: { in: ['CREATED', 'PENDING', 'WAITING_FOR_CAPTURE'] },
+      providerPaymentId: { not: null },
+      createdAt: { lt: new Date(Date.now() - 5 * 60 * 1000) }
+    }
+  });
+
+  let reconciled = 0;
+  for (const order of pendingOrders) {
+    if (!order.providerPaymentId) continue;
+    try {
+      const payment = await requestYoo(`/payments/${encodeURIComponent(order.providerPaymentId)}`);
+      
+      if (payment.amount?.currency !== 'RUB' || payment.amount.value !== amountValue(order.amount)) {
+        continue;
+      }
+      if (payment.metadata?.order_id !== order.id) {
+        continue;
+      }
+
+      if (payment.status === 'succeeded' && payment.paid === true) {
+        await fulfill(order.id, payment);
+        reconciled++;
+      } else if (payment.status === 'canceled') {
+        await prisma.paymentOrder.update({ where: { id: order.id }, data: { status: 'CANCELED' } });
+        reconciled++;
+      }
+    } catch (e) {
+      console.error(`Reconciliation failed for order ${order.id}:`, e);
+    }
+  }
+  return reconciled;
+}
