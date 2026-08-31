@@ -189,14 +189,16 @@ def extract_messages(page):
         const selectors = [
           '[data-mid]', '[role="article"]', '.MessageList .Message',
           '[class*="MessageText"]', '[class*="messageText"]',
-          '.text-content', '[class*="text-content"]'
+          '.text-content', '[class*="text-content"]',
+          '[class*="Message"]', '[class*="message"]'
         ];
         let elements = [];
         for (const selector of selectors) {
           try {
             const candidates = Array.from(document.querySelectorAll(selector)).filter((node) => {
               const text = (node.innerText || node.textContent || '').trim();
-              return text.length > 5;
+              const box = node.getBoundingClientRect();
+              return text.length > 5 && box.width > 150 && box.left > 250;
             });
             if (candidates.length > elements.length) elements = candidates;
           } catch {}
@@ -204,7 +206,8 @@ def extract_messages(page):
         if (elements.length === 0) {
           elements = Array.from(document.querySelectorAll('article, div[data-id]')).filter((node) => {
             const text = (node.innerText || node.textContent || '').trim();
-            return text.length > 5;
+            const box = node.getBoundingClientRect();
+            return text.length > 5 && box.width > 150 && box.left > 250;
           });
         }
         const seen = new Set();
