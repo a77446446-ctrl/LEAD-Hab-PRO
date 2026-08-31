@@ -196,8 +196,7 @@ def extract_messages(page):
           try {
             const candidates = Array.from(document.querySelectorAll(selector)).filter((node) => {
               const text = (node.innerText || node.textContent || '').trim();
-              const box = node.getBoundingClientRect();
-              return text.length > 8 && text.length < 2500 && box.width > 80 && box.height > 8;
+              return text.length > 5;
             });
             if (candidates.length > elements.length) elements = candidates;
           } catch {}
@@ -205,8 +204,7 @@ def extract_messages(page):
         if (elements.length === 0) {
           elements = Array.from(document.querySelectorAll('article, div[data-id]')).filter((node) => {
             const text = (node.innerText || node.textContent || '').trim();
-            const box = node.getBoundingClientRect();
-            return text.length > 20 && text.length < 2000 && box.width > 100 && box.height > 10;
+            return text.length > 5;
           });
         }
         const seen = new Set();
@@ -217,7 +215,7 @@ def extract_messages(page):
           if (links.length) text += '\n\nКонтакты (ссылки): ' + links.join(' , ');
           return { text, id: node.getAttribute('data-mid') || node.getAttribute('data-id') || undefined };
         }).filter((item) => {
-          if (item.text.length <= 15 || seen.has(item.text)) return false;
+          if (seen.has(item.text)) return false;
           seen.add(item.text);
           return true;
         }).slice(-100);
