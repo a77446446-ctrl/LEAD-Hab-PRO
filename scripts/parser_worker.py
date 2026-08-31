@@ -59,26 +59,17 @@ def normalize_chat_target(chat_url):
     query = parsed.query
 
     if fragment:
-        # Уже имеет hash (web.max.ru/a/#@name) - просто убеждаемся, что путь /a/
-        path = "/a/"
+        # Настройки МАКС сохраняют URL в hash-формате (web.max.ru/a/#@name),
+        # но MAX использует path-маршрутизацию (web.max.ru/name).
+        # Преобразуем hash обратно в прямой путь.
+        identifier = fragment[1:] if fragment.startswith(("@", "/")) else fragment
+        if not identifier:
+            raise ValueError("Ссылка MAX не содержит идентификатор чата")
+        path = "/" + identifier
+        fragment = ""
         query = ""
     elif path.lower() in {"/", "/a", "/a/"}:
         raise ValueError("Ссылка MAX не содержит идентификатор чата")
-    else:
-        # Прямая ссылка (web.max.ru/name) - конвертируем в SPA hash-маршрут
-        segment = path.strip("/").split("/")[0]
-        if not segment:
-            raise ValueError("Ссылка MAX не содержит идентификатор чата")
-        if segment.startswith("+"):
-            raise ValueError("Инвайт-ссылки MAX не поддерживаются парсером")
-        
-        # Telegram/MAX Web ожидает:
-        # - числовые ID без префикса (web.max.ru/a/#-12345)
-        # - буквенные имена (username) с префиксом @ (web.max.ru/a/#@name)
-        is_numeric = re.fullmatch(r"-?\d+", segment) is not None
-        fragment = segment if is_numeric else ("@" + segment)
-        path = "/a/"
-        query = ""
 
     return urlunsplit(("https", "web.max.ru", path, query, fragment))
 
@@ -140,7 +131,14 @@ def app_is_ready(page):
     return page.evaluate("""
         () => {
           const text = (document.body?.innerText || '').toLowerCase();
-          const messages = document.querySelectorAll('[data-mid], [role="article"], [class*="Message"], [class*="message"]').length;
+          const nodes = document.querySelectorAll('[data-mid], [role="article"], [class*="Message"], [class*="message"]');
+          let messages = 0;
+          for (const node of nodes) {
+              const box = node.getBoundingClientRect();
+              if (box.width > 150 && box.height > 15 && box.left > 250) {
+                  messages++;
+              }
+          }
           const shell = document.querySelectorAll('[class*="ChatList"], [class*="chat-list"], [class*="Sidebar"], nav').length;
           const login = /qr[- ]?код|войти|авторизац|сканируйте/.test(text.slice(0, 2000));
           return { ready: messages > 0 || (shell > 0 && !login), login, messages, shell };
@@ -285,27 +283,18 @@ def run_parser(session_id, chat_url):
             )
             page = context.new_page()
 
-            # 1. Загружаем оболочку SPA, чтобы инициализировать приложение.
-            # Если сразу открыть ссылку с хэшем, MAX может сбросить её при старте.
-            base_url = "https://web.max.ru/a/"
-            stage = "открытие оболочки MAX"
-            response = page.goto(base_url, timeout=45_000, wait_until="domcontentloaded")
+            # Загружаем SPA сразу с маршрутом чата: MAX читает hash при старте приложения.
+            stage = "открытие целевого чата MAX"
+            response = page.goto(chat_url, timeout=60_000, wait_until="domcontentloaded")
             if response and response.status == 429:
                 return result(chat_url, "RATE_LIMITED", error="Превышен лимит запросов MAX (429)")
 
-            stage = "ожидание загрузки интерфейса"
-            state = wait_for_app(page, seconds=20, check_messages=False)
-            if state.get("login") and not state.get("shell"):
-                return result(chat_url, "AUTH_REQUIRED", error="Сессия MAX требует повторного входа")
-
-            # 2. Теперь, когда SPA загружено, переходим в нужный чат
-            stage = "открытие целевого чата MAX"
-            page.goto(chat_url, timeout=45_000, wait_until="commit")
-
             stage = "ожидание сообщений чата"
-            state = wait_for_app(page, seconds=15, check_messages=True)
+            state = wait_for_app(page, seconds=30, check_messages=True)
+            
             if state.get("login") and not state.get("ready"):
                 return result(chat_url, "AUTH_REQUIRED", error="Сессия MAX требует повторного входа")
+
             page.wait_for_timeout(random.SystemRandom().randint(600, 1400))
             human_scroll(page)
             title = extract_title(page)
