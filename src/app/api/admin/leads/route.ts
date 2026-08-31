@@ -35,13 +35,15 @@ export async function DELETE(req: NextRequest) {
       return NextResponse.json({ error: 'Missing id' }, { status: 400 });
     }
 
-    // First delete any purchases related to this lead to satisfy foreign keys
-    await prisma.purchase.deleteMany({
-      where: { leadId: id }
+    // Soft delete any purchases related to this lead
+    await prisma.purchase.updateMany({
+      where: { leadId: id },
+      data: { deletedAt: new Date() }
     });
 
-    await prisma.lead.delete({
+    await prisma.lead.update({
       where: { id },
+      data: { deletedAt: new Date(), status: 'ARCHIVED' }
     });
 
     return NextResponse.json({ success: true });

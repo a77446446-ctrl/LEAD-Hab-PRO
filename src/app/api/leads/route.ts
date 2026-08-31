@@ -33,7 +33,7 @@ export async function GET(request: Request) {
     const takeParam = Number(searchParams.get('take') || '100');
     const take = Number.isInteger(takeParam) ? Math.min(Math.max(takeParam, 1), 200) : 100;
 
-    const where: Prisma.LeadWhereInput = {};    if (leadId) {
+    const where: Prisma.LeadWhereInput = { deletedAt: null };    if (leadId) {
       if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(leadId)) {
         return NextResponse.json({ error: 'Некорректный идентификатор лида' }, { status: 400 });
       }

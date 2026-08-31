@@ -77,6 +77,7 @@ model Lead {
   price         Int           @default(0)
   status        String        @default("NEW")
   createdAt     DateTime      @default(now())
+  deletedAt     DateTime?
   purchases     Purchase[]
   botDeliveries BotDelivery[]
 }
@@ -139,6 +140,7 @@ model Purchase {
   leadId       String
   lead         Lead     @relation(fields: [leadId], references: [id])
   price        Int      @default(0)
+  deletedAt    DateTime?
   createdAt    DateTime @default(now())
 }
 
@@ -148,6 +150,7 @@ model Transaction {
   user          User     @relation(fields: [userId], references: [id])
   type          String
   amount        Int      @default(0)
+  deletedAt    DateTime?
   createdAt     DateTime @default(now())
 }
 

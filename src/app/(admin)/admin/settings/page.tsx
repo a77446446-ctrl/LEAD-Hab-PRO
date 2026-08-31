@@ -83,6 +83,7 @@ export default function SettingsPage() {
   const [syncing, setSyncing] = useState(false);
   const [autoParseEnabled, setAutoParseEnabled] = useState(false);
   const [parseInterval, setParseInterval] = useState<number>(300);
+  const [leadRetentionDays, setLeadRetentionDays] = useState<number>(7);
   const [currentParsingChat, setCurrentParsingChat] = useState<string | null>(null);
   const [nextRunSeconds, setNextRunSeconds] = useState<number | null>(null);
   const [settings, setSettings] = useState<Record<string, string>>({});
@@ -285,6 +286,7 @@ export default function SettingsPage() {
       }
       setAutoParseEnabled(settingsMap['maks_parser_auto'] === 'true');
       const interval = parseInt(settingsMap['maks_parser_interval'] || '300', 10);
+      setLeadRetentionDays(parseInt(settingsMap['lead_retention_days'] || '7', 10));
       setParseInterval(Math.max(interval, 60));
 
       const lastRunStr = settingsMap['maks_parser_last_run'];
@@ -534,6 +536,18 @@ export default function SettingsPage() {
     setAutoParseEnabled(enabled);
     saveAutoParseSettings(enabled, parseInterval);
     addLog(enabled ? 'Авто-парсинг включен' : 'Авто-парсинг отключен', 'info');
+  };
+
+  const handleRetentionDaysChange = async (days: number) => {
+    setLeadRetentionDays(days);
+    try {
+      await fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'lead_retention_days', value: String(days) }),
+      });
+      addLog(`Срок хранения лидов изменен на ${days} дн.`, 'info');
+    } catch (e) {}
   };
 
   const handleIntervalChange = (newInterval: number) => {
