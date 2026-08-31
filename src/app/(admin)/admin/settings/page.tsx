@@ -735,7 +735,7 @@ export default function SettingsPage() {
           <div className="bg-accent border border-zinc-700 p-2.5 text-black rounded-lg">
             <SettingsIcon size={20} />
           </div>
-          <h1 className="text-sm font-black tracking-widest text-white uppercase leading-none">НАСТРОЙКИ МАКС</h1>
+          <h1 className="text-sm font-black tracking-widest text-white uppercase leading-none">НАСТРОЙКИ</h1>
           
           <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950 border border-zinc-700 text-accent text-[9px] font-black uppercase tracking-widest transition-all hover:bg-zinc-700 sm:ml-4">
             <div className="flex items-center gap-1.5">

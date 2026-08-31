@@ -82,22 +82,22 @@ export default function PaymentsPage() {
   }, [fetchTransactions]);
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="flex items-center gap-3 text-2xl font-black tracking-tighter text-white sm:text-3xl">
-            <CreditCard className="shrink-0 text-white" size={30} />
-            ПЛАТЕЖИ
-          </h1>
-          <p className="mt-1 text-sm font-bold text-zinc-400">История транзакций и финансы</p>
+    <div className="mx-auto max-w-6xl space-y-6 px-0 pb-20 font-sans sm:px-6">
+      <div className="flex flex-col gap-4 border-b border-zinc-700 py-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="bg-accent border border-zinc-700 p-2.5 text-black rounded-lg">
+            <CreditCard size={20} />
+          </div>
+          <h1 className="text-sm font-black tracking-widest text-white uppercase leading-none">ПЛАТЕЖИ</h1>
         </div>
         <button
           type="button"
           onClick={() => void fetchTransactions()}
           disabled={loading}
-          className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-zinc-700 bg-zinc-900 px-4 text-xs font-black uppercase text-white shadow-sm transition-colors hover:bg-zinc-800 disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950 border border-zinc-700 text-accent text-[9px] font-black uppercase tracking-widest transition-all hover:bg-zinc-700 sm:ml-4"
         >
-          <RefreshCw className={loading ? 'animate-spin' : ''} size={16} /> Обновить
+          {loading ? <RefreshCw className="animate-spin" size={12} /> : <RefreshCw size={12} />}
+          <span>ОБНОВИТЬ</span>
         </button>
       </div>
 

@@ -84,11 +84,13 @@ export default function AdminLeadsPage() {
     .filter(l => l.title.toLowerCase().includes(searchQuery.toLowerCase()) || l.city.toLowerCase().includes(searchQuery.toLowerCase()));
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-        <div>
-          <h2 className="text-2xl font-black uppercase tracking-tight text-white sm:text-3xl">Управление Лидами</h2>
-          <p className="text-zinc-400 text-sm font-bold mt-1">Модерация и контроль входящего потока заявок</p>
+    <div className="mx-auto max-w-6xl space-y-6 px-0 pb-20 font-sans sm:px-6">
+      <div className="flex flex-col gap-4 border-b border-zinc-700 py-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="bg-accent border border-zinc-700 p-2.5 text-black rounded-lg">
+            <Database size={20} />
+          </div>
+          <h1 className="text-sm font-black tracking-widest text-white uppercase leading-none">ЛИДЫ</h1>
         </div>
         <div className="flex w-full gap-2 md:w-auto">
           <div className="relative min-w-0 flex-1 md:flex-none">
@@ -98,7 +100,7 @@ export default function AdminLeadsPage() {
               placeholder="Поиск лидов..." 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-lg border border-zinc-700 bg-zinc-900 py-2 pl-10 pr-4 text-xs font-black text-white transition-colors placeholder:text-zinc-500 focus:border-accent focus:outline-none"
+              className="w-full rounded-lg border border-zinc-700 bg-zinc-900 py-2 pl-10 pr-4 text-[10px] font-black uppercase tracking-wider text-white transition-colors placeholder:text-zinc-500 focus:border-accent focus:outline-none"
             />
           </div>
           <button onClick={() => fetchLeads()} className="bg-zinc-900 p-2 border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-500 transition-colors rounded-lg"><Filter size={18} /></button>

@@ -259,11 +259,13 @@ export default function AdminCategoriesPage() {
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-accent" /></div>;
 
   return (
-    <div className="space-y-6 pb-20 sm:space-y-8">
-      <div className="flex justify-between items-center">
-        <div>
-          <h2 className="text-2xl font-black uppercase tracking-tight text-white sm:text-3xl">Управление Категориями</h2>
-          <p className="text-zinc-400 text-sm font-bold mt-1">Контроль ИИ-фильтров и монетизации системы</p>
+    <div className="mx-auto max-w-6xl space-y-6 px-0 pb-20 font-sans sm:px-6">
+      <div className="flex flex-col gap-4 border-b border-zinc-700 py-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="bg-accent border border-zinc-700 p-2.5 text-black rounded-lg">
+            <TagIcon size={20} />
+          </div>
+          <h1 className="text-sm font-black tracking-widest text-white uppercase leading-none">КАТЕГОРИИ</h1>
         </div>
       </div>
 

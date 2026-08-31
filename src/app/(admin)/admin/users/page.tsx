@@ -86,16 +86,14 @@ export default function UsersPage() {
   }, [search, users]);
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
-        <div>
-          <h1 className="flex items-center gap-3 text-2xl font-black tracking-tight text-white sm:text-3xl">
-            <UsersIcon className="shrink-0 text-white" size={30} />
-            ПОЛЬЗОВАТЕЛИ
-          </h1>
-          <p className="mt-1 text-sm font-bold text-zinc-400">Управление доступом и балансами</p>
+    <div className="mx-auto max-w-6xl space-y-6 px-0 pb-20 font-sans sm:px-6">
+      <div className="flex flex-col gap-4 border-b border-zinc-700 py-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="bg-accent border border-zinc-700 p-2.5 text-black rounded-lg">
+            <UsersIcon size={20} />
+          </div>
+          <h1 className="text-sm font-black tracking-widest text-white uppercase leading-none">ПОЛЬЗОВАТЕЛИ</h1>
         </div>
-
         <div className="relative w-full md:w-72">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={18} />
           <input

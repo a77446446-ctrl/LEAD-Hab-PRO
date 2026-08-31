@@ -48,13 +48,15 @@ export default function AdminDashboardPage() {
   ];
 
   return (
-    <div className="space-y-6 sm:space-y-10">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <h2 className="text-2xl font-black uppercase text-white sm:text-3xl">Обзор системы</h2>
-          <p className="text-zinc-400 text-sm font-bold mt-1">Статистика платформы за последние 24 часа</p>
+    <div className="mx-auto max-w-6xl space-y-6 px-0 pb-20 font-sans sm:px-6">
+      <div className="flex flex-col gap-4 border-b border-zinc-700 py-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="bg-accent border border-zinc-700 p-2.5 text-black rounded-lg">
+            <TrendingUp size={20} />
+          </div>
+          <h1 className="text-sm font-black tracking-widest text-white uppercase leading-none">ОБЗОР СИСТЕМЫ</h1>
         </div>
-        <div className="bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 text-xs font-black text-white uppercase shadow-sm">
+        <div className="flex bg-zinc-900 border border-zinc-700 rounded-lg px-4 py-2 text-xs font-black text-white uppercase shadow-sm">
           {new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
         </div>
       </div>

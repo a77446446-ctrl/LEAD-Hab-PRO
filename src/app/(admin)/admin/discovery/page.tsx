@@ -69,11 +69,21 @@ export default function DiscoveryPage() {
   };
 
   return (
-    <div className="space-y-6 sm:space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-6">
-        <div><h1 className="text-2xl font-black uppercase sm:text-3xl">Детектив</h1><p className="mt-2 text-sm text-zinc-400">Поиск и контроль новых источников MAX</p></div>
-        <button onClick={() => void run()} disabled={running} className="flex min-h-11 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-3 font-black uppercase text-black disabled:opacity-50">
-          {running ? <Loader2 className="animate-spin" size={18} /> : <Search size={18} />} Запустить поиск
+    <div className="mx-auto max-w-6xl space-y-6 px-0 pb-20 font-sans sm:px-6">
+      <div className="flex flex-col gap-4 border-b border-zinc-700 py-6 sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-wrap items-center gap-3 sm:gap-4">
+          <div className="bg-accent border border-zinc-700 p-2.5 text-black rounded-lg">
+            <Search size={20} />
+          </div>
+          <h1 className="text-sm font-black tracking-widest text-white uppercase leading-none">ДЕТЕКТИВ</h1>
+        </div>
+        <button
+          onClick={() => void run()}
+          disabled={running}
+          className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950 border border-zinc-700 text-accent text-[9px] font-black uppercase tracking-widest transition-all hover:bg-zinc-700 sm:ml-4"
+        >
+          {running ? <Loader2 className="animate-spin" size={12} /> : <Search size={12} />}
+          <span>ЗАПУСТИТЬ ПОИСК</span>
         </button>
       </div>
       {error && <div className="rounded-xl border border-red-700 bg-red-950/40 p-4 text-sm text-red-200">{error}</div>}
