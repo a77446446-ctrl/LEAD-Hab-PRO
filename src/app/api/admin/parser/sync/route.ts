@@ -5,6 +5,8 @@ import { prisma } from '@/lib/prisma';
 import { maxParser } from '@/services/max-parser';
 import { reconcilePayments } from '@/services/yookassa';
 
+export const maxDuration = 300; // 5 minutes timeout
+
 export async function POST() {
   const denied = await adminGuard();
   if (denied) return denied;

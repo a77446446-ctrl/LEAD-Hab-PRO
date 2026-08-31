@@ -1,6 +1,11 @@
 ﻿import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAdmin } from '@/lib/auth/current-user';
+import fs from 'fs';
+import path from 'path';
+
+export const maxDuration = 300; // 5 minutes timeout
+
 
 export async function POST() {
   try {
@@ -60,14 +65,61 @@ export async function POST() {
       }
     });
 
+    
+    // 5. Cleanup debug_screenshots folder
+    let deletedFiles = 0;
+    try {
+      const debugDir = path.join(process.cwd(), 'debug_screenshots');
+      if (fs.existsSync(debugDir)) {
+        const files = fs.readdirSync(debugDir);
+        const now = Date.now();
+        const MAX_AGE = 3 * 24 * 60 * 60 * 1000; // 3 days
+        for (const file of files) {
+          if (!file.endsWith('.png') && !file.endsWith('.jpg') && !file.endsWith('.log')) continue;
+          const filePath = path.join(debugDir, file);
+          const stats = fs.statSync(filePath);
+          if (now - stats.mtimeMs > MAX_AGE) {
+            fs.unlinkSync(filePath);
+            deletedFiles++;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to cleanup debug files:', e);
+    }
+
     return NextResponse.json({
       success: true,
       softDeleted: softDeletedCount,
       hardDeleted: hardDeletedLeads.count,
       scrubbed: scrubbedLeads.count,
+      deletedDebugFiles: deletedFiles,
     });
   } catch (error) {
     console.error('[CLEANUP]', error);
+    
+    // 5. Cleanup debug_screenshots folder
+    let deletedFiles = 0;
+    try {
+      const debugDir = path.join(process.cwd(), 'debug_screenshots');
+      if (fs.existsSync(debugDir)) {
+        const files = fs.readdirSync(debugDir);
+        const now = Date.now();
+        const MAX_AGE = 3 * 24 * 60 * 60 * 1000; // 3 days
+        for (const file of files) {
+          if (!file.endsWith('.png') && !file.endsWith('.jpg') && !file.endsWith('.log')) continue;
+          const filePath = path.join(debugDir, file);
+          const stats = fs.statSync(filePath);
+          if (now - stats.mtimeMs > MAX_AGE) {
+            fs.unlinkSync(filePath);
+            deletedFiles++;
+          }
+        }
+      }
+    } catch (e) {
+      console.error('Failed to cleanup debug files:', e);
+    }
+
     return NextResponse.json({ error: 'Cleanup failed' }, { status: 500 });
   }
 }
