@@ -1,3 +1,4 @@
+import { redactContactInfo } from '@/lib/redact-contact';
 import { prisma } from '@/lib/prisma';
 
 export interface RawLead {
@@ -238,7 +239,10 @@ export const aiService = {
           const apiUrl = isOpenAI ? 'https://api.openai.com/v1/chat/completions' : 'https://api.deepseek.com/chat/completions';
           const modelName = isOpenAI ? 'gpt-4o-mini' : 'deepseek-chat';
 
-          const response = await fetch(apiUrl, {
+          const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 10000);
+            const response = await fetch(apiUrl, {
+              signal: controller.signal,
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
