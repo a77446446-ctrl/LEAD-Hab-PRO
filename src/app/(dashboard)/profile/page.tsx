@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useUser } from '@/store/useUser';
-import { useUser } from '@/store/useUser';
 
 
 import { Settings, LogOut, Award, History, TrendingUp } from 'lucide-react';
