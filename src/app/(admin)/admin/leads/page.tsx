@@ -123,7 +123,7 @@ export default function AdminLeadsPage() {
             <button onClick={() => setActiveTab('SPAM')} className={cn("text-xs font-black pb-2 border-b-4 transition-all uppercase tracking-wider", activeTab === 'SPAM' ? "text-red-500 border-red-500" : "text-zinc-500 border-transparent hover:text-red-400")}>СПАМ</button>
           </div>
 
-          <div className="overflow-x-auto overflow-y-auto max-h-[600px] p-0 custom-scrollbar relative">
+          <div className="overflow-x-auto overflow-y-auto max-h-[400px] p-0 custom-scrollbar relative">
             {loading ? (
               <div className="flex items-center justify-center py-20 text-white">
                 <Loader2 className="animate-spin" size={32} />

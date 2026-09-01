@@ -16,13 +16,17 @@ import { LeadIngestMock } from '@/components/ui/LeadIngestMock';
 import { DashboardChart } from '@/components/ui/DashboardChart';
 
 export default function AdminDashboardPage() {
-  const [statsData, setStatsData] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+  const [selectedDate, setSelectedDate] = useState<Date>(() => {
+    const d = new Date();
+    d.setHours(0,0,0,0);
+    return d;
+  });
 
-  const fetchStats = async (silent = false) => {
+  const fetchStats = async (silent = false, date: Date = selectedDate) => {
     try {
       if (!silent) setLoading(true);
-      const res = await fetch('/api/admin/stats');
+      const isoDate = date.toISOString().split('T')[0];
+      const res = await fetch(`/api/admin/stats?date=${isoDate}`);
       const data = await res.json();
       setStatsData(data);
     } catch (err) {
@@ -33,15 +37,14 @@ export default function AdminDashboardPage() {
   };
 
   useEffect(() => {
-    fetchStats();
+    fetchStats(false, selectedDate);
     
-    // Auto-refresh every 10 seconds
     const interval = setInterval(() => {
-      fetchStats(true);
+      fetchStats(true, selectedDate);
     }, 10000);
     
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedDate]);
 
   const stats = [
     { label: 'Доход сегодня', value: loading ? '...' : `${statsData?.revenueToday || 0}₽`, trend: '', icon: CreditCard, color: '#E6F000' },
@@ -60,19 +63,39 @@ export default function AdminDashboardPage() {
           <h1 className="text-sm font-black tracking-widest text-white uppercase leading-none">ОБЗОР СИСТЕМЫ</h1>
         </div>
         <div className="flex items-center bg-zinc-900 border border-zinc-700 rounded-lg shadow-sm">
-          <button className="p-3 text-zinc-400 hover:text-white transition-colors hover:bg-zinc-800 rounded-l-lg border-r border-zinc-700">
+          <button 
+            onClick={() => {
+              const d = new Date(selectedDate);
+              d.setDate(d.getDate() - 1);
+              setSelectedDate(d);
+            }}
+            className="p-3 text-zinc-400 hover:text-white transition-colors hover:bg-zinc-800 rounded-l-lg border-r border-zinc-700"
+          >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
           </button>
           <div className="relative flex items-center">
             <input 
               type="date" 
+              value={selectedDate.toISOString().split('T')[0]}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setSelectedDate(new Date(e.target.value));
+                }
+              }}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
             <div className="px-4 py-2 text-xs font-black text-white uppercase cursor-pointer">
-              {new Date().toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
+              {selectedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
             </div>
           </div>
-          <button className="p-3 text-zinc-400 hover:text-white transition-colors hover:bg-zinc-800 rounded-r-lg border-l border-zinc-700">
+          <button 
+            onClick={() => {
+              const d = new Date(selectedDate);
+              d.setDate(d.getDate() + 1);
+              setSelectedDate(d);
+            }}
+            className="p-3 text-zinc-400 hover:text-white transition-colors hover:bg-zinc-800 rounded-r-lg border-l border-zinc-700"
+          >
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
           </button>
         </div>

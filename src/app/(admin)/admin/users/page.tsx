@@ -160,7 +160,7 @@ export default function UsersPage() {
                </div>
                <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">СПИСОК ПОЛЬЗОВАТЕЛЕЙ</h3>
             </div>
-            <div className="overflow-x-auto overflow-y-auto max-h-[600px] p-0 custom-scrollbar relative">
+            <div className="overflow-x-auto overflow-y-auto max-h-[400px] p-0 custom-scrollbar relative">
               <table className="w-full min-w-[900px] border-collapse text-left">
                 <thead className="sticky top-0 bg-zinc-900/95 backdrop-blur z-10 shadow-sm">
                   <tr className="border-b border-zinc-800 text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400">

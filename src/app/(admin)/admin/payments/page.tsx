@@ -142,7 +142,7 @@ export default function PaymentsPage() {
                </div>
                <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">ИСТОРИЯ ПЛАТЕЖЕЙ</h3>
             </div>
-            <div className="overflow-x-auto overflow-y-auto max-h-[600px] p-0 custom-scrollbar relative">
+            <div className="overflow-x-auto overflow-y-auto max-h-[400px] p-0 custom-scrollbar relative">
               <table className="w-full min-w-[850px] border-collapse text-left">
                 <thead className="sticky top-0 bg-zinc-900/95 backdrop-blur z-10 shadow-sm"><tr className="border-b border-zinc-800 text-[10px] font-black uppercase tracking-widest text-zinc-400"><th className="px-8 py-4">Тип</th><th className="px-6 py-4">Сумма</th><th className="px-6 py-4">Пользователь</th><th className="px-6 py-4">Дата и время</th><th className="px-8 py-4 text-right">Статус</th></tr></thead>
                 <tbody className="text-sm bg-transparent">

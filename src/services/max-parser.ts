@@ -298,7 +298,6 @@ async function processMessage(
       price: category.leadPrice ?? 100,
       status: processed.isSpam ? 'SPAM' : 'NEW',
     }));
-    pushLog(logs, `Сохранён лид: ${String(processed.title || 'Новое сообщение').slice(0, 80)}`);
     return true;
   } catch (error) {
     console.error('[PARSER] Ошибка сообщения:', safeParserError(error));
