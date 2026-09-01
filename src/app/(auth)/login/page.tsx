@@ -89,9 +89,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-white flex flex-col items-center justify-between p-4 sm:p-6 overflow-hidden relative font-sans">
       <div className="pt-2 flex items-center justify-center w-full">
         <img 
-          src="/logo-home-guy.png" 
+          src="/logo-new.png" 
           alt="ПО ДЕЛАМ" 
-          className="w-full max-w-[200px] h-auto object-contain"
+          className="w-full max-w-[250px] h-auto object-contain"
         />
       </div>
 
