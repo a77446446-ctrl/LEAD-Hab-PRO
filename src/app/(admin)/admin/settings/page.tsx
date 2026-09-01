@@ -684,7 +684,7 @@ export default function SettingsPage() {
       }
       setNextRunSeconds(parseInterval);
     }
-  }, [nextRunSeconds, syncing, autoParseEnabled, parseInterval, sessions.length, parseTimeStart, parseTimeEnd]);
+  }, [nextRunSeconds, syncing, autoParseEnabled, parseInterval, sessions.length, parseTimeStart, parseTimeEnd, parseTimeEnabled]);
 
   const addChat = async () => {
     if (!newChat) return;
@@ -1189,8 +1189,10 @@ export default function SettingsPage() {
               <button
                 type="button"
                 onClick={() => handleAutoParseToggle(!autoParseEnabled)}
+                disabled={!isInsideParsingWindow()}
                 className={cn(
                   'px-4 py-2 border border-zinc-700 rounded-lg text-[9px] font-bold uppercase transition-all',
+                  !isInsideParsingWindow() ? 'opacity-50 cursor-not-allowed bg-zinc-800 text-zinc-500' :
                   autoParseEnabled ? 'bg-accent text-black' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:text-white'
                 )}
               >
@@ -1333,10 +1335,11 @@ export default function SettingsPage() {
             {!autoParseEnabled && (
               <button 
                 onClick={handleSync}
-                disabled={syncing || sessions.length === 0}
+                disabled={syncing || sessions.length === 0 || !isInsideParsingWindow()}
                 className={cn(
                   "neon-button w-full flex items-center justify-center gap-3 rounded-lg",
-                  sessions.length === 0 ? "opacity-50 cursor-not-allowed hover:bg-accent" : ""
+                  sessions.length === 0 ? "opacity-50 cursor-not-allowed hover:bg-accent" : "",
+                  !isInsideParsingWindow() ? "opacity-50 cursor-not-allowed bg-zinc-800 border-zinc-700 text-zinc-500 hover:bg-zinc-800" : ""
                 )}
               >
                 <div className="flex items-center justify-center gap-3 w-full">
