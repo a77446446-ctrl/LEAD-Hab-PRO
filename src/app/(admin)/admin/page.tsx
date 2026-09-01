@@ -55,14 +55,14 @@ export default function AdminDashboardPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-0 pb-20 font-sans sm:px-6">
-      <div className="flex flex-col gap-4 border-b border-zinc-700 py-6 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-4 border-b border-zinc-700 py-4 sm:py-6 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex flex-wrap items-center gap-3 sm:gap-4">
-          <div className="bg-accent border border-zinc-700 p-2.5 text-black rounded-lg">
-            <LayoutDashboard size={20} />
+          <div className="bg-accent border border-zinc-700 p-2 text-black rounded-lg sm:p-2.5">
+            <LayoutDashboard className="w-4 h-4 sm:w-5 sm:h-5" />
           </div>
-          <h1 className="text-sm font-black tracking-widest text-white uppercase leading-none">ОБЗОР СИСТЕМЫ</h1>
+          <h1 className="text-xs sm:text-xs sm:text-sm font-bold tracking-widest text-white uppercase leading-none">ОБЗОР СИСТЕМЫ</h1>
         </div>
-        <div className="flex items-center bg-zinc-900 border border-zinc-700 rounded-lg shadow-sm">
+        <div className="flex w-full sm:w-auto items-center justify-between bg-zinc-900 border border-zinc-700 rounded-lg shadow-sm overflow-hidden">
           <button 
             onClick={() => {
               const d = new Date(selectedDate);
@@ -84,7 +84,7 @@ export default function AdminDashboardPage() {
               }}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
             />
-            <div className="px-4 py-2 text-xs font-black text-white uppercase cursor-pointer">
+            <div className="px-4 py-2 text-xs font-bold text-white uppercase cursor-pointer">
               {selectedDate.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' })}
             </div>
           </div>
@@ -102,33 +102,33 @@ export default function AdminDashboardPage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6 xl:grid-cols-4 items-stretch">
+      <div className="grid grid-cols-2 gap-3 sm:gap-4 sm:p-6 xl:grid-cols-4 items-stretch">
         {stats.map((stat, i) => (
-          <div key={i} className="flex h-full flex-col rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-8">
-            <div className="flex items-center gap-3 mb-8">
+          <div key={i} className="flex h-full flex-col rounded-xl border border-zinc-700 bg-zinc-900 p-3 sm:p-6 shadow-sm">
+            <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-6">
               <div 
-                className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center"
+                className="w-6 h-6 sm:w-8 sm:h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center shrink-0"
                 style={{ color: stat.color === '#E6F000' || stat.color === '#E4FF00' ? '#E4FF00' : stat.color }}
               >
-                <stat.icon size={14} />
+                <stat.icon className="w-3 h-3 sm:w-4 sm:h-4" />
               </div>
-              <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">{stat.label}</h3>
+              <h3 className="font-bold text-[8px] sm:text-[10px] uppercase tracking-[0.1em] sm:tracking-[0.2em] text-zinc-400 break-words">{stat.label}</h3>
             </div>
             <div className="mt-auto">
-              <div className="text-4xl font-light tracking-tight text-white">{stat.value}</div>
+              <div className="text-xl sm:text-3xl font-normal tracking-tight text-white">{stat.value}</div>
             </div>
           </div>
         ))}
       </div>
 
       {/* Main Grid */}
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="flex flex-col min-h-[400px] rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-8 xl:col-span-2">
+      <div className="grid grid-cols-1 gap-4 sm:p-6 xl:grid-cols-3">
+        <div className="flex flex-col min-h-[400px] rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-6 xl:col-span-2">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-zinc-400">
               <BarChart3 size={14} />
             </div>
-            <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">ГРАФИК ДОХОДНОСТИ</h3>
+            <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-zinc-400">ГРАФИК ДОХОДНОСТИ</h3>
           </div>
           <div className="flex-1 flex w-full h-full">
             <DashboardChart />

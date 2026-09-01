@@ -33,7 +33,7 @@ export const BottomNav = () => {
             )}
           >
             <item.icon size={24} strokeWidth={isActive ? 2.5 : 2} />
-            <span className={cn('text-[9px] uppercase tracking-widest', isActive ? 'font-black' : 'font-bold')}>{item.label}</span>
+            <span className={cn('text-[9px] uppercase tracking-widest', isActive ? 'font-bold' : 'font-bold')}>{item.label}</span>
           </Link>
         );
       })}

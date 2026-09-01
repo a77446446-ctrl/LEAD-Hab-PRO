@@ -27,12 +27,12 @@ export const LeadIngestMock = () => {
   };
 
   return (
-    <div className="flex flex-col h-full rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-8 space-y-4">
+    <div className="flex flex-col h-full rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-4 sm:p-4 sm:p-6 space-y-4">
       <div className="flex items-center gap-3 mb-8">
         <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-accent">
           <Cpu size={14} />
         </div>
-        <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">AI ПАРСЕР (ТЕСТ)</h3>
+        <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-zinc-400">AI ПАРСЕР (ТЕСТ)</h3>
       </div>
       
       <textarea 
@@ -45,7 +45,7 @@ export const LeadIngestMock = () => {
       <button 
         onClick={handleIngest}
         disabled={status === 'loading' || !text}
-        className="w-full bg-accent text-black font-black py-4 px-6 rounded-lg hover:bg-[#F2FF00] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
+        className="w-full bg-accent text-black font-bold py-4 px-6 rounded-lg hover:bg-[#F2FF00] transition-colors flex items-center justify-center gap-2 disabled:opacity-50"
       >
         {status === 'loading' ? (
           'Обработка AI...'

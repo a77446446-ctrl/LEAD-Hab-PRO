@@ -53,19 +53,19 @@ export function DashboardChart() {
       <div className="flex items-center gap-2 mb-4 border-b border-zinc-800 pb-4">
         <button 
           onClick={() => setActiveTab('overview')}
-          className={`px-3 py-1.5 text-xs font-black uppercase tracking-widest rounded-md transition-colors ${activeTab === 'overview' ? 'bg-[#E4FF00] text-black' : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'}`}
+          className={`px-3 py-1.5 text-xs font-bold uppercase tracking-widest rounded-md transition-colors ${activeTab === 'overview' ? 'bg-[#E4FF00] text-black' : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'}`}
         >
           Общий рост
         </button>
         <button 
           onClick={() => setActiveTab('categories')}
-          className={`px-3 py-1.5 text-xs font-black uppercase tracking-widest rounded-md transition-colors ${activeTab === 'categories' ? 'bg-[#E4FF00] text-black' : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'}`}
+          className={`px-3 py-1.5 text-xs font-bold uppercase tracking-widest rounded-md transition-colors ${activeTab === 'categories' ? 'bg-[#E4FF00] text-black' : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'}`}
         >
           Категории
         </button>
         <button 
           onClick={() => setActiveTab('cities')}
-          className={`px-3 py-1.5 text-xs font-black uppercase tracking-widest rounded-md transition-colors ${activeTab === 'cities' ? 'bg-[#E4FF00] text-black' : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'}`}
+          className={`px-3 py-1.5 text-xs font-bold uppercase tracking-widest rounded-md transition-colors ${activeTab === 'cities' ? 'bg-[#E4FF00] text-black' : 'bg-zinc-900 text-zinc-500 hover:text-zinc-300'}`}
         >
           Города
         </button>

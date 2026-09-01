@@ -57,13 +57,13 @@ export default function AdminLayout({
               href={item.href}
               aria-current={isActive ? 'page' : undefined}
               className={cn(
-                'flex min-h-12 items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm font-black uppercase transition-all',
+                'flex min-h-11 sm:min-h-12 items-center gap-3 rounded-xl border border-transparent px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-xs sm:text-sm font-bold uppercase transition-all',
                 isActive
                   ? 'border-accent bg-accent text-black shadow-[0_0_15px_rgba(228,255,0,0.3)]'
                   : 'text-zinc-400 hover:border-zinc-700 hover:bg-zinc-800 hover:text-white',
               )}
             >
-              <item.icon size={18} strokeWidth={isActive ? 2.5 : 2} />
+              <item.icon className="w-4 h-4 sm:w-[18px] sm:h-[18px]" strokeWidth={isActive ? 2.5 : 2} />
               {item.label}
             </Link>
           );
@@ -72,9 +72,9 @@ export default function AdminLayout({
 
       <Link
         href="/dashboard"
-        className="flex min-h-12 items-center gap-3 rounded-xl border border-transparent px-4 py-3 text-sm font-black uppercase text-zinc-400 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"
+        className="flex min-h-11 sm:min-h-12 items-center gap-3 rounded-xl border border-transparent px-3 py-2 sm:px-4 sm:py-3 text-xs sm:text-xs sm:text-sm font-bold uppercase text-zinc-400 transition-all hover:border-zinc-700 hover:bg-zinc-800 hover:text-white"
       >
-        <ArrowLeft size={18} />
+        <ArrowLeft className="w-4 h-4 sm:w-[18px] sm:h-[18px]" />
         В приложение
       </Link>
     </>
@@ -84,7 +84,7 @@ export default function AdminLayout({
     <div className="flex min-h-screen min-w-0 bg-zinc-950 text-white">
       <aside className="hidden w-64 shrink-0 flex-col gap-8 rounded-br-2xl rounded-tr-2xl border-r border-zinc-800 bg-zinc-900 p-6 lg:flex">
         <div>
-          <div className="flex items-center overflow-hidden rounded-none border border-zinc-700 w-fit font-black mt-2">
+          <div className="flex items-center overflow-hidden rounded-none border border-zinc-700 w-fit font-bold mt-2">
             <span className="bg-zinc-950 text-white px-2 py-1.5 text-[11px] sm:text-xs tracking-widest leading-none">LEAD HUB</span>
             <span className="bg-accent text-black px-2 py-1.5 text-[11px] sm:text-xs tracking-widest leading-none">PRO</span>
           </div>
@@ -96,7 +96,7 @@ export default function AdminLayout({
 
       <div className="flex min-w-0 flex-1 flex-col">
         <header className="sticky top-0 z-40 flex min-h-16 items-center justify-between border-b border-zinc-800 bg-zinc-950/95 px-4 backdrop-blur lg:hidden">
-          <div className="flex items-center overflow-hidden rounded-none border border-zinc-700 w-fit font-black">
+          <div className="flex items-center overflow-hidden rounded-none border border-zinc-700 w-fit font-bold">
             <span className="bg-zinc-950 text-white px-2 py-1 text-[10px] tracking-widest leading-none">LEAD HUB</span>
             <span className="bg-accent text-black px-2 py-1 text-[10px] tracking-widest leading-none">PRO</span>
           </div>
@@ -124,10 +124,10 @@ export default function AdminLayout({
             onClick={() => setIsMobileMenuOpen(false)}
             className="absolute inset-0 bg-black/70 backdrop-blur-sm"
           />
-          <aside className="absolute inset-y-0 right-0 flex w-[min(86vw,22rem)] flex-col gap-6 overflow-y-auto border-l border-zinc-700 bg-zinc-900 p-5 shadow-2xl">
+          <aside className="absolute inset-y-0 right-0 flex w-[min(86vw,22rem)] flex-col gap-4 sm:p-6 overflow-y-auto border-l border-zinc-700 bg-zinc-900 p-5 shadow-2xl">
             <div className="flex items-center justify-between">
               <div>
-                <div className="flex items-center overflow-hidden rounded-none border border-zinc-700 w-fit font-black mt-2">
+                <div className="flex items-center overflow-hidden rounded-none border border-zinc-700 w-fit font-bold mt-2">
                   <span className="bg-zinc-950 text-white px-2 py-1.5 text-[11px] sm:text-xs tracking-widest leading-none">LEAD HUB</span>
                   <span className="bg-accent text-black px-2 py-1.5 text-[11px] sm:text-xs tracking-widest leading-none">PRO</span>
                 </div>

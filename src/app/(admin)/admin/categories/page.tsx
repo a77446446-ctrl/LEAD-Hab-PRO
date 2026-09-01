@@ -270,39 +270,39 @@ export default function AdminCategoriesPage() {
           <div className="bg-accent border border-zinc-700 p-2.5 text-black rounded-lg">
             <TagIcon size={20} />
           </div>
-          <h1 className="text-sm font-black tracking-widest text-white uppercase leading-none">КАТЕГОРИИ</h1>
+          <h1 className="text-xs sm:text-sm font-bold tracking-widest text-white uppercase leading-none">КАТЕГОРИИ</h1>
         </div>
       </div>
 
       {/* EDIT/ADD FORM */}
       <div className="flex flex-col rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-lg">
-        <div className="flex items-center gap-3 p-4 sm:p-8 border-b border-zinc-800 relative overflow-hidden">
+        <div className="flex items-center gap-3 p-4 sm:p-6 border-b border-zinc-800 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
              <Zap size={64} className="text-white" />
           </div>
           <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-zinc-400 z-10">
             {editingId ? <Edit2 size={14} /> : <Plus size={14} />}
           </div>
-          <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400 z-10">
+          <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-zinc-400 z-10">
             {editingId ? 'РЕДАКТИРОВАТЬ КАТЕГОРИЮ' : 'ДОБАВИТЬ НОВУЮ КАТЕГОРИЮ'}
           </h3>
         </div>
         
-        <div className="p-4 sm:p-8 space-y-8">
+        <div className="p-4 sm:p-6 space-y-8">
 
-        <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:p-6">
           <div className="space-y-3 md:col-span-4">
-            <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Название услуги (для ИИ)</label>
+            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Название услуги (для ИИ)</label>
             <input 
               value={formData.name} 
               onChange={e => setFormData({...formData, name: e.target.value})}
               placeholder="Например: Мастер на час" 
-              className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-4 px-6 text-sm font-black focus:border-accent outline-none transition-all placeholder:text-zinc-600 text-white" 
+              className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-4 px-6 text-xs sm:text-sm font-bold focus:border-accent outline-none transition-all placeholder:text-zinc-600 text-white" 
             />
           </div>
 
           <div className="space-y-3 md:col-span-2">
-            <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">
+            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">
               {formData.paymentMode === 'SUBSCRIPTION' ? 'Цена подписки (₽)' : 'Цена за лид (₽)'}
             </label>
             <div className="relative">
@@ -316,21 +316,21 @@ export default function AdminCategoriesPage() {
                      setFormData({...formData, leadPrice: Number(e.target.value)});
                    }
                  }}
-                 className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-4 px-6 text-sm font-black focus:border-accent outline-none transition-all text-white" 
+                 className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-4 px-6 text-xs sm:text-sm font-bold focus:border-accent outline-none transition-all text-white" 
                />
-               <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-500 uppercase">
+               <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-500 uppercase">
                   {(formData.paymentMode === 'SUBSCRIPTION' ? formData.subscriptionPrice : formData.leadPrice) === 0 ? 'БЕСПЛАТНО' : 'РУБ'}
                </div>
             </div>
           </div>
 
           <div className="space-y-3 md:col-span-3">
-            <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Тип доступа</label>
+            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Тип доступа</label>
             <div className="relative">
               <select 
                 value={formData.paymentMode}
                 onChange={e => setFormData({...formData, paymentMode: e.target.value as any})}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-4 px-6 text-sm font-black focus:border-accent outline-none transition-all appearance-none cursor-pointer text-white"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-4 px-6 text-xs sm:text-sm font-bold focus:border-accent outline-none transition-all appearance-none cursor-pointer text-white"
               >
                 <option value="LEAD">ПОШТУЧНО</option>
                 <option value="SUBSCRIPTION">PRO (ПОДПИСКА)</option>
@@ -343,22 +343,22 @@ export default function AdminCategoriesPage() {
           </div>
 
           <div className="space-y-3 md:col-span-3">
-            <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Время жизни (минут)</label>
+            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Время жизни (минут)</label>
             <div className="relative">
                <input 
                  type="number"
                  value={formData.ttlMinutes || 1440} 
                  onChange={e => setFormData({...formData, ttlMinutes: Number(e.target.value)})}
-                 className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-4 px-6 text-sm font-black focus:border-accent outline-none transition-all text-white" 
+                 className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-4 px-6 text-xs sm:text-sm font-bold focus:border-accent outline-none transition-all text-white" 
                />
-               <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-black text-zinc-500 uppercase">
+               <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-500 uppercase">
                   МИН
                </div>
             </div>
           </div>
           
           <div className="space-y-3 md:col-span-12">
-            <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest ml-1">Водяной знак для карточки (Опционально)</label>
+            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Водяной знак для карточки (Опционально)</label>
             <div className="flex items-center gap-4">
               <input 
                 type="file" 
@@ -369,7 +369,7 @@ export default function AdminCategoriesPage() {
               />
               <label 
                 htmlFor="file-upload" 
-                className="cursor-pointer bg-zinc-950 border border-zinc-700 hover:border-accent hover:text-accent text-zinc-400 rounded-lg px-6 py-4 flex items-center gap-3 transition-all font-black text-xs uppercase"
+                className="cursor-pointer bg-zinc-950 border border-zinc-700 hover:border-accent hover:text-accent text-zinc-400 rounded-lg px-6 py-4 flex items-center gap-3 transition-all font-bold text-xs uppercase"
               >
                 {isUploading ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
                 {isUploading ? 'Загрузка...' : 'Загрузить картинку'}
@@ -395,7 +395,7 @@ export default function AdminCategoriesPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 bg-zinc-950 border border-zinc-700 rounded-lg p-5">
-          <label className="md:col-span-3 flex items-center gap-3 text-xs font-black text-white uppercase cursor-pointer">
+          <label className="md:col-span-3 flex items-center gap-3 text-xs font-bold text-white uppercase cursor-pointer">
             <input
               type="checkbox"
               checked={Boolean(formData.showcaseEnabled)}
@@ -405,7 +405,7 @@ export default function AdminCategoriesPage() {
             Публиковать в MAX
           </label>
           <div className="md:col-span-6 space-y-2">
-            <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Числовой chat_id канала</label>
+            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Числовой chat_id канала</label>
             <input
               inputMode="numeric"
               list="max-bot-chats"
@@ -413,7 +413,7 @@ export default function AdminCategoriesPage() {
               onChange={(event) => setFormData({ ...formData, showcaseChatId: event.target.value.replace(/\D/g, '') })}
               disabled={!formData.showcaseEnabled}
               placeholder="Например: 1234567890"
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg py-3 px-4 text-sm font-black text-white disabled:opacity-40"
+              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg py-3 px-4 text-xs sm:text-sm font-bold text-white disabled:opacity-40"
             />
             <datalist id="max-bot-chats">
               {maxBotChats.filter((chat) => chat.active).map((chat) => (
@@ -422,12 +422,12 @@ export default function AdminCategoriesPage() {
             </datalist>
           </div>
           <div className="md:col-span-3 space-y-2">
-            <label className="text-[9px] font-black text-zinc-500 uppercase tracking-widest">Тип витрины</label>
+            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Тип витрины</label>
             <select
               value={formData.showcaseKind || 'PUBLIC'}
               onChange={(event) => setFormData({ ...formData, showcaseKind: event.target.value as 'PUBLIC' | 'PRIVATE' })}
               disabled={!formData.showcaseEnabled}
-              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg py-3 px-4 text-sm font-black text-white disabled:opacity-40"
+              className="w-full bg-zinc-900 border border-zinc-700 rounded-lg py-3 px-4 text-xs sm:text-sm font-bold text-white disabled:opacity-40"
             >
               <option value="PUBLIC">ПУБЛИЧНАЯ</option>
               <option value="PRIVATE">ПРИВАТНАЯ</option>
@@ -437,15 +437,15 @@ export default function AdminCategoriesPage() {
         </div>
 
         {/* TAG INPUTS */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-6">
           {/* PLUS KEYWORDS */}
           <div className="space-y-4">
-            <label className="text-[9px] font-black text-green-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+            <label className="text-[9px] font-bold text-green-500 uppercase tracking-widest ml-1 flex items-center gap-2">
               <PlusCircle size={14} /> Ключевые слова (ПЛЮС)
             </label>
             <div className="bg-zinc-950 border border-zinc-700 rounded-lg p-4 min-h-[120px] focus-within:border-green-500 transition-all flex flex-wrap gap-2 items-start content-start">
                {plusTags.map((tag, i) => (
-                 <div key={i} className="flex items-center gap-1.5 bg-green-900/30 border border-green-800 text-green-400 rounded px-3 py-1.5 text-[10px] font-black uppercase transition-all hover:bg-green-900/50 animate-in fade-in zoom-in duration-200">
+                 <div key={i} className="flex items-center gap-1.5 bg-green-900/30 border border-green-800 text-green-400 rounded px-3 py-1.5 text-[10px] font-bold uppercase transition-all hover:bg-green-900/50 animate-in fade-in zoom-in duration-200">
                     {tag}
                     <button onClick={() => removeTag(i, 'plus')} className="hover:text-white transition-colors"><X size={10} /></button>
                  </div>
@@ -456,19 +456,19 @@ export default function AdminCategoriesPage() {
                  onKeyDown={e => handleKeyDown(e, 'plus')}
                  onPaste={e => handlePaste(e, 'plus')}
                  placeholder={plusTags.length === 0 ? "установить, собрать, починить..." : ""}
-                 className="w-full min-w-full bg-transparent outline-none text-sm font-black p-1 placeholder:text-zinc-600 mt-1 text-white"
+                 className="w-full min-w-full bg-transparent outline-none text-xs sm:text-sm font-bold p-1 placeholder:text-zinc-600 mt-1 text-white"
                />
             </div>
           </div>
 
           {/* MINUS KEYWORDS */}
           <div className="space-y-4">
-            <label className="text-[9px] font-black text-red-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+            <label className="text-[9px] font-bold text-red-500 uppercase tracking-widest ml-1 flex items-center gap-2">
               <MinusCircle size={14} /> Стоп-слова (МИНУС)
             </label>
             <div className="bg-zinc-950 border border-zinc-700 rounded-lg p-4 min-h-[120px] focus-within:border-red-500 transition-all flex flex-wrap gap-2 items-start content-start">
                {minusTags.map((tag, i) => (
-                 <div key={i} className="flex items-center gap-1.5 bg-red-900/30 border border-red-800 text-red-400 rounded px-3 py-1.5 text-[10px] font-black uppercase transition-all hover:bg-red-900/50 animate-in fade-in zoom-in duration-200">
+                 <div key={i} className="flex items-center gap-1.5 bg-red-900/30 border border-red-800 text-red-400 rounded px-3 py-1.5 text-[10px] font-bold uppercase transition-all hover:bg-red-900/50 animate-in fade-in zoom-in duration-200">
                     {tag}
                     <button onClick={() => removeTag(i, 'minus')} className="hover:text-white transition-colors"><X size={10} /></button>
                  </div>
@@ -479,7 +479,7 @@ export default function AdminCategoriesPage() {
                  onKeyDown={e => handleKeyDown(e, 'minus')}
                  onPaste={e => handlePaste(e, 'minus')}
                  placeholder={minusTags.length === 0 ? "знакомства, интим, резюме..." : ""}
-                 className="w-full min-w-full bg-transparent outline-none text-sm font-black p-1 placeholder:text-zinc-600 mt-1 text-white"
+                 className="w-full min-w-full bg-transparent outline-none text-xs sm:text-sm font-bold p-1 placeholder:text-zinc-600 mt-1 text-white"
                />
             </div>
           </div>
@@ -487,14 +487,14 @@ export default function AdminCategoriesPage() {
 
         <div className="flex gap-4 justify-end pt-4 border-t border-zinc-700">
           {editingId && (
-            <button onClick={handleCancel} className="px-8 py-4 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-[10px] font-black uppercase tracking-[0.2em] transition-all flex items-center gap-2 text-zinc-400 hover:text-white">
+            <button onClick={handleCancel} className="px-8 py-4 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-[10px] font-bold uppercase tracking-[0.2em] transition-all flex items-center gap-2 text-zinc-400 hover:text-white">
               <X size={14} /> ОТМЕНИТЬ
             </button>
           )}
           <button 
             onClick={handleSave} 
             disabled={saving || !formData.name}
-            className="bg-accent text-black font-black uppercase py-4 px-10 rounded-lg border border-accent hover:bg-[#F2FF00] active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50 disabled:shadow-none"
+            className="bg-accent text-black font-bold uppercase py-4 px-10 rounded-lg border border-accent hover:bg-[#F2FF00] active:scale-95 transition-all flex items-center gap-3 disabled:opacity-50 disabled:shadow-none"
           >
             {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
             {editingId ? 'СОХРАНИТЬ ИЗМЕНЕНИЯ' : 'СОЗДАТЬ КАТЕГОРИЮ'}
@@ -505,20 +505,20 @@ export default function AdminCategoriesPage() {
 
       {/* CATEGORIES LIST */}
       <div className="flex flex-col rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-lg mt-6">
-        <div className="flex items-center gap-3 p-4 sm:p-8 border-b border-zinc-800">
+        <div className="flex items-center gap-3 p-4 sm:p-6 border-b border-zinc-800">
            <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-zinc-400">
               <TagIcon size={14} />
            </div>
-           <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">СПИСОК КАТЕГОРИЙ</h3>
+           <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-zinc-400">СПИСОК КАТЕГОРИЙ</h3>
         </div>
-        <div className="p-4 sm:p-8">
-          <div className="grid grid-cols-1 gap-6">
+        <div className="p-4 sm:p-6">
+          <div className="grid grid-cols-1 gap-4 sm:p-6">
             {categories.map((cat) => (
-          <div key={cat.id} className="group relative overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm transition-all hover:bg-zinc-800/80 sm:p-8">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8">
+          <div key={cat.id} className="group relative overflow-hidden rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-sm transition-all hover:bg-zinc-800/80 sm:p-4 sm:p-6">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 sm:p-6">
               <div className="space-y-2 max-w-xs">
                 <div className="flex items-center gap-3">
-                  <h4 className="text-xl font-black uppercase tracking-tight text-white">{cat.name}</h4>
+                  <h4 className="text-xl font-bold uppercase tracking-tight text-white">{cat.name}</h4>
                   {cat.paymentMode === 'SUBSCRIPTION' && (
                     <div className="bg-yellow-900/30 text-yellow-500 rounded p-1 border border-yellow-800" title="PRO (Только подписка)">
                        <Crown size={14} />
@@ -527,38 +527,38 @@ export default function AdminCategoriesPage() {
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                    <div className={cn(
-                      "text-[8px] font-black px-2.5 py-1 rounded border uppercase tracking-widest",
+                      "text-[8px] font-bold px-2.5 py-1 rounded border uppercase tracking-widest",
                       cat.active ? "bg-green-900/30 text-green-400 border-green-800" : "bg-zinc-800 text-zinc-500 border-zinc-700"
                     )}>
                       {cat.active ? 'АКТИВНА' : 'ПАУЗА'}
                    </div>
-                   <div className="text-[8px] font-black px-2.5 py-1 rounded border border-zinc-700 bg-zinc-800 text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+                   <div className="text-[8px] font-bold px-2.5 py-1 rounded border border-zinc-700 bg-zinc-800 text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
                       <Zap size={10} /> {cat.paymentMode === 'SUBSCRIPTION' ? 'PRO' : cat.paymentMode}
                    </div>
-                   <div className="text-[8px] font-black px-2.5 py-1 rounded border border-accent/50 bg-accent/10 text-accent uppercase tracking-widest">
+                   <div className="text-[8px] font-bold px-2.5 py-1 rounded border border-accent/50 bg-accent/10 text-accent uppercase tracking-widest">
                       {cat.leadPrice === 0 ? 'FREE' : `${cat.leadPrice} РУБ`}
                    </div>
-                   <div className="text-[8px] font-black px-2.5 py-1 rounded border border-red-800 bg-red-900/30 text-red-400 uppercase tracking-widest flex items-center gap-1">
+                   <div className="text-[8px] font-bold px-2.5 py-1 rounded border border-red-800 bg-red-900/30 text-red-400 uppercase tracking-widest flex items-center gap-1">
                       <Trash2 size={10} /> {(cat as any).ttlMinutes || 1440} МИН
                    </div>
                 </div>
               </div>
 
-              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-8 lg:px-8 border-zinc-700 lg:border-l">
+              <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4 sm:p-6 lg:px-8 border-zinc-700 lg:border-l">
                  <div className="space-y-2">
-                    <span className="text-[8px] font-black uppercase tracking-widest text-green-500">ПЛЮС-СЛОВА:</span>
+                    <span className="text-[8px] font-bold uppercase tracking-widest text-green-500">ПЛЮС-СЛОВА:</span>
                     <div className="flex flex-wrap gap-1.5">
                        {cat.plusKeywords ? cat.plusKeywords.split(',').slice(0, 10).map((t, i) => (
-                         <span key={i} className="text-[9px] font-black text-zinc-400 bg-zinc-800 rounded border border-zinc-700 px-2 py-0.5">{t.trim()}</span>
+                         <span key={i} className="text-[9px] font-bold text-zinc-400 bg-zinc-800 rounded border border-zinc-700 px-2 py-0.5">{t.trim()}</span>
                        )) : <span className="text-[9px] italic text-zinc-600 font-bold">Все сообщения</span>}
                        {cat.plusKeywords && cat.plusKeywords.split(',').length > 10 && <span className="text-[9px] text-zinc-600">...</span>}
                     </div>
                  </div>
                  <div className="space-y-2">
-                    <span className="text-[8px] font-black uppercase tracking-widest text-red-500">СТОП-СЛОВА:</span>
+                    <span className="text-[8px] font-bold uppercase tracking-widest text-red-500">СТОП-СЛОВА:</span>
                     <div className="flex flex-wrap gap-1.5">
                        {cat.minusKeywords ? cat.minusKeywords.split(',').slice(0, 10).map((t, i) => (
-                         <span key={i} className="text-[9px] font-black text-zinc-400 bg-zinc-800 rounded border border-zinc-700 px-2 py-0.5">{t.trim()}</span>
+                         <span key={i} className="text-[9px] font-bold text-zinc-400 bg-zinc-800 rounded border border-zinc-700 px-2 py-0.5">{t.trim()}</span>
                        )) : <span className="text-[9px] italic text-zinc-600 font-bold">Нет</span>}
                        {cat.minusKeywords && cat.minusKeywords.split(',').length > 10 && <span className="text-[9px] text-zinc-600">...</span>}
                     </div>
@@ -574,9 +574,9 @@ export default function AdminCategoriesPage() {
         ))}
 
         {categories.length === 0 && (
-          <div className="flex flex-col items-center justify-center py-32 text-zinc-600 gap-6">
-             <div className="bg-zinc-900 rounded-xl border border-zinc-700 p-8"><AlertCircle size={64} className="text-white" /></div>
-             <p className="text-[10px] font-black uppercase tracking-[0.4em] opacity-50 text-white">Категории не настроены</p>
+          <div className="flex flex-col items-center justify-center py-32 text-zinc-600 gap-4 sm:p-6">
+             <div className="bg-zinc-900 rounded-xl border border-zinc-700 p-4 sm:p-6"><AlertCircle size={64} className="text-white" /></div>
+             <p className="text-[10px] font-bold uppercase tracking-[0.4em] opacity-50 text-white">Категории не настроены</p>
           </div>
         )}
           </div>

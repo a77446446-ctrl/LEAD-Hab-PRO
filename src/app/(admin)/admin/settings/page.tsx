@@ -797,9 +797,9 @@ export default function SettingsPage() {
           <div className="bg-accent border border-zinc-700 p-2.5 text-black rounded-lg">
             <SettingsIcon size={20} />
           </div>
-          <h1 className="text-sm font-black tracking-widest text-white uppercase leading-none">НАСТРОЙКИ</h1>
+          <h1 className="text-xs sm:text-sm font-bold tracking-widest text-white uppercase leading-none">НАСТРОЙКИ</h1>
           
-          <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-accent text-[9px] font-black uppercase tracking-widest transition-all hover:bg-zinc-800 sm:ml-4">
+          <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-accent text-[9px] font-bold uppercase tracking-widest transition-all hover:bg-zinc-800 sm:ml-4">
             <div className="flex items-center gap-1.5">
               {saving ? <Loader2 className="animate-spin" size={12} /> : <Save size={12} />}
               <span>СОХРАНИТЬ</span>
@@ -807,24 +807,24 @@ export default function SettingsPage() {
           </button>
         </div>
         
-        <button onClick={() => setShowHelp(!showHelp)} className="flex items-center justify-center gap-2 border border-zinc-700 rounded-lg bg-zinc-900 px-3 py-2 text-[9px] font-black uppercase tracking-widest text-white transition-all hover:bg-zinc-800 sm:w-auto">
+        <button onClick={() => setShowHelp(!showHelp)} className="flex items-center justify-center gap-2 border border-zinc-700 rounded-lg bg-zinc-900 px-3 py-2 text-[9px] font-bold uppercase tracking-widest text-white transition-all hover:bg-zinc-800 sm:w-auto">
           <div className="flex items-center gap-1.5">
             <HelpCircle size={14} /> <span>ИНСТРУКЦИЯ</span>
           </div>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 rounded-xl items-stretch">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:p-6 rounded-xl items-stretch">
         {/* ACCOUNTS CARD */}
         <div className="flex h-full flex-col rounded-xl border border-zinc-700 bg-zinc-900 p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-6">
             <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 rounded-none flex items-center justify-center text-white"><UserIcon size={14} /></div>
-            <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">Аккаунты</h3>
+            <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-zinc-400">Аккаунты</h3>
           </div>
 
           <div className="mb-6 space-y-4 rounded-lg border border-zinc-700 p-4 sm:p-5 bg-transparent">
              <div className="flex items-center justify-between">
-                <label className="text-[8px] font-black text-zinc-400 uppercase tracking-[0.2em]">Режим подключения</label>
+                <label className="text-[8px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Режим подключения</label>
                 <div className="flex bg-zinc-950 p-1 border border-zinc-700 rounded-lg">
                    <button 
                       onClick={() => {
@@ -832,7 +832,7 @@ export default function SettingsPage() {
                         setProxyStatus('idle');
                       }} // Reset status when switching
                       className={cn(
-                        "px-4 py-1.5 text-[9px] font-black uppercase transition-all border border-transparent rounded-md",
+                        "px-4 py-1.5 text-[9px] font-bold uppercase transition-all border border-transparent rounded-md",
                         !canBypass ? "bg-zinc-800 text-white border-zinc-700" : "text-zinc-400 hover:text-white"
                       )}
                       type="button"
@@ -847,7 +847,7 @@ export default function SettingsPage() {
                         setProxyPort('');
                       }}
                       className={cn(
-                        "px-4 py-1.5 text-[9px] font-black uppercase transition-all border border-transparent rounded-md",
+                        "px-4 py-1.5 text-[9px] font-bold uppercase transition-all border border-transparent rounded-md",
                         canBypass ? "bg-zinc-800 text-white border-zinc-700" : "text-zinc-400 hover:text-white"
                       )}
                       type="button"
@@ -860,12 +860,12 @@ export default function SettingsPage() {
              {!canBypass ? (
                <>
                  <div className="flex items-center justify-between">
-                    <label className="text-[8px] font-black text-zinc-400 uppercase tracking-[0.2em]">Тип прокси</label>
+                    <label className="text-[8px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Тип прокси</label>
                     <div className="relative">
                        <select 
                           value={proxyProtocol}
                           onChange={(e) => setProxyProtocol(e.target.value as any)}
-                          className="bg-zinc-950 border border-zinc-700 rounded-lg py-1.5 px-3 text-[9px] font-black text-white uppercase focus:ring-1 focus:ring-black appearance-none cursor-pointer outline-none"
+                          className="bg-zinc-950 border border-zinc-700 rounded-lg py-1.5 px-3 text-[9px] font-bold text-white uppercase focus:ring-1 focus:ring-black appearance-none cursor-pointer outline-none"
                        >
                           <option value="http://">HTTP</option>
                           <option value="socks5://">SOCKS5</option>
@@ -898,7 +898,7 @@ export default function SettingsPage() {
              ) : (
                <div className="bg-zinc-950 border border-zinc-700 p-3 rounded-lg flex gap-3 items-center">
                   <div className="text-accent"><ShieldCheck size={20} /></div>
-                  <div className="text-[9px] text-white font-black uppercase leading-relaxed">
+                  <div className="text-[9px] text-white font-bold uppercase leading-relaxed">
                     Без прокси: браузер запускается на сервере Calyphity. VPN на вашем устройстве на него не влияет.
                   </div>
                </div>
@@ -909,7 +909,7 @@ export default function SettingsPage() {
                   onClick={canBypass ? () => startAuthFlow('direct') : handleStartQR} 
                   disabled={authorizing || proxyStatus === 'checking' || (!canBypass && (!proxyIP || !proxyPort))} 
                   className={cn(
-                    "w-full flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-black uppercase tracking-widest transition-all border border-zinc-700",
+                    "w-full flex items-center justify-center gap-2 py-3 rounded-lg text-xs font-bold uppercase tracking-widest transition-all border border-zinc-700",
                     (!canBypass && (!proxyIP || !proxyPort)) ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" : 
                     proxyStatus === 'valid' ? "bg-green-500 text-white" : 
                     proxyStatus === 'invalid' ? "bg-red-500 text-white" : 
@@ -935,7 +935,7 @@ export default function SettingsPage() {
                      initial={{ opacity: 0, y: -10 }}
                      animate={{ opacity: 1, y: 0 }}
                      onClick={() => startAuthFlow('proxy', 'saved')}
-                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-red-100 border border-red-500 text-red-600 text-[8px] font-black uppercase tracking-widest hover:bg-red-200 transition-all"
+                     className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-red-100 border border-red-500 text-red-600 text-[8px] font-bold uppercase tracking-widest hover:bg-red-200 transition-all"
                    >
                      <Unlock size={12} />
                      <span>Всё равно добавить (Пропустить проверку)</span>
@@ -971,7 +971,7 @@ export default function SettingsPage() {
                      }
                    }}
                    className={cn(
-                     "w-full flex items-center justify-center gap-2 py-2 rounded-lg border text-[8px] font-black uppercase tracking-widest transition-all",
+                     "w-full flex items-center justify-center gap-2 py-2 rounded-lg border text-[8px] font-bold uppercase tracking-widest transition-all",
                      proxyStatus === 'diagnosing' 
                        ? "bg-zinc-800 border-zinc-700 text-zinc-500 cursor-not-allowed" 
                        : "bg-zinc-950 border-zinc-700 text-zinc-400 hover:bg-zinc-800 hover:text-white"
@@ -993,9 +993,9 @@ export default function SettingsPage() {
                     <div className={cn("absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border border-zinc-700", session.active ? "bg-green-500" : "bg-red-500")} />
                   </div>
                   <div className="min-w-0">
-                    <h4 className="text-[10px] font-black text-white uppercase tracking-tight leading-none">{session.name}</h4>
+                    <h4 className="text-[10px] font-bold text-white uppercase tracking-tight leading-none">{session.name}</h4>
                     <p className="text-[7px] text-zinc-400 font-bold uppercase mt-1 truncate max-w-[190px]">{session.proxy || 'Прямое подключение'}</p>
-                    <p className={cn("text-[7px] font-black uppercase mt-1", session.status === 'ACTIVE' ? 'text-green-400' : session.status === 'COOLDOWN' ? 'text-amber-400' : 'text-red-400')}>
+                    <p className={cn("text-[7px] font-bold uppercase mt-1", session.status === 'ACTIVE' ? 'text-green-400' : session.status === 'COOLDOWN' ? 'text-amber-400' : 'text-red-400')}>
                       {SESSION_STATUS_LABELS[session.status || 'DISABLED'] || session.status}
                       {session.consecutiveFailures ? ` · ошибок подряд: ${session.consecutiveFailures}` : ''}
                     </p>
@@ -1019,7 +1019,7 @@ export default function SettingsPage() {
           <div className="mt-6 space-y-5 pt-5 border-t border-zinc-700">
             <div className="space-y-3">
                 <div className="flex items-center justify-between mb-3">
-                  <label className="text-[8px] font-black text-white uppercase tracking-[0.3em] ml-1">Использовать ИИ (DeepSeek) для анализа</label>
+                  <label className="text-[8px] font-bold text-white uppercase tracking-[0.3em] ml-1">Использовать ИИ (DeepSeek) для анализа</label>
                   <button 
                     onClick={() => {
                       setSettings({ ...settings, maks_ai_enabled: settings['maks_ai_enabled'] === 'true' ? 'false' : 'true' });
@@ -1038,7 +1038,7 @@ export default function SettingsPage() {
                 </div>
                 {settings['maks_ai_enabled'] === 'true' && (
                   <div className="space-y-2">
-                    <label className="text-[8px] font-black text-zinc-400 uppercase tracking-[0.3em] block ml-1">API Ключ ИИ</label>
+                    <label className="text-[8px] font-bold text-zinc-400 uppercase tracking-[0.3em] block ml-1">API Ключ ИИ</label>
                     <div className="flex gap-2">
                       <div className="relative flex-1">
                         <Key className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500" size={12} />
@@ -1063,7 +1063,7 @@ export default function SettingsPage() {
                         onClick={handleVerifyAiKey}
                         disabled={verifyingAi || !settings['maks_ai_api_key']}
                         className={cn(
-                          "px-4 text-[9px] font-black uppercase transition-all flex items-center justify-center gap-2 border border-zinc-700 rounded-lg shrink-0",
+                          "px-4 text-[9px] font-bold uppercase transition-all flex items-center justify-center gap-2 border border-zinc-700 rounded-lg shrink-0",
                           verifyingAi ? "bg-zinc-800 text-zinc-500 cursor-not-allowed" :
                           aiStatus === 'success' ? "bg-green-100 text-green-700 hover:bg-green-200 border-green-500" :
                           aiStatus === 'error' ? "bg-red-100 text-red-700 hover:bg-red-200 border-red-500" :
@@ -1089,7 +1089,7 @@ export default function SettingsPage() {
             
             <div className="pt-4 border-t border-zinc-700">
               <div className="flex items-center justify-between mb-3">
-                <label className="text-[8px] font-black text-white uppercase tracking-[0.3em] ml-1">Бонус за регистрацию</label>
+                <label className="text-[8px] font-bold text-white uppercase tracking-[0.3em] ml-1">Бонус за регистрацию</label>
                 <button 
                   onClick={() => {
                     setSettings({ ...settings, maks_welcome_bonus_enabled: settings['maks_welcome_bonus_enabled'] === 'false' ? 'true' : 'false' });
@@ -1109,9 +1109,9 @@ export default function SettingsPage() {
               
               {settings['maks_welcome_bonus_enabled'] !== 'false' && (
                 <div className="space-y-2">
-                  <label className="text-[8px] font-black text-zinc-400 uppercase tracking-[0.3em] block ml-1">Сумма бонуса (Рублей)</label>
+                  <label className="text-[8px] font-bold text-zinc-400 uppercase tracking-[0.3em] block ml-1">Сумма бонуса (Рублей)</label>
                   <div className="relative">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-[10px] font-black">₽</span>
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-[10px] font-bold">₽</span>
                     <input 
                       type="number" 
                       min="0"
@@ -1129,7 +1129,7 @@ export default function SettingsPage() {
             </div>
 
             <div className="pt-4 border-t border-zinc-700 flex flex-col flex-1 min-h-0">
-              <label className="text-[8px] font-black text-zinc-400 uppercase tracking-[0.3em] block ml-1 mb-1.5 shrink-0">Антиспам / Стоп-слова</label>
+              <label className="text-[8px] font-bold text-zinc-400 uppercase tracking-[0.3em] block ml-1 mb-1.5 shrink-0">Антиспам / Стоп-слова</label>
               <div className="relative flex-1 min-h-0">
                 <ShieldCheck className="absolute left-4 top-3 text-zinc-500" size={12} />
                 <textarea 
@@ -1154,9 +1154,9 @@ export default function SettingsPage() {
           <div className="flex items-center justify-between gap-3 mb-6">
             <div className="flex items-center gap-3">
               <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 rounded-none flex items-center justify-center text-white"><Activity size={14} /></div>
-              <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">Лог событий</h3>
+              <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-zinc-400">Лог событий</h3>
             </div>
-            <span className="flex items-center gap-1 text-[7px] font-black uppercase tracking-[0.2em] text-zinc-500">
+            <span className="flex items-center gap-1 text-[7px] font-bold uppercase tracking-[0.2em] text-zinc-500">
               {syncing && <Loader2 className="animate-spin" size={8} />}
               {syncing ? 'ПАРСИНГ' : 'ГОТОВ'}
             </span>
@@ -1182,7 +1182,7 @@ export default function SettingsPage() {
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 rounded-none flex items-center justify-center text-white"><Bot size={14} /></div>
                 <div>
-                  <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">Очередь чатов</h3>
+                  <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-zinc-400">Очередь чатов</h3>
                   <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-[0.2em]">Статус парсера</p>
                 </div>
               </div>
@@ -1190,7 +1190,7 @@ export default function SettingsPage() {
                 type="button"
                 onClick={() => handleAutoParseToggle(!autoParseEnabled)}
                 className={cn(
-                  'px-4 py-2 border border-zinc-700 rounded-lg text-[9px] font-black uppercase transition-all',
+                  'px-4 py-2 border border-zinc-700 rounded-lg text-[9px] font-bold uppercase transition-all',
                   autoParseEnabled ? 'bg-accent text-black' : 'bg-zinc-900 text-zinc-400 hover:bg-zinc-800 hover:text-white'
                 )}
               >
@@ -1208,7 +1208,7 @@ export default function SettingsPage() {
                 value={parseInterval}
                 onChange={(e) => handleIntervalChange(parseInt(e.target.value, 10))}
                 disabled={!autoParseEnabled}
-                className="shrink-0 bg-zinc-950 border border-zinc-700 rounded-lg py-1.5 px-3 text-[9px] font-black text-white uppercase focus:ring-1 focus:ring-black appearance-none cursor-pointer outline-none disabled:opacity-50 disabled:cursor-not-allowed"
+                className="shrink-0 bg-zinc-950 border border-zinc-700 rounded-lg py-1.5 px-3 text-[9px] font-bold text-white uppercase focus:ring-1 focus:ring-black appearance-none cursor-pointer outline-none disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="60">1 МИН</option>
                 <option value="180">3 МИН</option>
@@ -1238,7 +1238,7 @@ export default function SettingsPage() {
                         setParseTimeStart(e.target.value);
                         setHasUnsavedChanges(true);
                       }}
-                      className="bg-zinc-950 border border-zinc-700 rounded-lg py-1 px-2 text-[10px] font-black text-white focus:ring-1 focus:ring-black outline-none"
+                      className="bg-zinc-950 border border-zinc-700 rounded-lg py-1 px-2 text-[10px] font-bold text-white focus:ring-1 focus:ring-black outline-none"
                     />
                     <span>-</span>
                     <input
@@ -1248,7 +1248,7 @@ export default function SettingsPage() {
                         setParseTimeEnd(e.target.value);
                         setHasUnsavedChanges(true);
                       }}
-                      className="bg-zinc-950 border border-zinc-700 rounded-lg py-1 px-2 text-[10px] font-black text-white focus:ring-1 focus:ring-black outline-none"
+                      className="bg-zinc-950 border border-zinc-700 rounded-lg py-1 px-2 text-[10px] font-bold text-white focus:ring-1 focus:ring-black outline-none"
                     />
                   </div>
                 )}
@@ -1284,12 +1284,12 @@ export default function SettingsPage() {
                         {currentParsingChat === chat.url && <div className="absolute inset-0 w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping border border-zinc-700" />}
                       </div>
                       <span className={cn(
-                        "min-w-0 flex-1 truncate text-[10px] font-black uppercase tracking-tight text-white transition-colors hover:text-accent"
+                        "min-w-0 flex-1 truncate text-[10px] font-bold uppercase tracking-tight text-white transition-colors hover:text-accent"
                       )}>
                         {chat.name}
                       </span>
-                      {chat.parseAll && <span className={cn("shrink-0 border px-1.5 py-0.5 text-[6px] font-black uppercase rounded-md", sessions.length > 0 ? "border-green-800 bg-green-900/30 text-green-400" : "border-zinc-700 bg-zinc-800 text-zinc-500")}>ВСЁ</span>}
-                      {!chat.parseAll && <span className={cn("shrink-0 border px-1.5 py-0.5 text-[6px] font-black uppercase rounded-md", sessions.length > 0 ? "border-yellow-800 bg-yellow-900/30 text-yellow-400" : "border-zinc-700 bg-zinc-800 text-zinc-500")}>ЦЕЛЕВЫЕ</span>}
+                      {chat.parseAll && <span className={cn("shrink-0 border px-1.5 py-0.5 text-[6px] font-bold uppercase rounded-md", sessions.length > 0 ? "border-green-800 bg-green-900/30 text-green-400" : "border-zinc-700 bg-zinc-800 text-zinc-500")}>ВСЁ</span>}
+                      {!chat.parseAll && <span className={cn("shrink-0 border px-1.5 py-0.5 text-[6px] font-bold uppercase rounded-md", sessions.length > 0 ? "border-yellow-800 bg-yellow-900/30 text-yellow-400" : "border-zinc-700 bg-zinc-800 text-zinc-500")}>ЦЕЛЕВЫЕ</span>}
                     </div>
                   <span className="block truncate text-[8px] font-bold uppercase tracking-[0.12em] text-zinc-500">{chat.url}</span>
                   {chat.lastParsedAt && (
@@ -1310,7 +1310,7 @@ export default function SettingsPage() {
                     <Activity size={14}/>
                   </button>
                   {chat.count !== undefined && (
-                    <span className="w-11 whitespace-nowrap text-right text-[7px] font-black uppercase tracking-tight text-zinc-500 sm:w-14 sm:text-[8px]">{chat.count} лидов</span>
+                    <span className="w-11 whitespace-nowrap text-right text-[7px] font-bold uppercase tracking-tight text-zinc-500 sm:w-14 sm:text-[8px]">{chat.count} лидов</span>
                   )}
                   <button onClick={() => removeChat(chat.url)} className="shrink-0 p-2 text-zinc-500 transition-colors hover:text-red-500"><Trash2 size={12}/></button>
                 </div>
@@ -1341,7 +1341,7 @@ export default function SettingsPage() {
               >
                 <div className="flex items-center justify-center gap-3 w-full">
                   {syncing ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
-                  <span className="leading-none text-sm font-black uppercase">ЗАПУСТИТЬ ПАРСИНГ</span>
+                  <span className="leading-none text-xs sm:text-sm font-bold uppercase">ЗАПУСТИТЬ ПАРСИНГ</span>
                 </div>
               </button>
             )}
@@ -1358,16 +1358,16 @@ export default function SettingsPage() {
       {/* Серверная QR-авторизация MAX */}
       {authStep !== 'idle' && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center bg-zinc-950/90 p-4 backdrop-blur-sm">
-          <div className="max-h-[92vh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl border border-zinc-700 bg-zinc-900 p-5 text-center shadow-2xl sm:p-8">
+          <div className="max-h-[92vh] w-full max-w-xl space-y-5 overflow-y-auto rounded-2xl border border-zinc-700 bg-zinc-900 p-5 text-center shadow-2xl sm:p-4 sm:p-6">
             {authStep === 'starting' && (
               <div className="space-y-5 py-10">
                 <Loader2 className="mx-auto animate-spin text-accent" size={44} />
-                <div><h2 className="font-black uppercase text-white">Запускаю защищённый вход MAX</h2><p className="mt-2 text-sm text-zinc-400">Сервер открывает web.max.ru и готовит QR-код. Обычно это занимает до 20 секунд.</p></div>
+                <div><h2 className="font-bold uppercase text-white">Запускаю защищённый вход MAX</h2><p className="mt-2 text-sm text-zinc-400">Сервер открывает web.max.ru и готовит QR-код. Обычно это занимает до 20 секунд.</p></div>
               </div>
             )}
             {authStep === 'qr' && authQR && (
               <>
-                <div><h2 className="text-lg font-black uppercase text-white">Отсканируйте QR-код</h2><p className="mt-2 text-sm text-zinc-400">Откройте MAX на телефоне и подтвердите вход. Страница обновит QR автоматически.</p></div>
+                <div><h2 className="text-lg font-bold uppercase text-white">Отсканируйте QR-код</h2><p className="mt-2 text-sm text-zinc-400">Откройте MAX на телефоне и подтвердите вход. Страница обновит QR автоматически.</p></div>
                 <div className="overflow-hidden rounded-xl border border-zinc-700 bg-white p-2">
                   <Image src={authQR} alt="QR-код авторизации MAX" width={1280} height={800} unoptimized className="mx-auto h-auto max-h-[55vh] w-full object-contain" />
                 </div>
@@ -1377,16 +1377,16 @@ export default function SettingsPage() {
             {authStep === 'success' && (
               <div className="space-y-4 py-6">
                 <CheckCircle2 className="mx-auto text-green-400" size={48} />
-                <div><h2 className="font-black uppercase text-white">Аккаунт подключён</h2><p className="mt-2 text-sm text-zinc-300">Сессия сохранена, аккаунт активен и показан в списке ниже.</p></div>
+                <div><h2 className="font-bold uppercase text-white">Аккаунт подключён</h2><p className="mt-2 text-sm text-zinc-300">Сессия сохранена, аккаунт активен и показан в списке ниже.</p></div>
               </div>
             )}
             {authStep === 'error' && (
               <div className="space-y-4 py-6">
                 <AlertCircle className="mx-auto text-red-400" size={48} />
-                <div><h2 className="font-black uppercase text-white">Авторизация не выполнена</h2><p className="mt-2 break-words text-sm text-red-300">{authError}</p></div>
+                <div><h2 className="font-bold uppercase text-white">Авторизация не выполнена</h2><p className="mt-2 break-words text-sm text-red-300">{authError}</p></div>
               </div>
             )}
-            <button type="button" onClick={closeAuthDialog} className="w-full rounded-xl border border-zinc-700 bg-zinc-950 py-3 text-xs font-black uppercase text-white transition-colors hover:bg-zinc-800">
+            <button type="button" onClick={closeAuthDialog} className="w-full rounded-xl border border-zinc-700 bg-zinc-950 py-3 text-xs font-bold uppercase text-white transition-colors hover:bg-zinc-800">
               {authStep === 'error' ? 'Закрыть' : authStep === 'success' ? 'Готово' : 'Отменить авторизацию'}
             </button>
           </div>
@@ -1395,31 +1395,31 @@ export default function SettingsPage() {
       {/* Unsaved Changes Modal */}
       {showUnsavedModal && (
         <div className="fixed inset-0 bg-zinc-950/80 z-50 flex items-center justify-center p-4 rounded-lg">
-          <div className="bg-zinc-900 border-2 border-zinc-700 p-8 rounded-xl max-w-sm w-full text-center space-y-6 shadow-2xl rounded-xl">
+          <div className="bg-zinc-900 border-2 border-zinc-700 p-4 sm:p-6 rounded-xl max-w-sm w-full text-center space-y-6 shadow-2xl rounded-xl">
             <div className="w-16 h-16 border-2 border-zinc-700 bg-accent flex items-center justify-center mx-auto text-black mb-4">
               <AlertCircle size={32} />
             </div>
-            <h2 className="text-lg font-black text-white uppercase tracking-widest">Несохраненные изменения</h2>
-            <p className="text-sm font-bold text-zinc-400">Вы внесли изменения в настройки, но не сохранили их. Если вы уйдете сейчас, изменения будут потеряны.</p>
+            <h2 className="text-lg font-bold text-white uppercase tracking-widest">Несохраненные изменения</h2>
+            <p className="text-xs sm:text-sm font-bold text-zinc-400">Вы внесли изменения в настройки, но не сохранили их. Если вы уйдете сейчас, изменения будут потеряны.</p>
             <div className="space-y-3 pt-4">
               <button 
                 onClick={async () => {
                   await handleSave();
                   window.location.href = showUnsavedModal;
                 }} 
-                className="bg-accent text-black font-black uppercase tracking-widest border border-accent hover:bg-[#F2FF00] active:scale-95 transition-all rounded-lg w-full text-xs py-3"
+                className="bg-accent text-black font-bold uppercase tracking-widest border border-accent hover:bg-[#F2FF00] active:scale-95 transition-all rounded-lg w-full text-xs py-3"
               >
                 Сохранить и выйти
               </button>
               <button 
                 onClick={() => window.location.href = showUnsavedModal} 
-                className="w-full py-3 bg-red-100 border border-red-500 text-red-600 font-black uppercase tracking-widest text-xs hover:bg-red-200 transition-colors"
+                className="w-full py-3 bg-red-100 border border-red-500 text-red-600 font-bold uppercase tracking-widest text-xs hover:bg-red-200 transition-colors"
               >
                 Выйти без сохранения
               </button>
               <button 
                 onClick={() => setShowUnsavedModal(null)} 
-                className="w-full py-3 bg-zinc-800 border border-zinc-700 text-zinc-400 font-black uppercase tracking-widest text-xs hover:bg-zinc-700 hover:text-white transition-colors"
+                className="w-full py-3 bg-zinc-800 border border-zinc-700 text-zinc-400 font-bold uppercase tracking-widest text-xs hover:bg-zinc-700 hover:text-white transition-colors"
               >
                 Отмена
               </button>
@@ -1431,8 +1431,8 @@ export default function SettingsPage() {
       {/* Help Modal */}
       {showHelp && (
         <div className="fixed inset-0 bg-zinc-950/80 z-50 flex items-center justify-center p-4 rounded-lg">
-          <div className="bg-zinc-900 border-2 border-zinc-700 p-8 rounded-xl max-w-lg w-full shadow-2xl rounded-xl">
-            <h2 className="text-sm font-black text-white uppercase tracking-widest mb-6 flex items-center gap-2">
+          <div className="bg-zinc-900 border-2 border-zinc-700 p-4 sm:p-6 rounded-xl max-w-lg w-full shadow-2xl rounded-xl">
+            <h2 className="text-xs sm:text-sm font-bold text-white uppercase tracking-widest mb-6 flex items-center gap-2">
               <HelpCircle className="text-white" /> Инструкция
             </h2>
             <div className="space-y-4 text-xs text-zinc-400 leading-relaxed font-bold">
@@ -1442,13 +1442,13 @@ export default function SettingsPage() {
                 <li><strong className="text-white">Очередь чатов:</strong> добавьте ссылки на чаты (вида web.max.ru/...).</li>
                 <li><strong className="text-white">Режим парсинга:</strong> кнопка <Activity className="inline-block" size={10}/> напротив чата позволяет выбрать:
                   <div className="mt-2 pl-2 space-y-1">
-                    <div className="text-green-500 font-black py-1">«Зеленый статус» — собираются абсолютно все сообщения.</div>
-                    <div className="text-yellow-500 font-black py-1">«Желтый статус» — только целевые (подходящие под категории).</div>
+                    <div className="text-green-500 font-bold py-1">«Зеленый статус» — собираются абсолютно все сообщения.</div>
+                    <div className="text-yellow-500 font-bold py-1">«Желтый статус» — только целевые (подходящие под категории).</div>
                   </div>
                 </li>
               </ul>
             </div>
-            <button onClick={() => setShowHelp(false)} className="mt-8 w-full py-3 bg-zinc-950 hover:bg-zinc-700 text-white font-black uppercase tracking-widest text-xs transition-colors border border-zinc-700">
+            <button onClick={() => setShowHelp(false)} className="mt-8 w-full py-3 bg-zinc-950 hover:bg-zinc-700 text-white font-bold uppercase tracking-widest text-xs transition-colors border border-zinc-700">
               Понятно, закрыть
             </button>
           </div>
