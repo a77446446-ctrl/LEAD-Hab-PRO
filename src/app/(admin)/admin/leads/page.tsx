@@ -129,67 +129,114 @@ export default function AdminLeadsPage() {
                 <Loader2 className="animate-spin" size={32} />
               </div>
             ) : (
-              <table className="w-full min-w-[900px] text-left" ref={menuRef}>
-                <thead className="bg-zinc-900/95 backdrop-blur sticky top-0 z-10 text-[9px] uppercase font-bold text-zinc-400 tracking-[0.2em] border-b border-zinc-800 shadow-sm">
-                  <tr>
-                    <th className="px-4 sm:px-8 py-4 sm:py-5">Лид</th>
-                    <th className="px-4 sm:px-6 py-4 sm:py-5">Город</th>
-                    <th className="px-4 sm:px-6 py-4 sm:py-5">Цена</th>
-                    <th className="px-4 sm:px-6 py-4 sm:py-5">Статус</th>
-                    <th className="px-4 sm:px-6 py-4 sm:py-5">Время</th>
-                    <th className="px-4 sm:px-8 py-4 sm:py-5 text-right">Действия</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-800/50 bg-transparent">
-                {filteredLeads.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-12 text-zinc-500 font-bold text-xs uppercase tracking-widest">Лидов не найдено</td></tr>
-                ) : filteredLeads.map((lead) => (
-                  <tr key={lead.id} className="hover:bg-zinc-800/50 transition-colors group cursor-pointer" onClick={() => setSelectedLead(lead)}>
-                    <td className="px-4 sm:px-8 py-3 sm:py-5">
-                      <div className="font-bold text-xs sm:text-sm text-white group-hover:text-accent transition-colors leading-tight">{lead.title}</div>
-                      <div className="text-[8px] sm:text-[9px] text-zinc-500 uppercase tracking-widest mt-1 flex gap-2 items-center font-bold">
-                        <span>ID: {lead.id.substring(0, 8)}</span>
-                        {lead.sourceChat && (
-                          <span className="text-zinc-600 truncate max-w-[100px] sm:max-w-[150px]" title={lead.sourceChat}>
-                            • {lead.sourceChat.replace('https://web.max.ru/', '')}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-5 text-[10px] sm:text-xs text-zinc-400 font-bold">{lead.city}</td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-5 text-xs sm:text-xs sm:text-sm font-bold text-white">{lead.price}₽</td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-5">
-                      {lead.status === 'NEW' && <span className="bg-blue-900/30 text-blue-400 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 border border-blue-800 rounded uppercase flex items-center gap-1 w-fit"><Clock size={10}/> Новый</span>}
-                      {lead.status === 'SOLD' && <span className="bg-green-900/30 text-green-400 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 border border-green-800 rounded uppercase flex items-center gap-1 w-fit"><CheckCircle size={10}/> Продан</span>}
-                      {lead.status === 'SPAM' && <span className="bg-red-900/30 text-red-400 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 border border-red-800 rounded uppercase flex items-center gap-1 w-fit"><AlertCircle size={10}/> Спам</span>}
-                      {lead.status === 'ARCHIVED' && <span className="bg-zinc-800 text-zinc-400 text-[8px] sm:text-[9px] font-bold px-1.5 py-0.5 border border-zinc-700 rounded uppercase flex items-center gap-1 w-fit"><Archive size={10}/> Архив</span>}
-                    </td>
-                    <td className="px-4 sm:px-6 py-3 sm:py-5 text-[9px] sm:text-[10px] text-zinc-500 font-bold">{formatTime(lead.createdAt)}</td>
-                    <td className="px-4 sm:px-8 py-3 sm:py-5 text-right relative">
-                      <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === lead.id ? null : lead.id)}} className="p-2.5 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-all border border-transparent hover:border-zinc-600 bg-zinc-800 rounded-lg"><MoreVertical size={14} /></button>
-                      
-                      {openMenuId === lead.id && (
-                        <div className="absolute right-8 top-12 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl overflow-hidden z-50 min-w-[160px] flex flex-col text-left" onClick={e => e.stopPropagation()}>
-                          {lead.status !== 'ARCHIVED' && (
-                            <button onClick={() => handleUpdateStatus(lead.id, 'ARCHIVED')} className="px-4 py-3 text-[10px] font-bold text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center gap-2.5 transition-colors uppercase tracking-widest border-b border-zinc-800">
-                              <Archive size={12} /> В архив
-                            </button>
+              <>
+                <div className="sm:hidden flex flex-col divide-y divide-zinc-800/50 min-h-[300px]">
+                  {filteredLeads.length === 0 ? (
+                    <div className="text-center py-12 text-zinc-500 font-bold text-xs uppercase tracking-widest">Лидов не найдено</div>
+                  ) : filteredLeads.map((lead) => (
+                    <div key={lead.id} className="py-4 px-4 flex flex-col gap-3 cursor-pointer hover:bg-zinc-800/30 transition-colors relative" onClick={() => setSelectedLead(lead)}>
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="font-bold text-xs text-white leading-snug">{lead.title}</div>
+                        <div className="relative shrink-0">
+                          <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === lead.id ? null : lead.id)}} className="p-2 text-zinc-400 hover:text-white transition-all bg-zinc-800 rounded-lg"><MoreVertical size={14} /></button>
+                          {openMenuId === lead.id && (
+                            <div className="absolute right-0 top-10 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl overflow-hidden z-50 min-w-[140px] flex flex-col text-left" onClick={e => e.stopPropagation()}>
+                              {lead.status !== 'ARCHIVED' && (
+                                <button onClick={() => handleUpdateStatus(lead.id, 'ARCHIVED')} className="px-4 py-3 text-[10px] font-bold text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center gap-2.5 transition-colors uppercase tracking-widest border-b border-zinc-800">
+                                  <Archive size={12} /> В архив
+                                </button>
+                              )}
+                              {lead.status === 'ARCHIVED' && (
+                                <button onClick={() => handleUpdateStatus(lead.id, 'NEW')} className="px-4 py-3 text-[10px] font-bold text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center gap-2.5 transition-colors uppercase tracking-widest border-b border-zinc-800">
+                                  <Clock size={12} /> Вернуть
+                                </button>
+                              )}
+                              <button onClick={() => handleDelete(lead.id)} className="px-4 py-3 text-[10px] font-bold text-red-500 hover:bg-red-950 flex items-center gap-2.5 transition-colors uppercase tracking-widest">
+                                <Trash2 size={12} /> Удалить
+                              </button>
+                            </div>
                           )}
-                          {lead.status === 'ARCHIVED' && (
-                            <button onClick={() => handleUpdateStatus(lead.id, 'NEW')} className="px-4 py-3 text-[10px] font-bold text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center gap-2.5 transition-colors uppercase tracking-widest border-b border-zinc-800">
-                              <Clock size={12} /> Вернуть
-                            </button>
-                          )}
-                          <button onClick={() => handleDelete(lead.id)} className="px-4 py-3 text-[10px] font-bold text-red-500 hover:bg-red-950 flex items-center gap-2.5 transition-colors uppercase tracking-widest">
-                            <Trash2 size={12} /> Удалить
-                          </button>
                         </div>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      </div>
+                      <div className="flex justify-between items-center text-[10px]">
+                        <div className="text-zinc-400 font-bold">{lead.city}</div>
+                        <div className="font-bold text-white text-sm bg-zinc-800 px-2 py-1 rounded">{lead.price}₽</div>
+                      </div>
+                      <div className="flex justify-between items-center mt-1">
+                        <div className="flex items-center gap-2">
+                          {lead.status === 'NEW' && <span className="bg-blue-900/30 text-blue-400 text-[9px] font-bold px-1.5 py-0.5 border border-blue-800 rounded uppercase flex items-center gap-1 w-fit"><Clock size={10}/> Новый</span>}
+                          {lead.status === 'SOLD' && <span className="bg-green-900/30 text-green-400 text-[9px] font-bold px-1.5 py-0.5 border border-green-800 rounded uppercase flex items-center gap-1 w-fit"><CheckCircle size={10}/> Продан</span>}
+                          {lead.status === 'SPAM' && <span className="bg-red-900/30 text-red-400 text-[9px] font-bold px-1.5 py-0.5 border border-red-800 rounded uppercase flex items-center gap-1 w-fit"><AlertCircle size={10}/> Спам</span>}
+                          {lead.status === 'ARCHIVED' && <span className="bg-zinc-800 text-zinc-400 text-[9px] font-bold px-1.5 py-0.5 border border-zinc-700 rounded uppercase flex items-center gap-1 w-fit"><Archive size={10}/> Архив</span>}
+                        </div>
+                        <div className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold">{formatTime(lead.createdAt)}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                <table className="hidden sm:table w-full min-w-[900px] text-left" ref={menuRef}>
+                  <thead className="bg-zinc-900/95 backdrop-blur sticky top-0 z-10 text-[9px] uppercase font-bold text-zinc-400 tracking-[0.2em] border-b border-zinc-800 shadow-sm">
+                    <tr>
+                      <th className="px-8 py-5">Лид</th>
+                      <th className="px-6 py-5">Город</th>
+                      <th className="px-6 py-5">Цена</th>
+                      <th className="px-6 py-5">Статус</th>
+                      <th className="px-6 py-5">Время</th>
+                      <th className="px-8 py-5 text-right">Действия</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-zinc-800/50 bg-transparent">
+                  {filteredLeads.length === 0 ? (
+                    <tr><td colSpan={6} className="text-center py-12 text-zinc-500 font-bold text-xs uppercase tracking-widest">Лидов не найдено</td></tr>
+                  ) : filteredLeads.map((lead) => (
+                    <tr key={lead.id} className="hover:bg-zinc-800/50 transition-colors group cursor-pointer" onClick={() => setSelectedLead(lead)}>
+                      <td className="px-8 py-5">
+                        <div className="font-bold text-sm text-white group-hover:text-accent transition-colors leading-tight">{lead.title}</div>
+                        <div className="text-[9px] text-zinc-500 uppercase tracking-widest mt-1 flex gap-2 items-center font-bold">
+                          <span>ID: {lead.id.substring(0, 8)}</span>
+                          {lead.sourceChat && (
+                            <span className="text-zinc-600 truncate max-w-[150px]" title={lead.sourceChat}>
+                              • {lead.sourceChat.replace('https://web.max.ru/', '')}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-5 text-xs text-zinc-400 font-bold">{lead.city}</td>
+                      <td className="px-6 py-5 text-sm font-bold text-white">{lead.price}₽</td>
+                      <td className="px-6 py-5">
+                        {lead.status === 'NEW' && <span className="bg-blue-900/30 text-blue-400 text-[9px] font-bold px-2 py-0.5 border border-blue-800 rounded uppercase flex items-center gap-1 w-fit"><Clock size={10}/> Новый</span>}
+                        {lead.status === 'SOLD' && <span className="bg-green-900/30 text-green-400 text-[9px] font-bold px-2 py-0.5 border border-green-800 rounded uppercase flex items-center gap-1 w-fit"><CheckCircle size={10}/> Продан</span>}
+                        {lead.status === 'SPAM' && <span className="bg-red-900/30 text-red-400 text-[9px] font-bold px-2 py-0.5 border border-red-800 rounded uppercase flex items-center gap-1 w-fit"><AlertCircle size={10}/> Спам</span>}
+                        {lead.status === 'ARCHIVED' && <span className="bg-zinc-800 text-zinc-400 text-[9px] font-bold px-2 py-0.5 border border-zinc-700 rounded uppercase flex items-center gap-1 w-fit"><Archive size={10}/> Архив</span>}
+                      </td>
+                      <td className="px-6 py-5 text-[10px] text-zinc-500 font-bold">{formatTime(lead.createdAt)}</td>
+                      <td className="px-8 py-5 text-right relative">
+                        <button onClick={(e) => { e.stopPropagation(); setOpenMenuId(openMenuId === lead.id ? null : lead.id)}} className="p-2.5 hover:bg-zinc-700 text-zinc-400 hover:text-white transition-all border border-transparent hover:border-zinc-600 bg-zinc-800 rounded-lg"><MoreVertical size={14} /></button>
+                        
+                        {openMenuId === lead.id && (
+                          <div className="absolute right-8 top-12 bg-zinc-900 border border-zinc-700 rounded-lg shadow-xl overflow-hidden z-50 min-w-[160px] flex flex-col text-left" onClick={e => e.stopPropagation()}>
+                            {lead.status !== 'ARCHIVED' && (
+                              <button onClick={() => handleUpdateStatus(lead.id, 'ARCHIVED')} className="px-4 py-3 text-[10px] font-bold text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center gap-2.5 transition-colors uppercase tracking-widest border-b border-zinc-800">
+                                <Archive size={12} /> В архив
+                              </button>
+                            )}
+                            {lead.status === 'ARCHIVED' && (
+                              <button onClick={() => handleUpdateStatus(lead.id, 'NEW')} className="px-4 py-3 text-[10px] font-bold text-zinc-300 hover:text-white hover:bg-zinc-800 flex items-center gap-2.5 transition-colors uppercase tracking-widest border-b border-zinc-800">
+                                <Clock size={12} /> Вернуть
+                              </button>
+                            )}
+                            <button onClick={() => handleDelete(lead.id)} className="px-4 py-3 text-[10px] font-bold text-red-500 hover:bg-red-950 flex items-center gap-2.5 transition-colors uppercase tracking-widest">
+                              <Trash2 size={12} /> Удалить
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </>
           )}
           </div>
         </div>
@@ -223,12 +270,12 @@ export default function AdminLeadsPage() {
               {selectedLead.rawText}
             </div>
             
-            <div className="mt-5 flex flex-col gap-4 border-t border-zinc-800 pt-5 sm:flex-row sm:items-center sm:justify-between">
+            <div className="mt-5 flex items-center justify-between border-t border-zinc-800 pt-5">
                <div className="text-[9px] text-zinc-500 uppercase tracking-widest flex flex-col gap-1 font-bold">
                  <span>ID: {selectedLead.id}</span>
                  <span>Получено: {formatTime(selectedLead.createdAt)}</span>
                </div>
-               <div className="text-xl font-bold text-black bg-accent rounded-lg px-4 py-2 shadow-[0_0_15px_rgba(228,255,0,0.2)]">{selectedLead.price} ₽</div>
+               <div className="text-xs sm:text-sm font-bold text-black bg-accent rounded px-2.5 py-1.5">{selectedLead.price} ₽</div>
             </div>
           </div>
         </div>

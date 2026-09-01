@@ -20,10 +20,7 @@ export async function middleware(request: NextRequest) {
   }
 
   const pathname = request.nextUrl.pathname;
-  const isAdminOnlyPath = pathname === '/profile'
-    || pathname.startsWith('/profile/')
-    || pathname.startsWith('/admin')
-    || pathname.startsWith('/api/admin');
+  const isAdminOnlyPath = pathname.startsWith('/admin') || pathname.startsWith('/api/admin');
 
   if (isAdminOnlyPath) {
     if (session.role !== 'ADMIN') {
