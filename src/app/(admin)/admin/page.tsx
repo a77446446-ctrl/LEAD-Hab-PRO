@@ -21,6 +21,8 @@ export default function AdminDashboardPage() {
     d.setHours(0,0,0,0);
     return d;
   });
+  const [loading, setLoading] = useState(true);
+  const [statsData, setStatsData] = useState<any>(null);
 
   const fetchStats = async (silent = false, date: Date = selectedDate) => {
     try {
