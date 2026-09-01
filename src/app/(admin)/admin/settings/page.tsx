@@ -567,6 +567,11 @@ export default function SettingsPage() {
   const handleAutoParseToggle = (enabled: boolean) => {
     setAutoParseEnabled(enabled);
     saveAutoParseSettings(enabled, parseInterval);
+    if (enabled) {
+      setNextRunSeconds(parseInterval);
+    } else {
+      setNextRunSeconds(null);
+    }
     addLog(enabled ? 'Авто-парсинг включен' : 'Авто-парсинг отключен', 'info');
   };
 
@@ -633,9 +638,8 @@ export default function SettingsPage() {
   };
 
   useEffect(() => {
-    if (!autoParseEnabled || syncing || sessions.length === 0) {
-      // Do not clear nextRunSeconds completely if we are just syncing, but for UI it's fine
-      if (!syncing) setNextRunSeconds(null);
+    if (!autoParseEnabled || syncing) {
+      if (!autoParseEnabled) setNextRunSeconds(null);
       return;
     }
 
@@ -647,14 +651,16 @@ export default function SettingsPage() {
     }, 1000);
 
     return () => clearInterval(countdown);
-  }, [autoParseEnabled, sessions.length, syncing, parseInterval]);
+  }, [autoParseEnabled, syncing]);
 
   useEffect(() => {
     if (nextRunSeconds === 0 && !syncing && autoParseEnabled) {
-      handleSync();
+      if (sessions.length > 0) {
+        handleSync();
+      }
       setNextRunSeconds(parseInterval);
     }
-  }, [nextRunSeconds, syncing, autoParseEnabled, parseInterval]);
+  }, [nextRunSeconds, syncing, autoParseEnabled, parseInterval, sessions.length]);
 
   const addChat = async () => {
     if (!newChat) return;
