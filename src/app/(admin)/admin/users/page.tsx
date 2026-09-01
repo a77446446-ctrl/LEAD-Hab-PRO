@@ -131,7 +131,7 @@ export default function UsersPage() {
         </div>
       ) : (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="space-y-3 md:hidden">
+          <div className="space-y-3 md:hidden max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
             {filteredUsers.map((user) => (
               <article key={user.id} className="rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-lg">
                 <div className="flex min-w-0 items-center gap-3">
@@ -154,16 +154,16 @@ export default function UsersPage() {
           </div>
 
           <div className="hidden md:flex flex-col rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-lg mt-6">
-            <div className="flex items-center gap-3 p-4 sm:p-8 border-b border-zinc-800">
+            <div className="flex items-center gap-3 p-4 sm:p-8 border-b border-zinc-800 shrink-0">
                <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-zinc-400">
                   <UsersIcon size={14} />
                </div>
                <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">СПИСОК ПОЛЬЗОВАТЕЛЕЙ</h3>
             </div>
-            <div className="overflow-x-auto p-0">
+            <div className="overflow-x-auto overflow-y-auto max-h-[600px] p-0 custom-scrollbar relative">
               <table className="w-full min-w-[900px] border-collapse text-left">
-                <thead>
-                  <tr className="border-b border-zinc-800 bg-zinc-900/50 text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400">
+                <thead className="sticky top-0 bg-zinc-900/95 backdrop-blur z-10 shadow-sm">
+                  <tr className="border-b border-zinc-800 text-[9px] font-black uppercase tracking-[0.2em] text-zinc-400">
                     <th className="px-8 py-5">Пользователь</th><th className="px-6 py-5">Роль</th><th className="px-6 py-5">Баланс</th><th className="px-6 py-5">Рейтинг</th><th className="px-8 py-5">Регистрация</th>
                   </tr>
                 </thead>

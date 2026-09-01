@@ -397,6 +397,8 @@ export default function SettingsPage() {
       await saveKey('maks_ai_api_key', settings['maks_ai_api_key'] || '');
       await saveKey('maks_ai_enabled', settings['maks_ai_enabled'] || 'false');
       await saveKey('maks_spam_keywords', settings['maks_spam_keywords'] || '');
+      await saveKey('maks_welcome_bonus_enabled', settings['maks_welcome_bonus_enabled'] || 'true');
+      await saveKey('maks_welcome_bonus_amount', settings['maks_welcome_bonus_amount'] || '300');
       await saveKey('maks_parsing_chats', JSON.stringify(parsingChats));
       await saveKey('maks_parser_auto', autoParseEnabled ? 'true' : 'false');
       await saveKey('maks_parser_time_start', parseTimeStart);
@@ -653,14 +655,33 @@ export default function SettingsPage() {
     return () => clearInterval(countdown);
   }, [autoParseEnabled, syncing]);
 
+  const isInsideParsingWindow = () => {
+    if (!parseTimeStart || !parseTimeEnd) return true;
+    const now = new Date();
+    // get UTC + 3 for MSK
+    const mskHours = (now.getUTCHours() + 3) % 24;
+    const currentMin = mskHours * 60 + now.getUTCMinutes();
+    const startMin = parseInt(parseTimeStart.split(':')[0]) * 60 + parseInt(parseTimeStart.split(':')[1]);
+    const endMin = parseInt(parseTimeEnd.split(':')[0]) * 60 + parseInt(parseTimeEnd.split(':')[1]);
+    if (startMin <= endMin) {
+      return currentMin >= startMin && currentMin <= endMin;
+    } else {
+      return currentMin >= startMin || currentMin <= endMin;
+    }
+  };
+
   useEffect(() => {
     if (nextRunSeconds === 0 && !syncing && autoParseEnabled) {
       if (sessions.length > 0) {
-        handleSync();
+        if (isInsideParsingWindow()) {
+          handleSync();
+        } else {
+          addLog('Вне рабочего времени (МСК). Парсинг отложен.', 'info');
+        }
       }
       setNextRunSeconds(parseInterval);
     }
-  }, [nextRunSeconds, syncing, autoParseEnabled, parseInterval, sessions.length]);
+  }, [nextRunSeconds, syncing, autoParseEnabled, parseInterval, sessions.length, parseTimeStart, parseTimeEnd]);
 
   const addChat = async () => {
     if (!newChat) return;
@@ -1061,6 +1082,47 @@ export default function SettingsPage() {
                     )}
                   </div>
                 )}
+            </div>
+            
+            <div className="pt-4 border-t border-zinc-700">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-[8px] font-black text-white uppercase tracking-[0.3em] ml-1">Бонус за регистрацию</label>
+                <button 
+                  onClick={() => {
+                    setSettings({ ...settings, maks_welcome_bonus_enabled: settings['maks_welcome_bonus_enabled'] === 'false' ? 'true' : 'false' });
+                    setHasUnsavedChanges(true);
+                  }}
+                  className={cn(
+                    "w-10 h-5 rounded-full flex items-center transition-colors px-1 shrink-0",
+                    settings['maks_welcome_bonus_enabled'] !== 'false' ? "bg-accent" : "bg-zinc-700"
+                  )}
+                >
+                  <div className={cn(
+                    "w-3.5 h-3.5 rounded-full bg-black transition-transform",
+                    settings['maks_welcome_bonus_enabled'] !== 'false' ? "translate-x-5" : "translate-x-0"
+                  )} />
+                </button>
+              </div>
+              
+              {settings['maks_welcome_bonus_enabled'] !== 'false' && (
+                <div className="space-y-2">
+                  <label className="text-[8px] font-black text-zinc-400 uppercase tracking-[0.3em] block ml-1">Сумма бонуса (Рублей)</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-zinc-500 text-[10px] font-black">₽</span>
+                    <input 
+                      type="number" 
+                      min="0"
+                      step="50"
+                      value={settings['maks_welcome_bonus_amount'] ?? '300'}
+                      onChange={(e) => {
+                        setSettings({ ...settings, maks_welcome_bonus_amount: e.target.value });
+                        setHasUnsavedChanges(true);
+                      }}
+                      className={cn(inputClasses, "pl-8")}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="pt-4 border-t border-zinc-700 flex flex-col flex-1 min-h-0">

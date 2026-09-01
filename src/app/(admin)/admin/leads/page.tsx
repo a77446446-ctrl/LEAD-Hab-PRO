@@ -123,23 +123,24 @@ export default function AdminLeadsPage() {
             <button onClick={() => setActiveTab('SPAM')} className={cn("text-xs font-black pb-2 border-b-4 transition-all uppercase tracking-wider", activeTab === 'SPAM' ? "text-red-500 border-red-500" : "text-zinc-500 border-transparent hover:text-red-400")}>СПАМ</button>
           </div>
 
-          {loading ? (
-            <div className="flex items-center justify-center py-20 text-white">
-              <Loader2 className="animate-spin" size={32} />
-            </div>
-          ) : (
-            <table className="w-full min-w-[900px] text-left" ref={menuRef}>
-              <thead className="bg-zinc-900/50 text-[9px] uppercase font-black text-zinc-400 tracking-[0.2em] border-b border-zinc-800">
-                <tr>
-                  <th className="px-8 py-5">Лид</th>
-                  <th className="px-6 py-5">Город</th>
-                  <th className="px-6 py-5">Цена</th>
-                  <th className="px-6 py-5">Статус</th>
-                  <th className="px-6 py-5">Время</th>
-                  <th className="px-8 py-5 text-right">Действия</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-800/50 bg-transparent">
+          <div className="overflow-x-auto overflow-y-auto max-h-[600px] p-0 custom-scrollbar relative">
+            {loading ? (
+              <div className="flex items-center justify-center py-20 text-white">
+                <Loader2 className="animate-spin" size={32} />
+              </div>
+            ) : (
+              <table className="w-full min-w-[900px] text-left" ref={menuRef}>
+                <thead className="bg-zinc-900/95 backdrop-blur sticky top-0 z-10 text-[9px] uppercase font-black text-zinc-400 tracking-[0.2em] border-b border-zinc-800 shadow-sm">
+                  <tr>
+                    <th className="px-8 py-5">Лид</th>
+                    <th className="px-6 py-5">Город</th>
+                    <th className="px-6 py-5">Цена</th>
+                    <th className="px-6 py-5">Статус</th>
+                    <th className="px-6 py-5">Время</th>
+                    <th className="px-8 py-5 text-right">Действия</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-800/50 bg-transparent">
                 {filteredLeads.length === 0 ? (
                   <tr><td colSpan={6} className="text-center py-12 text-zinc-500 font-black text-xs uppercase tracking-widest">Лидов не найдено</td></tr>
                 ) : filteredLeads.map((lead) => (
@@ -190,6 +191,7 @@ export default function AdminLeadsPage() {
               </tbody>
             </table>
           )}
+          </div>
         </div>
       </div>
 

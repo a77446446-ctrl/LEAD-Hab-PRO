@@ -17,8 +17,7 @@ const adminProfileItem = { icon: UserCircle, label: 'Профиль', href: '/pr
 
 export const BottomNav = () => {
   const pathname = usePathname();
-  const role = useUser((state) => state.user?.role);
-  const navItems = role === 'admin' ? [...userNavItems, adminProfileItem] : userNavItems;
+  const navItems = [...userNavItems, adminProfileItem];
 
   return (
     <div className="fixed bottom-0 left-0 right-0 h-20 bg-white border-t border-black flex justify-around items-center px-4 pb-4 z-50">

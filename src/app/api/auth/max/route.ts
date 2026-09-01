@@ -7,13 +7,7 @@ import { isConfiguredAdminMaxId } from '@/lib/auth/admin-config';
 
 export const runtime = 'nodejs';
 
-function getOnboardingBonus(): number {
-  const raw = process.env.ONBOARDING_BONUS_KOPECKS || '30000';
-  if (!/^\d{1,10}$/.test(raw)) throw new Error('ONBOARDING_BONUS_KOPECKS настроен некорректно');
-  const value = Math.round(Number(raw));
-  if (value > 100_000_000) throw new Error('Стартовый бонус превышает допустимый предел');
-  return value;
-}
+
 
 export async function POST(request: Request) {
   try {
@@ -30,7 +24,14 @@ export async function POST(request: Request) {
 
     const maxUser = verifyMaxInitData(body.initData, process.env.MAX_BOT_TOKEN || '');
     const displayName = buildMaxDisplayName(maxUser);
-    const bonusKopecks = getOnboardingBonus();
+    
+    // Read bonus from DB
+    const bonusSetting = await prisma.setting.findUnique({ where: { key: 'maks_welcome_bonus_amount' } });
+    const bonusEnabledSetting = await prisma.setting.findUnique({ where: { key: 'maks_welcome_bonus_enabled' } });
+    const isBonusEnabled = bonusEnabledSetting?.value !== 'false';
+    const bonusRub = bonusSetting?.value ? parseInt(bonusSetting.value, 10) : 300;
+    const bonusKopecks = isBonusEnabled && bonusRub > 0 ? bonusRub : 0;
+
     const configuredAdmin = isConfiguredAdminMaxId(maxUser.maxId);
     const now = new Date();
 

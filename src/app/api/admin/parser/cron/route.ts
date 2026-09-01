@@ -23,8 +23,9 @@ export async function POST(request: Request) {
     const timeStartSetting = await prisma.setting.findUnique({ where: { key: 'maks_parser_time_start' } });
     const timeEndSetting = await prisma.setting.findUnique({ where: { key: 'maks_parser_time_end' } });
     if (timeStartSetting?.value && timeEndSetting?.value) {
-      const timeStr = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' });
-      const currentMin = parseInt(timeStr.split(':')[0]) * 60 + parseInt(timeStr.split(':')[1]);
+      const now = new Date();
+      const mskHours = (now.getUTCHours() + 3) % 24;
+      const currentMin = mskHours * 60 + now.getUTCMinutes();
       const startMin = parseInt(timeStartSetting.value.split(':')[0]) * 60 + parseInt(timeStartSetting.value.split(':')[1]);
       const endMin = parseInt(timeEndSetting.value.split(':')[0]) * 60 + parseInt(timeEndSetting.value.split(':')[1]);
       let isInsideWindow = false;

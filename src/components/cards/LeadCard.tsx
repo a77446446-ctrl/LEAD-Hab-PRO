@@ -155,7 +155,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
           <div className="text-[11px] font-black uppercase bg-white text-black px-2 py-1 border border-black shadow-[2px_2px_0_0_#F2FF00] z-10 relative">
             {lead.category?.paymentMode === 'SUBSCRIPTION' || lead.category?.paymentMode === 'PRO' 
               ? 'ПО ПОДПИСКЕ' 
-              : (lead.price / 100) > 0 ? `${(lead.price / 100)} ₽` : 'БЕСПЛАТНО'}
+              : lead.price > 0 ? `${lead.price} ₽` : 'БЕСПЛАТНО'}
           </div>
         )}
       </div>

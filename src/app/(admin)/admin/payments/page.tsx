@@ -117,7 +117,7 @@ export default function PaymentsPage() {
         <div className="flex min-h-64 items-center justify-center"><RefreshCw className="animate-spin text-accent" size={32} /></div>
       ) : (
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
-          <div className="space-y-3 md:hidden">
+          <div className="space-y-3 md:hidden max-h-[600px] overflow-y-auto custom-scrollbar pr-2">
             {transactions.map((transaction) => (
               <article key={transaction.id} className="rounded-xl border border-zinc-700 bg-zinc-900 p-4 shadow-lg">
                 <div className="flex items-center gap-3">
@@ -136,15 +136,15 @@ export default function PaymentsPage() {
           </div>
 
           <div className="hidden md:flex flex-col rounded-xl border border-zinc-700 bg-zinc-900 overflow-hidden shadow-lg mt-6">
-            <div className="flex items-center gap-3 p-4 sm:p-8 border-b border-zinc-800">
+            <div className="flex items-center gap-3 p-4 sm:p-8 border-b border-zinc-800 shrink-0">
                <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 flex items-center justify-center text-zinc-400">
                   <CreditCard size={14} />
                </div>
                <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-zinc-400">ИСТОРИЯ ПЛАТЕЖЕЙ</h3>
             </div>
-            <div className="overflow-x-auto p-0">
+            <div className="overflow-x-auto overflow-y-auto max-h-[600px] p-0 custom-scrollbar relative">
               <table className="w-full min-w-[850px] border-collapse text-left">
-                <thead><tr className="border-b border-zinc-800 bg-zinc-900/50 text-[10px] font-black uppercase tracking-widest text-zinc-400"><th className="px-8 py-4">Тип</th><th className="px-6 py-4">Сумма</th><th className="px-6 py-4">Пользователь</th><th className="px-6 py-4">Дата и время</th><th className="px-8 py-4 text-right">Статус</th></tr></thead>
+                <thead className="sticky top-0 bg-zinc-900/95 backdrop-blur z-10 shadow-sm"><tr className="border-b border-zinc-800 text-[10px] font-black uppercase tracking-widest text-zinc-400"><th className="px-8 py-4">Тип</th><th className="px-6 py-4">Сумма</th><th className="px-6 py-4">Пользователь</th><th className="px-6 py-4">Дата и время</th><th className="px-8 py-4 text-right">Статус</th></tr></thead>
                 <tbody className="text-sm bg-transparent">
                   {transactions.map((transaction) => (
                     <tr key={transaction.id} className="border-b border-zinc-800/50 transition-colors hover:bg-zinc-800/50">
