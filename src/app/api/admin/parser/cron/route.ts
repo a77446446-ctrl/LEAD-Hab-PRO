@@ -20,9 +20,10 @@ export async function POST(request: Request) {
     const intervalSeconds = Number.parseInt(intervalSetting?.value || '60', 10);
     const intervalMs = Math.max(10, Number.isFinite(intervalSeconds) ? intervalSeconds : 60) * 1000;
 
+    const timeEnabledSetting = await prisma.setting.findUnique({ where: { key: 'maks_parser_time_enabled' } });
     const timeStartSetting = await prisma.setting.findUnique({ where: { key: 'maks_parser_time_start' } });
     const timeEndSetting = await prisma.setting.findUnique({ where: { key: 'maks_parser_time_end' } });
-    if (timeStartSetting?.value && timeEndSetting?.value) {
+    if (timeEnabledSetting?.value !== 'false' && timeStartSetting?.value && timeEndSetting?.value) {
       const now = new Date();
       const mskHours = (now.getUTCHours() + 3) % 24;
       const currentMin = mskHours * 60 + now.getUTCMinutes();

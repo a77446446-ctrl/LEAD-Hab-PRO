@@ -85,6 +85,7 @@ export default function SettingsPage() {
   const [parseInterval, setParseInterval] = useState<number>(300);
   const [parseTimeStart, setParseTimeStart] = useState<string>('08:00');
   const [parseTimeEnd, setParseTimeEnd] = useState<string>('23:00');
+  const [parseTimeEnabled, setParseTimeEnabled] = useState<boolean>(true);
   const [leadRetentionDays, setLeadRetentionDays] = useState<number>(7);
   const [currentParsingChat, setCurrentParsingChat] = useState<string | null>(null);
   const [nextRunSeconds, setNextRunSeconds] = useState<number | null>(null);
@@ -297,6 +298,7 @@ export default function SettingsPage() {
       setParseInterval(Math.max(interval, 60));
       setParseTimeStart(settingsMap['maks_parser_time_start'] || '08:00');
       setParseTimeEnd(settingsMap['maks_parser_time_end'] || '23:00');
+      setParseTimeEnabled(settingsMap['maks_parser_time_enabled'] !== 'false');
       
       if (!silent && settingsMap['sync_logs']) {
         try {
@@ -403,6 +405,7 @@ export default function SettingsPage() {
       await saveKey('maks_parser_auto', autoParseEnabled ? 'true' : 'false');
       await saveKey('maks_parser_time_start', parseTimeStart);
       await saveKey('maks_parser_time_end', parseTimeEnd);
+      await saveKey('maks_parser_time_enabled', parseTimeEnabled ? 'true' : 'false');
 
       if (!canBypass && (proxyIP || proxyPort || proxyUser || proxyPass)) {
         await persistProxyDraft();
@@ -656,7 +659,7 @@ export default function SettingsPage() {
   }, [autoParseEnabled, syncing]);
 
   const isInsideParsingWindow = () => {
-    if (!parseTimeStart || !parseTimeEnd) return true;
+    if (!parseTimeEnabled || !parseTimeStart || !parseTimeEnd) return true;
     const now = new Date();
     // get UTC + 3 for MSK
     const mskHours = (now.getUTCHours() + 3) % 24;
@@ -1195,7 +1198,12 @@ export default function SettingsPage() {
               </button>
             </div>
             <div className="flex min-w-0 items-center justify-between gap-3 text-[10px] uppercase tracking-[0.2em] text-zinc-400 font-bold">
-              <span className="min-w-0 truncate">{syncing ? 'РАБОТАЕТ СЕЙЧАС' : autoParseEnabled ? `В ОЧЕРЕДИ ${nextRunSeconds !== null ? `${Math.floor(nextRunSeconds/60)}:${String(nextRunSeconds % 60).padStart(2,'0')}` : ''}` : 'РУЧНОЙ РЕЖИМ'}</span>
+              <span className="min-w-0 truncate">
+                {syncing ? 'РАБОТАЕТ СЕЙЧАС' : 
+                 !autoParseEnabled ? 'РУЧНОЙ РЕЖИМ' : 
+                 !isInsideParsingWindow() ? 'СТОП' : 
+                 `В ОЧЕРЕДИ ${nextRunSeconds !== null ? `${Math.floor(nextRunSeconds/60)}:${String(nextRunSeconds % 60).padStart(2,'0')}` : ''}`}
+              </span>
               <select
                 value={parseInterval}
                 onChange={(e) => handleIntervalChange(parseInt(e.target.value, 10))}
@@ -1214,26 +1222,36 @@ export default function SettingsPage() {
             
             <div className="flex min-w-0 items-center justify-between gap-3 text-[10px] uppercase tracking-[0.2em] text-zinc-400 font-bold mt-2">
               <span className="min-w-0 truncate">ВРЕМЯ РАБОТЫ (МСК)</span>
-              <div className="flex items-center gap-2">
-                <input
-                  type="time"
-                  value={parseTimeStart}
-                  onChange={(e) => {
-                    setParseTimeStart(e.target.value);
-                    setHasUnsavedChanges(true);
-                  }}
-                  className="bg-zinc-950 border border-zinc-700 rounded-lg py-1 px-2 text-[10px] font-black text-white focus:ring-1 focus:ring-black outline-none"
-                />
-                <span>-</span>
-                <input
-                  type="time"
-                  value={parseTimeEnd}
-                  onChange={(e) => {
-                    setParseTimeEnd(e.target.value);
-                    setHasUnsavedChanges(true);
-                  }}
-                  className="bg-zinc-950 border border-zinc-700 rounded-lg py-1 px-2 text-[10px] font-black text-white focus:ring-1 focus:ring-black outline-none"
-                />
+              <div className="flex items-center gap-3">
+                <button 
+                  onClick={() => { setParseTimeEnabled(!parseTimeEnabled); setHasUnsavedChanges(true); }}
+                  className={cn("w-8 h-4 rounded-full flex items-center transition-colors px-1 shrink-0", parseTimeEnabled ? "bg-accent" : "bg-zinc-700")}
+                >
+                  <div className={cn("w-2.5 h-2.5 rounded-full bg-black transition-transform", parseTimeEnabled ? "translate-x-3.5" : "translate-x-0")} />
+                </button>
+                {parseTimeEnabled && (
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="time"
+                      value={parseTimeStart}
+                      onChange={(e) => {
+                        setParseTimeStart(e.target.value);
+                        setHasUnsavedChanges(true);
+                      }}
+                      className="bg-zinc-950 border border-zinc-700 rounded-lg py-1 px-2 text-[10px] font-black text-white focus:ring-1 focus:ring-black outline-none"
+                    />
+                    <span>-</span>
+                    <input
+                      type="time"
+                      value={parseTimeEnd}
+                      onChange={(e) => {
+                        setParseTimeEnd(e.target.value);
+                        setHasUnsavedChanges(true);
+                      }}
+                      className="bg-zinc-950 border border-zinc-700 rounded-lg py-1 px-2 text-[10px] font-black text-white focus:ring-1 focus:ring-black outline-none"
+                    />
+                  </div>
+                )}
               </div>
             </div>
           </div>
