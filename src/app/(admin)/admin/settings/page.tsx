@@ -83,6 +83,8 @@ export default function SettingsPage() {
   const [syncing, setSyncing] = useState(false);
   const [autoParseEnabled, setAutoParseEnabled] = useState(false);
   const [parseInterval, setParseInterval] = useState<number>(300);
+  const [parseTimeStart, setParseTimeStart] = useState<string>('08:00');
+  const [parseTimeEnd, setParseTimeEnd] = useState<string>('23:00');
   const [leadRetentionDays, setLeadRetentionDays] = useState<number>(7);
   const [currentParsingChat, setCurrentParsingChat] = useState<string | null>(null);
   const [nextRunSeconds, setNextRunSeconds] = useState<number | null>(null);
@@ -293,6 +295,20 @@ export default function SettingsPage() {
       const interval = parseInt(settingsMap['maks_parser_interval'] || '300', 10);
       setLeadRetentionDays(parseInt(settingsMap['lead_retention_days'] || '7', 10));
       setParseInterval(Math.max(interval, 60));
+      setParseTimeStart(settingsMap['maks_parser_time_start'] || '08:00');
+      setParseTimeEnd(settingsMap['maks_parser_time_end'] || '23:00');
+      
+      if (!silent && settingsMap['sync_logs']) {
+        try {
+          const loadedLogs = JSON.parse(settingsMap['sync_logs']);
+          if (Array.isArray(loadedLogs) && loadedLogs.length > 0) {
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            // Add loaded logs formatted
+            const newLogs = [...loadedLogs].reverse().map((msg: string) => ({ time, msg, type: 'info' as const }));
+            setLogs(newLogs.slice(0, 50));
+          }
+        } catch(e) {}
+      }
 
       const lastRunStr = settingsMap['maks_parser_last_run'];
       if (lastRunStr) {
@@ -383,6 +399,8 @@ export default function SettingsPage() {
       await saveKey('maks_spam_keywords', settings['maks_spam_keywords'] || '');
       await saveKey('maks_parsing_chats', JSON.stringify(parsingChats));
       await saveKey('maks_parser_auto', autoParseEnabled ? 'true' : 'false');
+      await saveKey('maks_parser_time_start', parseTimeStart);
+      await saveKey('maks_parser_time_end', parseTimeEnd);
 
       if (!canBypass && (proxyIP || proxyPort || proxyUser || proxyPass)) {
         await persistProxyDraft();
@@ -1123,6 +1141,32 @@ export default function SettingsPage() {
                 <option value="900">15 МИН</option>
                 <option value="1800">30 МИН</option>
               </select>
+            </div>
+
+            
+            <div className="flex min-w-0 items-center justify-between gap-3 text-[10px] uppercase tracking-[0.2em] text-zinc-400 font-bold mt-2">
+              <span className="min-w-0 truncate">ВРЕМЯ РАБОТЫ (МСК)</span>
+              <div className="flex items-center gap-2">
+                <input
+                  type="time"
+                  value={parseTimeStart}
+                  onChange={(e) => {
+                    setParseTimeStart(e.target.value);
+                    setHasUnsavedChanges(true);
+                  }}
+                  className="bg-zinc-950 border border-zinc-700 rounded-lg py-1 px-2 text-[10px] font-black text-white focus:ring-1 focus:ring-black outline-none"
+                />
+                <span>-</span>
+                <input
+                  type="time"
+                  value={parseTimeEnd}
+                  onChange={(e) => {
+                    setParseTimeEnd(e.target.value);
+                    setHasUnsavedChanges(true);
+                  }}
+                  className="bg-zinc-950 border border-zinc-700 rounded-lg py-1 px-2 text-[10px] font-black text-white focus:ring-1 focus:ring-black outline-none"
+                />
+              </div>
             </div>
           </div>
 

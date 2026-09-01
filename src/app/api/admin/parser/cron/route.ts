@@ -20,6 +20,23 @@ export async function POST(request: Request) {
     const intervalSeconds = Number.parseInt(intervalSetting?.value || '60', 10);
     const intervalMs = Math.max(10, Number.isFinite(intervalSeconds) ? intervalSeconds : 60) * 1000;
 
+    const timeStartSetting = await prisma.setting.findUnique({ where: { key: 'maks_parser_time_start' } });
+    const timeEndSetting = await prisma.setting.findUnique({ where: { key: 'maks_parser_time_end' } });
+    if (timeStartSetting?.value && timeEndSetting?.value) {
+      const timeStr = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' });
+      const currentMin = parseInt(timeStr.split(':')[0]) * 60 + parseInt(timeStr.split(':')[1]);
+      const startMin = parseInt(timeStartSetting.value.split(':')[0]) * 60 + parseInt(timeStartSetting.value.split(':')[1]);
+      const endMin = parseInt(timeEndSetting.value.split(':')[0]) * 60 + parseInt(timeEndSetting.value.split(':')[1]);
+      let isInsideWindow = false;
+      if (startMin <= endMin) {
+        isInsideWindow = currentMin >= startMin && currentMin <= endMin;
+      } else {
+        isInsideWindow = currentMin >= startMin || currentMin <= endMin;
+      }
+      if (!isInsideWindow) {
+        return NextResponse.json({ skipped: true, message: 'Outside of allowed parsing hours' });
+      }
+    }
     const lastRunSetting = await prisma.setting.findUnique({ where: { key: 'maks_parser_last_run' } });
     const lastRun = lastRunSetting ? Number.parseInt(lastRunSetting.value, 10) : 0;
     const now = Date.now();
