@@ -14,11 +14,22 @@ export default function ProfilePage() {
   const [savingNotifications, setSavingNotifications] = useState(false);
   const [categoryPreferences, setCategoryPreferences] = useState<any[]>([]);
 
+  const [userStats, setUserStats] = useState({ purchasedLeads: 0, totalSpent: 0 });
+
   useEffect(() => {
     fetch('/api/preferences/categories', { cache: 'no-store' })
       .then((res) => res.ok ? res.json() : [])
       .then((data) => setCategoryPreferences(Array.isArray(data) ? data : []))
       .catch(() => setCategoryPreferences([]));
+
+    fetch('/api/profile/stats', { cache: 'no-store' })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => {
+        if (data && !data.error) {
+          setUserStats({ purchasedLeads: data.purchasedLeads || 0, totalSpent: data.totalSpent || 0 });
+        }
+      })
+      .catch(() => {});
   }, []);
 
   if (!user) return null;
@@ -62,9 +73,8 @@ export default function ProfilePage() {
   };
 
   const stats = [
-    { label: 'Куплено лидов', value: '0', icon: History },
-    { label: 'Рейтинг', value: '0.0', icon: Award },
-    { label: 'Доход (ориент.)', value: '0₽', icon: TrendingUp },
+    { label: 'Куплено лидов', value: String(userStats.purchasedLeads), icon: History },
+    { label: 'Потрачено (всего)', value: `${userStats.totalSpent}₽`, icon: TrendingUp },
   ];
 
   return (
@@ -84,7 +94,7 @@ export default function ProfilePage() {
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3">
         {stats.map((stat, i) => (
           <div key={i} className="glass-panel p-3 text-center border-black">
             <div className="flex justify-center mb-2">
