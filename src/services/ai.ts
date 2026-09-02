@@ -134,17 +134,37 @@ function fallbackScriptParse(rawText: string, categories: any[]): ProcessedLead 
     }
   }
 
-  // 3. Определение категории по ключевым словам из БД
+  // 3. Определение категории по ключевым словам из БД (с учетом минус-слов и веса)
   let detectedCategory = 'other';
   let categoryName = 'Другое';
+  let bestScore = 0;
+
   for (const cat of categories) {
-    if (cat.plusKeywords) {
-      const keywords = cat.plusKeywords.split(',').map((k: string) => k.trim().toLowerCase());
-      if (keywords.some((kw: string) => lowerText.includes(kw))) {
-        detectedCategory = cat.slug;
-        categoryName = cat.name;
-        break;
+    let isMinusTriggered = false;
+    if (cat.minusKeywords) {
+      const minuses = cat.minusKeywords.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean);
+      if (minuses.some((kw: string) => lowerText.includes(kw))) {
+        isMinusTriggered = true;
       }
+    }
+
+    if (isMinusTriggered) continue; // Пропускаем категорию, если найдено стоп-слово
+
+    let score = 0;
+    if (cat.plusKeywords) {
+      const pluses = cat.plusKeywords.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean);
+      for (const kw of pluses) {
+        if (lowerText.includes(kw)) {
+          // Если слово длинное, даем больший вес
+          score += kw.length > 5 ? 2 : 1; 
+        }
+      }
+    }
+
+    if (score > bestScore) {
+      bestScore = score;
+      detectedCategory = cat.slug;
+      categoryName = cat.name;
     }
   }
 
