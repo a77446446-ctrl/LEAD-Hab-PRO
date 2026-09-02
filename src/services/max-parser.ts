@@ -579,8 +579,8 @@ async function syncWithoutLease(leaseToken: string): Promise<SyncResult> {
     });
     pushLog(logs, `Готово. Лидов: ${leadsCount}; ошибок чатов: ${failedChats}`);
     if (failedChats > 0) {
-      const errorLog = logs.slice().reverse().find(l => l.includes('ERROR') || l.includes('TIMEOUT') || l.includes('PROXY') || l.includes('AUTH') || l.includes('Ошибка'));
-      const msg = errorLog ? errorLog.slice(0, 500) : `Сбой в ${failedChats} чатах.`;
+      const errorLog = logs.slice().reverse().find(l => l.msg.includes('ERROR') || l.msg.includes('TIMEOUT') || l.msg.includes('PROXY') || l.msg.includes('AUTH') || l.msg.includes('Ошибка'));
+      const msg = errorLog ? errorLog.msg.slice(0, 500) : `Сбой в ${failedChats} чатах.`;
       return { success: false, leadsCount, failedChats, message: msg, logs };
     }
     return { success: true, leadsCount, failedChats, logs };
