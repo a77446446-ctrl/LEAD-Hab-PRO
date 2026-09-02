@@ -23,11 +23,11 @@ export async function POST(request: Request) {
     const originalExt = file.name.split('.').pop() || 'png';
     const filename = `image-${uniqueSuffix}.${originalExt}`;
     
-    // Save to public/uploads
-    const path = join(process.cwd(), 'public', 'uploads', filename);
+    // Save to data/uploads to persist across restarts and be served by our dynamic route
+    const path = join(process.cwd(), 'data', 'uploads', filename);
     await writeFile(path, buffer);
 
-    return NextResponse.json({ url: `/uploads/${filename}` });
+    return NextResponse.json({ url: `/api/uploads/${filename}` });
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
