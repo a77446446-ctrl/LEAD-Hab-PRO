@@ -44,7 +44,7 @@ function cleanRawText(text: string): string {
       inPromoBlock = false; // Сброс рекламного блока
       
       // Вырезаем рекламные ссылки (боты, доски объявлений, каналы)
-      const badLinksRegex = /https?:\/\/(t\.me\/[a-zA-Z0-9_]*bot\b|t\.me\/(?:rabota|job|vakans|channel|work|board|doska)[a-zA-Z0-9_]*\b|max\.ru\/channel_[a-zA-Z0-9_]*)/gi;
+      const badLinksRegex = /https?:\/\/(t\.me\/[a-zA-Z0-9_]*bot\b|t\.me\/(?:rabota|job|vakans|channel|work|board|doska)[a-zA-Z0-9_]*\b|max\.ru\/(?:channel_|rabota|job|vakans|msk)[a-zA-Z0-9_]*)/gi;
       let cleanLinks = trimmed.replace(badLinksRegex, '');
       
       // Подчищаем висящие запятые после удаления ссылок
@@ -64,7 +64,10 @@ function cleanRawText(text: string): string {
     const isComments = /комментари/i.test(trimmed) || /^💬/.test(trimmed);
     const isUIAction = /^(Скрыть|Меню|Поделиться|Переслать|Подписаться на канал)/i.test(trimmed);
     
-    if (isTime || isViewsOrButtons || isComments || isUIAction) {
+    // Агрессивная фильтрация рекламы конкурентов и призывов подписаться
+    const isCompetitorPromo = /(больше вакансий|больше заказов|еще вакансии|еще заказы|подписывайтесь|наш канал|смотрите здесь|все вакансии тут)/i.test(trimmed);
+    
+    if (isTime || isViewsOrButtons || isComments || isUIAction || isCompetitorPromo) {
       continue; // Пропускаем мусорную строку
     }
     
@@ -264,12 +267,12 @@ ${categoriesList}
 2. title: Суть работы (без шапок, без воды). Пример: "Бригада кровельщиков", "Грузчики на склад". Максимум 4-6 слов.
 3. city: Точный город, метро, район или населенный пункт из текста (например: "Санкт-Петербург", "Петергоф", "метро Автово"). Если вообще никаких гео-данных нет - пиши "НЕ УКАЗАН".
 4. budget: Зарплата (или 'По договоренности').
-5. isSpam: true, ТОЛЬКО ЕСЛИ это реклама чужого канала/бота, казино, ставки, или спам. Реальная работа = false.
+5. isSpam: true, ТОЛЬКО ЕСЛИ это реклама чужого канала/бота, казино, ставки, или спам. ВАЖНО: ВАКАНСИИ (поиск сотрудников) И РЕАЛЬНАЯ РАБОТА = false!
 6. score: 90 если есть контакты, иначе 70.`
                 },
                 {
                   role: 'user',
-                  content: rawText
+                  content: cleanRawText(rawText)
                 }
               ]
             })
