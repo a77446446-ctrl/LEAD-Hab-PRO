@@ -279,25 +279,13 @@ async function processMessage(
 
   try {
     const processed = await aiService.processLead(cleaned);
-    const hasContacts = extractContactInfo(original).length > 0;
-    
-    // Strict rule: If no contacts (phone, link, username) are found, it's considered spam 
-    // because users cannot reply to the poster.
-    if (!hasContacts) {
-       processed.isSpam = true;
-    }
 
     if (!parseAll && (processed.isSpam || processed.score < 30)) return false;
     const category = await resolveCategory(processed.category);
     const stableText = String(processed.cleanedText || cleaned).trim().slice(0, 1500);
     
-    // Проверка на дубликаты по всем чатам (за последние 48 часов)
-    // Строгое совпадение по тексту, чтобы избежать ложных срабатываний
     const duplicate = await withDbRetry(() => prisma.lead.findFirst({
-      where: { 
-        createdAt: { gte: new Date(Date.now() - 48 * 60 * 60 * 1000) },
-        rawText: stableText
-      },
+      where: { rawText: stableText, sourceChat: chatUrl },
       select: { id: true },
     }));
     
