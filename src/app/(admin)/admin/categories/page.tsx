@@ -256,9 +256,17 @@ export default function AdminCategoriesPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Вы уверены? Удаление категории приведет к остановке парсинга лидов для нее.')) return;
     try {
-      await fetch(`/api/admin/category?id=${id}`, { method: 'DELETE' });
-      await fetchCategories();
-    } catch (e) {}
+      const res = await fetch(`/api/admin/category?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        alert('Категория успешно удалена');
+        await fetchCategories();
+      } else {
+        const data = await res.json();
+        alert(`Ошибка при удалении: ${data.error || 'Неизвестная ошибка'}`);
+      }
+    } catch (e) {
+      alert('Ошибка сети при удалении категории');
+    }
   };
 
   if (loading) return <div className="flex items-center justify-center h-64"><Loader2 className="animate-spin text-accent" /></div>;
@@ -405,14 +413,13 @@ export default function AdminCategoriesPage() {
             Публиковать в MAX
           </label>
           <div className="md:col-span-6 space-y-2">
-            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Числовой chat_id канала</label>
+            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Числовой chat_id канала (или @username)</label>
             <input
-              inputMode="numeric"
               list="max-bot-chats"
               value={formData.showcaseChatId || ''}
-              onChange={(event) => setFormData({ ...formData, showcaseChatId: event.target.value.replace(/\D/g, '') })}
+              onChange={(event) => setFormData({ ...formData, showcaseChatId: event.target.value.replace(/[^\w\-\@\.]/g, '') })}
               disabled={!formData.showcaseEnabled}
-              placeholder="Например: 1234567890"
+              placeholder="Например: -1001234567890 или @mychannel"
               className="w-full bg-zinc-900 border border-zinc-700 rounded-lg py-3 px-4 text-xs sm:text-sm font-bold text-white disabled:opacity-40"
             />
             <datalist id="max-bot-chats">

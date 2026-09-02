@@ -245,6 +245,25 @@ export default function SettingsPage() {
                   });
               } catch(e) { return prev; }
           });
+          
+          if (settingsMap['sync_logs']) {
+            try {
+              const loadedLogs = JSON.parse(settingsMap['sync_logs']);
+              if (Array.isArray(loadedLogs) && loadedLogs.length > 0) {
+                let newLogs = [];
+                if (typeof loadedLogs[0] === 'string') {
+                  const fallbackTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  newLogs = [...loadedLogs].reverse().map((msg: string) => ({ time: fallbackTime, msg, type: 'info' as const }));
+                } else {
+                  newLogs = [...loadedLogs].reverse();
+                }
+                setLogs(prev => {
+                  if (prev.length > 0 && prev[0].msg === newLogs[0]?.msg && prev[0].time === newLogs[0]?.time) return prev;
+                  return newLogs.slice(0, 50);
+                });
+              }
+            } catch(e) {}
+          }
           return;
       }
 
@@ -304,9 +323,15 @@ export default function SettingsPage() {
         try {
           const loadedLogs = JSON.parse(settingsMap['sync_logs']);
           if (Array.isArray(loadedLogs) && loadedLogs.length > 0) {
-            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            // Add loaded logs formatted
-            const newLogs = [...loadedLogs].reverse().map((msg: string) => ({ time, msg, type: 'info' as const }));
+            let newLogs = [];
+            if (typeof loadedLogs[0] === 'string') {
+              // Legacy format
+              const fallbackTime = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+              newLogs = [...loadedLogs].reverse().map((msg: string) => ({ time: fallbackTime, msg, type: 'info' as const }));
+            } else {
+              // New format
+              newLogs = [...loadedLogs].reverse();
+            }
             setLogs(newLogs.slice(0, 50));
           }
         } catch(e) {}
@@ -619,17 +644,25 @@ export default function SettingsPage() {
       }
       const data = await res.json();
       
-      if (data.logs && data.logs.length > 0) {
+      if (data.logs && data.logs.length > 0 && !data.skipped) {
         setLogs(prev => {
-          const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-          // Clone the array before reversing to avoid React Strict Mode double-reverse bug
-          const newLogs = [...data.logs].reverse().map((msg: string) => ({ time, msg, type: data.success ? 'info' as const : 'error' as const }));
+          let newLogs = [];
+          if (typeof data.logs[0] === 'string') {
+            const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            newLogs = [...data.logs].reverse().map((msg: string) => ({ time, msg, type: data.success ? 'info' as const : 'error' as const }));
+          } else {
+            newLogs = [...data.logs].reverse();
+          }
           return [...newLogs, ...prev].slice(0, 50);
         });
       }
 
       if (data.success) {
-        setTimeout(() => addLog(`Готово. Лидов: ${data.leadsCount}`, 'success'), 100);
+        if (data.skipped) {
+           addLog(data.message || data.logs?.[0] || 'Парсер уже выполняется в фоновом режиме', 'info');
+        } else {
+           setTimeout(() => addLog(`Готово. Лидов: ${data.leadsCount}`, 'success'), 100);
+        }
       } else {
         setTimeout(() => addLog(`Ошибка: ${data.message || 'Сбой парсинга'}`, 'error'), 100);
       }
@@ -677,7 +710,9 @@ export default function SettingsPage() {
     if (nextRunSeconds === 0 && !syncing && autoParseEnabled) {
       if (sessions.length > 0) {
         if (isInsideParsingWindow()) {
-          handleSync();
+          // DO NOT CALL handleSync() from the frontend.
+          // Let the backend cron handle the actual parsing to avoid race conditions.
+          // Just reset the timer.
         } else {
           addLog('Вне рабочего времени (МСК). Парсинг отложен.', 'info');
         }

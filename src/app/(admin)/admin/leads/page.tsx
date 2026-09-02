@@ -52,12 +52,19 @@ export default function AdminLeadsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm('Удалить этот лид навсегда?')) return;
     try {
-      await fetch(`/api/admin/leads?id=${id}`, { method: 'DELETE' });
-      setLeads(leads.filter(l => l.id !== id));
+      const res = await fetch(`/api/admin/leads?id=${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        alert('Лид успешно удален');
+        await fetchLeads();
+        setOpenMenuId(null);
+        if (selectedLead?.id === id) setSelectedLead(null);
+      } else {
+        const data = await res.json();
+        alert(`Ошибка при удалении: ${data.error || 'Неизвестная ошибка'}`);
+      }
     } catch (e) {
-      console.error('Failed to delete', e);
+      alert('Ошибка сети при удалении лида');
     }
-    setOpenMenuId(null);
   };
 
   const handleUpdateStatus = async (id: string, status: string) => {

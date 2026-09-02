@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       create: { key: 'syncing', value: 'false' },
     });
 
-    if (result.logs) {
+    if (result.logs && !result.skipped) {
       await prisma.setting.upsert({
         where: { key: 'sync_logs' },
         update: { value: JSON.stringify(result.logs) },

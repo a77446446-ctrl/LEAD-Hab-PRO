@@ -42,7 +42,7 @@ export async function POST() {
     });
 
     // Save logs to DB so frontend can fetch them
-    if (result.logs) {
+    if (result.logs && !result.skipped) {
       await prisma.setting.upsert({
          where: { key: 'sync_logs' },
          update: { value: JSON.stringify(result.logs) },

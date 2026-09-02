@@ -43,20 +43,23 @@ type WorkerResult = {
   error?: string;
 };
 
+type LogEntry = { time: string, msg: string, type: 'info' | 'success' | 'error' };
+
 type SyncResult = {
   success: boolean;
   skipped?: boolean;
   leadsCount: number;
   failedChats?: number;
   message?: string;
-  logs: string[];
+  logs: LogEntry[];
 };
 
 const MAX_UI_LOGS = 500;
 const MAX_CHATS_CONFIG = 1000;
 
-function pushLog(logs: string[], message: string): void {
-  if (logs.length < MAX_UI_LOGS) logs.push(message.slice(0, 500));
+function pushLog(logs: LogEntry[], message: string, type: 'info' | 'success' | 'error' = 'info'): void {
+  const time = new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' });
+  if (logs.length < MAX_UI_LOGS) logs.push({ time, msg: message.slice(0, 500), type });
 }
 
 function positiveIntEnv(name: string, fallback: number, minimum: number, maximum: number): number {
@@ -112,7 +115,7 @@ function businessCutoff(nowMs: number, ttlMinutes: number): Date {
   return new Date(cursor.getTime() - moscowOffsetMs);
 }
 
-async function cleanupExpiredLeads(logs: string[]): Promise<void> {
+async function cleanupExpiredLeads(logs: LogEntry[]): Promise<void> {
   try {
     const categories = await prisma.category.findMany({ select: { id: true, ttlMinutes: true } });
     let deleted = 0;
@@ -188,7 +191,7 @@ function mergeTargetChats(
   return [...merged.values()].slice(0, MAX_CHATS_CONFIG);
 }
 
-async function loadAccounts(logs: string[]): Promise<ParserAccount[]> {
+async function loadAccounts(logs: LogEntry[]): Promise<ParserAccount[]> {
   await synchronizeParserSessionFiles();
   const rows = await prisma.maksAccount.findMany({
     where: {
@@ -268,7 +271,7 @@ async function processMessage(
   chatUrl: string,
   chatTitle: string,
   parseAll: boolean,
-  logs: string[],
+  logs: LogEntry[],
 ): Promise<boolean> {
   const original = message.text.trim();
   if (original.length <= 15 || original.length >= 2000 || /^\p{L}+$/u.test(original)) return false;
@@ -451,7 +454,7 @@ async function saveChats(chats: ParserChat[]): Promise<void> {
 }
 
 async function syncWithoutLease(leaseToken: string): Promise<SyncResult> {
-  const logs: string[] = [];
+  const logs: LogEntry[] = [];
   let leadsCount = 0;
   let failedChats = 0;
   try {
@@ -593,7 +596,7 @@ export const maxParser = {
   sync: async (): Promise<SyncResult> => {
     const leaseToken = await acquireParserLease();
     if (!leaseToken) {
-      return { success: true, skipped: true, leadsCount: 0, logs: ['Парсер уже выполняется другим процессом'] };
+      return { success: true, skipped: true, leadsCount: 0, logs: [{ time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Moscow' }), msg: 'Парсер уже выполняется другим процессом', type: 'info' }] };
     }
     let leaseResult = 'ERROR';
     try {
