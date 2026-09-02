@@ -24,7 +24,10 @@ export async function POST(request: Request) {
     const filename = `image-${uniqueSuffix}.${originalExt}`;
     
     // Save to data/uploads to persist across restarts and be served by our dynamic route
-    const path = join(process.cwd(), 'data', 'uploads', filename);
+    const dir = join(process.cwd(), 'data', 'uploads');
+    await import('fs/promises').then(fs => fs.mkdir(dir, { recursive: true }).catch(() => {}));
+    
+    const path = join(dir, filename);
     await writeFile(path, buffer);
 
     return NextResponse.json({ url: `/api/uploads/${filename}` });
