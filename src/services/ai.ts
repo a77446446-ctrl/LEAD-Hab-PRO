@@ -34,7 +34,7 @@ function cleanRawText(text: string): string {
     }
     
     // Проверяем начало рекламного блока
-    if (/^(разместить объявление|подать объявление|опубликовать вакансию|размещение рекламы|для размещения|по поводу рекламы|добавить объявление)/i.test(trimmed)) {
+    if (/^(разместить объявление|подать объявление|опубликовать вакансию|разместить вакансию|размещение рекламы|для размещения|по поводу рекламы|добавить объявление|channel|канал:|наш канал|подписывайтесь)/i.test(trimmed)) {
       inPromoBlock = true;
       continue;
     }
@@ -67,7 +67,9 @@ function cleanRawText(text: string): string {
     // Агрессивная фильтрация рекламы конкурентов и призывов подписаться
     const isCompetitorPromo = /(больше вакансий|больше заказов|еще вакансии|еще заказы|подписывайтесь|наш канал|смотрите здесь|все вакансии тут)/i.test(trimmed);
     
-    if (isTime || isViewsOrButtons || isComments || isUIAction || isCompetitorPromo) {
+    const hasBotMention = /@\w+bot\b/i.test(trimmed);
+    
+    if (isTime || isViewsOrButtons || isComments || isUIAction || isCompetitorPromo || hasBotMention) {
       continue; // Пропускаем мусорную строку
     }
     

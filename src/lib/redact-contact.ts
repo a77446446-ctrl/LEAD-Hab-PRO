@@ -16,5 +16,13 @@ export function redactContactInfo(value: string, preserveType: boolean = false):
 }
 export function extractContactInfo(value: string): string[] {
   const matches = value.match(CONTACT_PATTERN) || [];
-  return Array.from(new Set(matches.map((match) => match.trim()).filter(Boolean))).slice(0, 20);
+  return Array.from(new Set(matches.map((match) => match.trim()).filter((match) => {
+    if (!match) return false;
+    const lower = match.toLowerCase();
+    // Игнорируем ботов конкурентов как легитимный контакт
+    if (lower.includes('bot') && (lower.startsWith('@') || lower.includes('t.me/'))) {
+      return false;
+    }
+    return true;
+  }))).slice(0, 20);
 }
