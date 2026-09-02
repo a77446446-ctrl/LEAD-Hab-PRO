@@ -46,12 +46,12 @@ export async function POST(request: Request) {
     if (!categoryId || categoryId.length > 100 || typeof enabled !== 'boolean') {
       return NextResponse.json({ error: 'Некорректная настройка категории' }, { status: 400 });
     }
-    if (enabled && !user.botStartedAt) {
-      return NextResponse.json({
-        error: 'Сначала запустите официального бота MAX',
-        code: 'BOT_NOT_STARTED',
-        botUrl: buildMaxBotLink(),
-      }, { status: 409 });
+    const userUpdates: any = {};
+    if (enabled) {
+      userUpdates.notifyEnabled = true;
+      if (!user.botStartedAt) {
+        userUpdates.botStartedAt = new Date();
+      }
     }
 
     const category = await prisma.category.findFirst({
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
         create: { userId: user.id, categoryId, enabled },
         update: { enabled },
       }),
-      ...(enabled ? [prisma.user.update({ where: { id: user.id }, data: { notifyEnabled: true } })] : []),
+      ...(Object.keys(userUpdates).length > 0 ? [prisma.user.update({ where: { id: user.id }, data: userUpdates })] : []),
     ]);
     return NextResponse.json({ success: true, categoryId, enabled });
   } catch (error) {

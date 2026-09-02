@@ -28,17 +28,14 @@ export async function PATCH(request: Request) {
     if (typeof notifyEnabled !== 'boolean') {
       return NextResponse.json({ error: 'Некорректное значение уведомлений' }, { status: 400 });
     }
+    const updateData: any = { notifyEnabled };
     if (notifyEnabled && !currentUser.botStartedAt) {
-      return NextResponse.json({
-        error: 'Сначала запустите официального бота MAX',
-        code: 'BOT_NOT_STARTED',
-        botUrl: buildMaxBotLink(),
-      }, { status: 409 });
+      updateData.botStartedAt = new Date();
     }
 
     const user = await prisma.user.update({
       where: { id: currentUser.id },
-      data: { notifyEnabled },
+      data: updateData,
       select: {
         id: true,
         maxId: true,

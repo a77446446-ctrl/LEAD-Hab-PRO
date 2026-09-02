@@ -43,11 +43,13 @@ export async function POST(request: Request) {
           name: displayName,
           role: configuredAdmin ? 'ADMIN' : 'USER',
           lastLoginAt: now,
+          botStartedAt: now,
         },
         update: {
           name: displayName,
           lastLoginAt: now,
           role: configuredAdmin ? 'ADMIN' : 'USER',
+          botStartedAt: now,
         },
       });
 
