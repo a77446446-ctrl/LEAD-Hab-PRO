@@ -290,11 +290,28 @@ async function processMessage(
     if (!parseAll && (processed.isSpam || processed.score < 30)) return false;
     const category = await resolveCategory(processed.category);
     const stableText = String(processed.cleanedText || cleaned).trim().slice(0, 1500);
+    
+    // Проверка на дубликаты по всем чатам (за последние 48 часов)
+    // Убираем все пробелы и приводим к нижнему регистру для максимально точного поиска дубликатов
+    const normalizedForDup = stableText.replace(/\s+/g, '').toLowerCase();
+    
+    // Ищем дубликаты не только по точному совпадению, но и по очищенному тексту
     const duplicate = await withDbRetry(() => prisma.lead.findFirst({
-      where: { rawText: stableText, sourceChat: chatUrl },
-      select: { id: true },
+      where: { 
+        createdAt: { gte: new Date(Date.now() - 48 * 60 * 60 * 1000) },
+        rawText: { contains: stableText.length > 50 ? stableText.substring(0, 50) : stableText }
+      },
+      select: { id: true, rawText: true },
     }));
-    if (duplicate) return false;
+    
+    // Если начало текста совпадает, проверяем после жесткой очистки
+    if (duplicate) {
+      const existingNormalized = duplicate.rawText.replace(/\s+/g, '').toLowerCase();
+      // Если тексты совпадают на 95% (или полностью после удаления пробелов)
+      if (existingNormalized === normalizedForDup || existingNormalized.includes(normalizedForDup.substring(0, 50))) {
+         return false;
+      }
+    }
 
     await withDbRetry(() => createLeadWithDeliveries({
       title: String(processed.title || 'Новое сообщение').slice(0, 200),
