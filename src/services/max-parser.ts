@@ -379,9 +379,9 @@ async function runPlaywrightParse(chatUrl: string, account: ParserAccount): Prom
       if (timeoutHandle) clearTimeout(timeoutHandle);
       resolve(value);
     };
-    const collect = (target: 'stdout' | 'stderr', chunk: Buffer) => {
+    const collect = (target: 'stdout' | 'stderr', chunk: Buffer | string) => {
       const current = target === 'stdout' ? stdout : stderr;
-      const next = current + chunk.toString('utf8');
+      const next = current + (typeof chunk === 'string' ? chunk : chunk.toString('utf8'));
       if (next.length > outputLimit) {
         child.kill('SIGTERM');
         finish(failedWorker(chatUrl, 'ERROR', `Превышен лимит ${target}`));
@@ -390,8 +390,10 @@ async function runPlaywrightParse(chatUrl: string, account: ParserAccount): Prom
       if (target === 'stdout') stdout = next;
       else stderr = next;
     };
-    child.stdout.on('data', (chunk: Buffer) => collect('stdout', chunk));
-    child.stderr.on('data', (chunk: Buffer) => collect('stderr', chunk));
+    child.stdout.setEncoding('utf8');
+    child.stderr.setEncoding('utf8');
+    child.stdout.on('data', (chunk: string) => collect('stdout', chunk));
+    child.stderr.on('data', (chunk: string) => collect('stderr', chunk));
     child.once('error', (error) => finish(failedWorker(chatUrl, 'ERROR', parserPythonSpawnError(error))));
     child.once('close', (code) => {
       if (finished) return;

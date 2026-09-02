@@ -149,7 +149,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
       <div className="flex items-center justify-between mt-auto pt-4 border-t border-[#ddd] relative">
         <div className="flex items-center gap-1.5 text-[#666] text-xs font-bold uppercase z-10 relative">
           <MapPin size={14} className={isInfo ? "text-purple-500" : "text-black"} />
-          {lead.city}
+          {lead.city?.toUpperCase() === 'НЕ УКАЗАН' ? 'АДРЕС В ТЕКСТЕ' : lead.city}
         </div>
         {!isInfo && (
           <div className="text-[11px] font-black uppercase bg-white text-black px-2 py-1 border border-black shadow-[2px_2px_0_0_#F2FF00] z-10 relative">

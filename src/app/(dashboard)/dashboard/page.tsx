@@ -4,12 +4,13 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { LeadCard } from '@/components/cards/LeadCard';
 import { useUser } from '@/store/useUser';
 import { Search, Filter, Loader2 } from 'lucide-react';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 
 export default function DashboardPage() {
   const { user, setBalance, setNotifyEnabled } = useUser();
   const searchParams = useSearchParams();
+  const router = useRouter();
   const focusedLeadId = searchParams.get('lead');
   const [leads, setLeads] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -215,7 +216,12 @@ export default function DashboardPage() {
               </p>
               
               <button 
-                onClick={() => setModal({show: false, type: null, msg: ''})}
+                onClick={() => {
+                  if (modal.type === 'success') {
+                    router.push('/my-leads');
+                  }
+                  setModal({show: false, type: null, msg: ''});
+                }}
                 className={`w-full py-3 font-black text-sm uppercase tracking-wider border-2 border-black shadow-[4px_4px_0_0_#000] active:translate-x-1 active:translate-y-1 active:shadow-none transition-all ${
                   modal.type === 'success' ? 'bg-green-400 text-black' : 'bg-accent text-black'
                 }`}

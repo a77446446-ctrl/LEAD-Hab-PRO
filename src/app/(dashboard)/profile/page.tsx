@@ -13,6 +13,7 @@ export default function ProfilePage() {
   const { user, logout, setNotifyEnabled } = useUser();
   const [savingNotifications, setSavingNotifications] = useState(false);
   const [categoryPreferences, setCategoryPreferences] = useState<any[]>([]);
+  const [editingCategories, setEditingCategories] = useState(false);
 
   const [userStats, setUserStats] = useState({ purchasedLeads: 0, totalSpent: 0 });
 
@@ -109,22 +110,46 @@ export default function ProfilePage() {
       {/* Category Subscriptions */}
       {categoryPreferences.length > 0 && (
         <div className="bg-white border border-black p-4 space-y-3 shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-          <div>
-            <div className="text-xs font-black uppercase">Мои категории</div>
-            <div className="text-[11px] text-[#666] font-medium">Выберите, по каким лидам получать уведомления от бота.</div>
+          <div className="flex justify-between items-start">
+            <div>
+              <div className="text-xs font-black uppercase">Уведомления от бота</div>
+              <div className="text-[10px] text-[#666] font-medium mt-1">Категории, по которым вы получаете новые лиды.</div>
+            </div>
+            <button 
+              onClick={() => setEditingCategories(!editingCategories)}
+              className="text-[10px] font-black uppercase border-b-2 border-black text-black hover:text-accent transition-colors"
+            >
+              {editingCategories ? 'Скрыть' : 'Настроить'}
+            </button>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {categoryPreferences.map((category) => (
-              <button
-                key={category.id}
-                type="button"
-                onClick={() => toggleCategoryNotifications(category)}
-                className={`px-3 py-2 text-[10px] font-black uppercase border border-black transition-colors ${category.notifyEnabled ? 'bg-accent text-black' : 'bg-white text-black hover:bg-gray-100'}`}
-              >
-                {category.notifyEnabled ? '🔔 ' : '🔕 '}{category.name}
-              </button>
-            ))}
-          </div>
+
+          {!editingCategories ? (
+            <div className="flex flex-wrap gap-2 pt-2">
+              {categoryPreferences.filter(c => c.notifyEnabled).length > 0 ? (
+                categoryPreferences.filter(c => c.notifyEnabled).map((category) => (
+                  <div key={category.id} className="px-3 py-2 text-[10px] font-black uppercase border border-black bg-accent text-black flex items-center gap-1">
+                     🔔 {category.name}
+                  </div>
+                ))
+              ) : (
+                <div className="text-[10px] text-[#999] uppercase font-bold py-2">Категории не выбраны</div>
+              )}
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-200">
+              <div className="w-full text-[10px] font-bold text-[#666] uppercase mb-1">Выберите нужные категории:</div>
+              {categoryPreferences.map((category) => (
+                <button
+                  key={category.id}
+                  type="button"
+                  onClick={() => toggleCategoryNotifications(category)}
+                  className={`px-3 py-2 text-[10px] font-black uppercase border border-black transition-colors ${category.notifyEnabled ? 'bg-accent text-black shadow-[2px_2px_0_0_#000] translate-y-[-2px]' : 'bg-white text-[#999] hover:bg-gray-50'}`}
+                >
+                  {category.notifyEnabled ? '🔔 ' : '🔕 '}{category.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
