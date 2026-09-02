@@ -55,9 +55,9 @@ export function normalizeMaxNumericId(value: unknown): string | null {
     : typeof value === 'number' && Number.isSafeInteger(value)
       ? String(value)
       : '';
-  if (!/^\d{1,19}$/.test(raw)) return null;
-  const parsed = Math.round(Number(raw));
-  return parsed > 0 && parsed <= MAX_ID_LIMIT ? parsed.toString() : null;
+  if (!raw) return null;
+  if (!/^[A-Za-z0-9_@.-]{1,64}$/.test(raw)) return null;
+  return raw;
 }
 
 export function verifyMaxWebhookSecret(actual: string | null, expected = process.env.MAX_WEBHOOK_SECRET): boolean {
