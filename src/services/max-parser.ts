@@ -279,6 +279,14 @@ async function processMessage(
 
   try {
     const processed = await aiService.processLead(cleaned);
+    const hasContacts = extractContactInfo(original).length > 0;
+    
+    // Strict rule: If no contacts (phone, link, username) are found, it's considered spam 
+    // because users cannot reply to the poster.
+    if (!hasContacts) {
+       processed.isSpam = true;
+    }
+
     if (!parseAll && (processed.isSpam || processed.score < 30)) return false;
     const category = await resolveCategory(processed.category);
     const stableText = String(processed.cleanedText || cleaned).trim().slice(0, 1500);
