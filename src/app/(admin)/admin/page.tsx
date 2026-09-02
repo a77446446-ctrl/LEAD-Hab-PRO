@@ -27,8 +27,11 @@ export default function AdminDashboardPage() {
   const fetchStats = async (silent = false, date: Date = selectedDate) => {
     try {
       if (!silent) setLoading(true);
-      const isoDate = date.toISOString().split('T')[0];
-      const res = await fetch(`/api/admin/stats?date=${isoDate}`);
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const localIsoDate = `${year}-${month}-${day}`;
+      const res = await fetch(`/api/admin/stats?date=${localIsoDate}`);
       const data = await res.json();
       setStatsData(data);
     } catch (err) {
@@ -78,10 +81,13 @@ export default function AdminDashboardPage() {
           <div className="relative flex items-center">
             <input 
               type="date" 
-              value={selectedDate.toISOString().split('T')[0]}
+              value={`${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`}
               onChange={(e) => {
                 if (e.target.value) {
-                  setSelectedDate(new Date(e.target.value));
+                  const [y, m, d] = e.target.value.split('-');
+                  const newDate = new Date(parseInt(y), parseInt(m) - 1, parseInt(d));
+                  newDate.setHours(0,0,0,0);
+                  setSelectedDate(newDate);
                 }
               }}
               className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"

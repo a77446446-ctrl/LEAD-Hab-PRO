@@ -9,11 +9,19 @@ export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const dateParam = searchParams.get('date');
-    const today = dateParam ? new Date(dateParam) : new Date();
-    today.setHours(0, 0, 0, 0);
+    let today: Date;
+    if (dateParam) {
+      const [y, m, d] = dateParam.split('-');
+      // Start of day in MSK (UTC+3) corresponds to 21:00 UTC of previous day
+      today = new Date(Date.UTC(parseInt(y), parseInt(m) - 1, parseInt(d) - 1, 21, 0, 0, 0));
+    } else {
+      today = new Date();
+      // Adjust current time to MSK, then find start of MSK day, then convert back to UTC
+      const mskTime = new Date(today.getTime() + 3 * 3600 * 1000);
+      today = new Date(Date.UTC(mskTime.getUTCFullYear(), mskTime.getUTCMonth(), mskTime.getUTCDate() - 1, 21, 0, 0, 0));
+    }
 
-    const nextDay = new Date(today);
-    nextDay.setDate(nextDay.getDate() + 1);
+    const nextDay = new Date(today.getTime() + 24 * 3600 * 1000);
 
     const [revenueToday, newLeads, activeMasters, activeSubs] = await Promise.all([
       prisma.transaction.aggregate({
