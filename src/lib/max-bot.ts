@@ -91,16 +91,29 @@ function priceLabel(lead: LeadMessageData): string {
   return lead.price > 0 ? `${lead.price.toFixed(2).replace(/\.00$/, '')} ₽` : 'бесплатно';
 }
 
-function keyboard(text: string, url: string): MaxMessagePayload['attachments'] {
+function keyboard(buttons: Array<{text: string, url: string}>): MaxMessagePayload['attachments'] {
   return [{
     type: 'inline_keyboard',
-    payload: { buttons: [[{ type: 'link', text, url }]] },
+    payload: { buttons: buttons.map(b => [{ type: 'link', text: b.text, url: b.url }]) },
   }];
 }
 
+const MAP_REGEX = /(https?:\/\/(?:yandex\.(?:ru|com)\/maps|maps\.yandex\.(?:ru|com)|2gis\.(?:ru|com)|go\.2gis\.com|maps\.google|goo\.gl\/maps)[^\s]*)/gi;
+
+function formatHiddenContacts(text: string): string {
+  return text
+    .replace(/\[контакт скрыт:phone\]/g, '📞 [КОНТАКТ СКРЫТ]')
+    .replace(/\[контакт скрыт:link\]/g, '🔗 [ССЫЛКА СКРЫТА]')
+    .replace(/\[контакт скрыт\]/g, '🔒 [КОНТАКТ СКРЫТ]');
+}
+
 export function buildLeadTeaserMessage(lead: LeadMessageData): MaxMessagePayload {
-  const title = truncate(redactContactInfo(lead.title), 180);
-  const description = truncate(redactContactInfo(lead.rawText), 1_200);
+  const mapLinks = Array.from(new Set(lead.rawText.match(MAP_REGEX) || []));
+  const rawWithoutMaps = lead.rawText.replace(MAP_REGEX, '').replace(/\n{3,}/g, '\n\n').trim();
+  
+  const title = formatHiddenContacts(truncate(redactContactInfo(lead.title, true), 180));
+  const description = formatHiddenContacts(truncate(redactContactInfo(rawWithoutMaps, true), 1_200));
+  
   const text = truncate([
     '🆕 Новый заказ',
     '',
@@ -114,15 +127,24 @@ export function buildLeadTeaserMessage(lead: LeadMessageData): MaxMessagePayload
     'Контакт скрыт до получения лида.',
   ].join('\n'), MAX_MESSAGE_LIMIT);
 
+  const buttons = [];
+  if (mapLinks.length > 0) {
+    buttons.push({ text: '🗺️ Карта объекта', url: mapLinks[0] });
+  }
+  buttons.push({ text: 'Забрать контакт', url: buildMaxMiniAppLink(`lead_${lead.id}`) });
+
   return {
     text,
-    attachments: keyboard('Забрать контакт', buildMaxMiniAppLink(`lead_${lead.id}`)),
+    attachments: keyboard(buttons),
     notify: true,
   };
 }
 
 export function buildPurchaseMessage(lead: LeadMessageData): MaxMessagePayload {
   const contacts = extractContactInfo(`${lead.title}\n${lead.rawText}`);
+  const mapLinks = Array.from(new Set(lead.rawText.match(MAP_REGEX) || []));
+  const rawWithoutMaps = lead.rawText.replace(MAP_REGEX, '').replace(/\n{3,}/g, '\n\n').trim();
+
   const text = truncate([
     '✅ Контакт получен',
     '',
@@ -131,14 +153,20 @@ export function buildPurchaseMessage(lead: LeadMessageData): MaxMessagePayload {
     `Город: ${lead.city?.toUpperCase() === 'НЕ УКАЗАН' ? 'в тексте заказа' : lead.city}`,
     ...(contacts.length > 0 ? [`Контакты: ${contacts.join(', ')}`] : []),
     '',
-    lead.rawText,
+    rawWithoutMaps,
     '',
     'Лид сохранён в разделе «Мои лиды».',
   ].join('\n'), MAX_MESSAGE_LIMIT);
 
+  const buttons = [];
+  if (mapLinks.length > 0) {
+    buttons.push({ text: '🗺️ Карта объекта', url: mapLinks[0] });
+  }
+  buttons.push({ text: 'Открыть мои лиды', url: buildMaxMiniAppLink(`purchase_${lead.id}`) });
+
   return {
     text,
-    attachments: keyboard('Открыть мои лиды', buildMaxMiniAppLink(`purchase_${lead.id}`)),
+    attachments: keyboard(buttons),
     notify: true,
   };
 }
@@ -146,7 +174,7 @@ export function buildPurchaseMessage(lead: LeadMessageData): MaxMessagePayload {
 export function buildWelcomeMessage(): MaxMessagePayload {
   return {
     text: 'Добро пожаловать в «ПО ДЕЛАМ». Здесь будут приходить новые заказы по выбранным категориям и контакты купленных лидов.',
-    attachments: keyboard('Открыть приложение', buildMaxMiniAppLink('home')),
+    attachments: keyboard([{ text: 'Открыть приложение', url: buildMaxMiniAppLink('home') }]),
     notify: true,
   };
 }
@@ -154,7 +182,7 @@ export function buildWelcomeMessage(): MaxMessagePayload {
 export function buildCategorySubscribedMessage(categoryName: string): MaxMessagePayload {
   return {
     text: `Уведомления по категории «${truncate(categoryName, 100)}» включены. Новые заказы будут приходить в этот диалог без раскрытия контактов.`,
-    attachments: keyboard('Открыть заказы', buildMaxMiniAppLink('home')),
+    attachments: keyboard([{ text: 'Открыть заказы', url: buildMaxMiniAppLink('home') }]),
     notify: true,
   };
 }
