@@ -14,13 +14,17 @@ export async function GET(request: Request, { params }: { params: { filename: st
     }
     const ext = params.filename.split('.').pop()?.toLowerCase() || 'png';
     const mimeType = ext === 'jpg' || ext === 'jpeg' ? 'image/jpeg' : ext === 'png' ? 'image/png' : ext === 'gif' ? 'image/gif' : 'image/webp';
-    return new NextResponse(buffer, {
+    
+    // Convert Buffer to Uint8Array to satisfy TypeScript BodyInit signature
+    const body = new Uint8Array(buffer);
+    
+    return new NextResponse(body, {
       headers: {
         'Content-Type': mimeType,
         'Cache-Control': 'public, max-age=31536000, immutable',
       },
     });
-  } catch (error) {
+  } catch {
     return new NextResponse('File not found', { status: 404 });
   }
 }
