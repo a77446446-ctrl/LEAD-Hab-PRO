@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { MapPin, Zap, Clock, Phone, Link as LinkIcon } from 'lucide-react';
 
 interface LeadCardProps {
@@ -101,7 +102,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
         {/* Background Watermark Image */}
         {lead.category?.imageUrl && (
           <div className="absolute bottom-0 right-2 w-40 h-40 opacity-[0.15] mix-blend-multiply pointer-events-none flex items-end justify-end z-[-1]">
-            <img src={lead.category.imageUrl} alt="" className="max-w-full max-h-full object-contain grayscale" />
+            <Image src={lead.category.imageUrl} alt="" fill sizes="160px" className="object-contain grayscale" />
           </div>
         )}
 
