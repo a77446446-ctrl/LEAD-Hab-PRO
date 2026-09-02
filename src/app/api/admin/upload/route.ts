@@ -1,8 +1,7 @@
 import { adminGuard } from '@/lib/auth/admin-guard';
 export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
-import { writeFile } from 'fs/promises';
-import { join } from 'path';
+import { prisma } from '@/lib/prisma';
 
 export async function POST(request: Request) {
   const denied = await adminGuard();
@@ -18,19 +17,20 @@ export async function POST(request: Request) {
     const bytes = await file.arrayBuffer();
     const buffer = Buffer.from(bytes);
 
-    // Create a unique filename
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    const originalExt = file.name.split('.').pop() || 'png';
-    const filename = `image-${uniqueSuffix}.${originalExt}`;
-    
-    // Save to data/uploads to persist across restarts and be served by our dynamic route
-    const dir = join(process.cwd(), 'data', 'uploads');
-    await import('fs/promises').then(fs => fs.mkdir(dir, { recursive: true }).catch(() => {}));
-    
-    const path = join(dir, filename);
-    await writeFile(path, buffer);
+    const base64 = buffer.toString('base64');
+    const mimeType = file.type || 'image/png';
+    const dataUri = `data:${mimeType};base64,${base64}`;
 
-    return NextResponse.json({ url: `/api/uploads/${filename}` });
+    const uniqueId = `img_${Date.now()}_${Math.round(Math.random() * 1000)}`;
+
+    await prisma.setting.create({
+      data: {
+        key: uniqueId,
+        value: dataUri,
+      },
+    });
+
+    return NextResponse.json({ url: `/api/uploads/${uniqueId}` });
   } catch (error) {
     console.error('Upload error:', error);
     return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
