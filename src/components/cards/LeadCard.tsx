@@ -52,7 +52,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
           else if (!part.startsWith('http')) href = `https://${part}`;
           
           let linkText = part;
-          let linkClass = "px-1.5 py-0.5 rounded text-xs font-bold border border-black transition-all mx-1 inline-block whitespace-nowrap ";
+          let linkClass = "px-1.5 py-0.5 rounded text-xs font-bold border border-black transition-all mx-1 inline-block break-all ";
 
           if (isMapLink) {
              if (part.includes('yandex')) linkText = '🗺️ Яндекс.Карты';

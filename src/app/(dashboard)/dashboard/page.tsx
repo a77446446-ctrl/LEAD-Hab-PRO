@@ -15,6 +15,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [activeCategory, setActiveCategory] = useState('all');
   const [activeCity, setActiveCity] = useState('all');
+  const [cityOpen, setCityOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
 
@@ -135,18 +136,38 @@ export default function DashboardPage() {
           </div>
           
           {/* Cities Dropdown */}
-          <div className="w-full sm:w-48 shrink-0">
-            <select 
-              value={activeCity}
-              onChange={(e) => setActiveCity(e.target.value)}
-              className="w-full bg-white border border-black px-3 py-2 text-xs font-black uppercase focus:outline-none focus:ring-1 focus:ring-black appearance-none cursor-pointer"
-              style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke=\'black\'%3E%3Cpath stroke-linecap=\'round\' stroke-linejoin=\'round\' stroke-width=\'2\' d=\'M19 9l-7 7-7-7\'%3E%3C/path%3E%3C/svg%3E")', backgroundPosition: 'right 0.5rem center', backgroundRepeat: 'no-repeat', backgroundSize: '1em' }}
+          <div className="w-full sm:w-48 shrink-0 relative">
+            <button 
+              onClick={() => setCityOpen(!cityOpen)}
+              className="w-full bg-white border border-black px-3 py-2 text-xs font-black uppercase text-left flex justify-between items-center focus:outline-none"
             >
-              <option value="all">ВСЕ ГОРОДА</option>
-              {availableCities.map((city: string) => (
-                <option key={city} value={city}>{city.toUpperCase()}</option>
-              ))}
-            </select>
+              <span className="truncate pr-2">{activeCity === 'all' ? 'ВСЕ ГОРОДА' : activeCity.toUpperCase()}</span>
+              <svg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='black' className="w-4 h-4 shrink-0">
+                <path strokeLinecap='round' strokeLinejoin='round' strokeWidth='2' d={cityOpen ? 'M5 15l7-7 7 7' : 'M19 9l-7 7-7-7'}></path>
+              </svg>
+            </button>
+            {cityOpen && (
+              <>
+                <div className="fixed inset-0 z-40" onClick={() => setCityOpen(false)} />
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-black shadow-[4px_4px_0_0_#000] z-50 max-h-[40vh] sm:max-h-64 overflow-y-auto">
+                  <button 
+                    onClick={() => { setActiveCity('all'); setCityOpen(false); }}
+                    className={`w-full text-left px-3 py-3 sm:py-2 text-xs font-black uppercase transition-colors ${activeCity === 'all' ? 'bg-black text-white' : 'hover:bg-accent'}`}
+                  >
+                    ВСЕ ГОРОДА
+                  </button>
+                  {availableCities.map((city: string) => (
+                    <button 
+                      key={city}
+                      onClick={() => { setActiveCity(city); setCityOpen(false); }}
+                      className={`w-full text-left px-3 py-3 sm:py-2 text-xs font-black uppercase transition-colors border-t border-gray-100 ${activeCity === city ? 'bg-black text-white' : 'hover:bg-accent'}`}
+                    >
+                      {city.toUpperCase()}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
