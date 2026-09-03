@@ -3,6 +3,7 @@ import Script from "next/script";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://podelam24.ru'),
   title: "ПО ДЕЛАМ - Агрегатор заказов",
   description: "Поиск работы и специалистов, подработки. Все для строительства и ремонта: мастер на час, грузчики и другие услуги.",
   icons: {
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "ПО ДЕЛАМ - Свежие заказы и работа",
     description: "Агрегатор заказов по всем городам. Найди подработку, работу или крутых специалистов: мастер на час, грузчики, IT и многое другое.",
-    url: "https://podelam.ru", // Замените на реальный домен, если есть
+    url: "https://podelam24.ru",
     siteName: "ПО ДЕЛАМ",
     images: [
       {
