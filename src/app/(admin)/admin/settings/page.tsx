@@ -148,6 +148,7 @@ export default function SettingsPage() {
   const [proxyStatus, setProxyStatus] = useState<'idle' | 'checking' | 'valid' | 'invalid' | 'diagnosing'>('idle');
   const [canBypass, setCanBypass] = useState(false);
   const [proxyLoaded, setProxyLoaded] = useState(false);
+  const lastSyncLogsRef = useRef<string | null>(null);
   const [savedProxyIdentity, setSavedProxyIdentity] = useState('');
   const [hasSavedProxyPassword, setHasSavedProxyPassword] = useState(false);
 
@@ -246,7 +247,8 @@ export default function SettingsPage() {
               } catch(e) { return prev; }
           });
           
-          if (settingsMap['sync_logs']) {
+          if (settingsMap['sync_logs'] && settingsMap['sync_logs'] !== lastSyncLogsRef.current) {
+            lastSyncLogsRef.current = settingsMap['sync_logs'];
             try {
               const loadedLogs = JSON.parse(settingsMap['sync_logs']);
               if (Array.isArray(loadedLogs) && loadedLogs.length > 0) {
@@ -258,8 +260,11 @@ export default function SettingsPage() {
                   newLogs = [...loadedLogs].reverse();
                 }
                 setLogs(prev => {
-                  if (prev.length > 0 && prev[0].msg === newLogs[0]?.msg && prev[0].time === newLogs[0]?.time) return prev;
-                  return newLogs.slice(0, 50);
+                  const merged = [...prev];
+                  // Keep local-only logs (like proxy checks) that are newer than the DB logs
+                  const isDbLog = (log: any) => newLogs.some((nl: any) => nl.msg === log.msg && nl.time === log.time);
+                  const localRecent = merged.filter(m => !isDbLog(m)).slice(0, 5);
+                  return [...localRecent, ...newLogs].slice(0, 50);
                 });
               }
             } catch(e) {}
@@ -320,6 +325,7 @@ export default function SettingsPage() {
       setParseTimeEnabled(settingsMap['maks_parser_time_enabled'] !== 'false');
       
       if (!silent && settingsMap['sync_logs']) {
+        lastSyncLogsRef.current = settingsMap['sync_logs'];
         try {
           const loadedLogs = JSON.parse(settingsMap['sync_logs']);
           if (Array.isArray(loadedLogs) && loadedLogs.length > 0) {
@@ -360,7 +366,8 @@ export default function SettingsPage() {
 
   const fetchSessions = async (_silent = false): Promise<MaksSession[] | null> => {
     try {
-      const res = await fetch('/api/admin/auth/sessions', { cache: 'no-store' });
+      const url = _silent ? '/api/admin/auth/sessions?sync=false' : '/api/admin/auth/sessions';
+      const res = await fetch(url, { cache: 'no-store' });
       const data = await res.json() as { sessions?: MaksSession[]; error?: string };
       if (!res.ok || !Array.isArray(data.sessions)) throw new Error(data.error || 'Сервер не вернул аккаунты');
       setSessions(data.sessions);

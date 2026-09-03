@@ -15,11 +15,13 @@ import fs from 'fs/promises';
 export const runtime = 'nodejs';
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const denied = await adminGuard();
   if (denied) return denied;
   try {
-    await synchronizeParserSessionFiles();
+    if (req.nextUrl.searchParams.get('sync') !== 'false') {
+      await synchronizeParserSessionFiles();
+    }
     const accounts = await prisma.maksAccount.findMany({ orderBy: { createdAt: 'desc' } });
     const sessions = await Promise.all(accounts.map(async (account) => {
       const sessionId = account.sessionFile.replace(/\.json$/i, '');
