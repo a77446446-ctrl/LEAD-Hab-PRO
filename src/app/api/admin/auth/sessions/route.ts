@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
   const denied = await adminGuard();
   if (denied) return denied;
   try {
-    if (req.nextUrl.searchParams.get('sync') !== 'false') {
+    if (req.nextUrl.searchParams.get('sync') === 'true') {
       await synchronizeParserSessionFiles();
     }
     const accounts = await prisma.maksAccount.findMany({ orderBy: { createdAt: 'desc' } });

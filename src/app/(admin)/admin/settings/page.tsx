@@ -621,7 +621,9 @@ export default function SettingsPage() {
         body: JSON.stringify({ key: 'lead_retention_days', value: String(days) }),
       });
       addLog(`Срок хранения лидов изменен на ${days} дн.`, 'info');
-    } catch (e) {}
+    } catch (e) {
+      console.error('Failed to save retention days:', e);
+    }
   };
 
   const handleIntervalChange = (newInterval: number) => {
