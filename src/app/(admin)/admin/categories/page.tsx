@@ -417,9 +417,14 @@ export default function AdminCategoriesPage() {
             <input
               list="max-bot-chats"
               value={formData.showcaseChatId || ''}
-              onChange={(event) => setFormData({ ...formData, showcaseChatId: event.target.value.replace(/[^\w\-\@\.]/g, '') })}
+              onChange={(event) => {
+                let val = event.target.value.trim();
+                if (val.includes('max.ru/chat/')) val = val.split('max.ru/chat/').pop() || val;
+                if (val.includes('max.ru/')) val = val.split('max.ru/').pop() || val;
+                setFormData({ ...formData, showcaseChatId: val.replace(/[^\w\-\@\.]/g, '') });
+              }}
               disabled={!formData.showcaseEnabled}
-              placeholder="Например: -1001234567890 или @mychannel"
+              placeholder="Например: 1234567890 или @mychannel"
               className="w-full bg-zinc-900 border border-zinc-700 rounded-lg py-3 px-4 text-xs sm:text-sm font-bold text-white disabled:opacity-40"
             />
             <datalist id="max-bot-chats">
