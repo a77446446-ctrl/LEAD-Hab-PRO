@@ -299,13 +299,13 @@ export default function AdminCategoriesPage() {
         <div className="p-4 sm:p-6 space-y-8">
 
         <div className="grid grid-cols-1 md:grid-cols-12 gap-4 sm:p-6">
-          <div className="space-y-3 md:col-span-4">
+           <div className="space-y-3 md:col-span-4">
             <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Название услуги (для ИИ)</label>
             <input 
               value={formData.name} 
               onChange={e => setFormData({...formData, name: e.target.value})}
               placeholder="Например: Мастер на час" 
-              className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-4 px-6 text-xs sm:text-sm font-bold focus:border-accent outline-none transition-all placeholder:text-zinc-600 text-white" 
+              className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-3 px-4 text-xs sm:text-sm font-bold focus:border-accent outline-none transition-all placeholder:text-zinc-600 text-white" 
             />
           </div>
 
@@ -324,9 +324,9 @@ export default function AdminCategoriesPage() {
                      setFormData({...formData, leadPrice: Number(e.target.value)});
                    }
                  }}
-                 className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-4 px-6 text-xs sm:text-sm font-bold focus:border-accent outline-none transition-all text-white" 
+                 className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-3 px-4 text-xs sm:text-sm font-bold focus:border-accent outline-none transition-all text-white" 
                />
-               <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-500 uppercase">
+               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-500 uppercase">
                   {(formData.paymentMode === 'SUBSCRIPTION' ? formData.subscriptionPrice : formData.leadPrice) === 0 ? 'БЕСПЛАТНО' : 'РУБ'}
                </div>
             </div>
@@ -338,13 +338,13 @@ export default function AdminCategoriesPage() {
               <select 
                 value={formData.paymentMode}
                 onChange={e => setFormData({...formData, paymentMode: e.target.value as any})}
-                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-4 px-6 text-xs sm:text-sm font-bold focus:border-accent outline-none transition-all appearance-none cursor-pointer text-white"
+                className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-3 px-4 text-xs sm:text-sm font-bold focus:border-accent outline-none transition-all appearance-none cursor-pointer text-white"
               >
                 <option value="LEAD">ПОШТУЧНО</option>
                 <option value="SUBSCRIPTION">PRO (ПОДПИСКА)</option>
                 <option value="HYBRID">ГИБРИД</option>
               </select>
-              <div className="absolute right-6 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
+              <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-zinc-500">
                  <ChevronDown size={14} />
               </div>
             </div>
@@ -357,9 +357,9 @@ export default function AdminCategoriesPage() {
                  type="number"
                  value={formData.ttlMinutes || 1440} 
                  onChange={e => setFormData({...formData, ttlMinutes: Number(e.target.value)})}
-                 className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-4 px-6 text-xs sm:text-sm font-bold focus:border-accent outline-none transition-all text-white" 
+                 className="w-full bg-zinc-950 border border-zinc-700 rounded-lg py-3 px-4 text-xs sm:text-sm font-bold focus:border-accent outline-none transition-all text-white" 
                />
-               <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-500 uppercase">
+               <div className="absolute right-4 top-1/2 -translate-y-1/2 text-[10px] font-bold text-zinc-500 uppercase">
                   МИН
                </div>
             </div>
@@ -367,7 +367,7 @@ export default function AdminCategoriesPage() {
           
           <div className="space-y-3 md:col-span-12">
             <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest ml-1">Водяной знак для карточки (Опционально)</label>
-            <div className="flex items-center gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-4">
               <input 
                 type="file" 
                 id="file-upload" 
@@ -377,14 +377,14 @@ export default function AdminCategoriesPage() {
               />
               <label 
                 htmlFor="file-upload" 
-                className="cursor-pointer bg-zinc-950 border border-zinc-700 hover:border-accent hover:text-accent text-zinc-400 rounded-lg px-6 py-4 flex items-center gap-3 transition-all font-bold text-xs uppercase"
+                className="cursor-pointer bg-zinc-950 border border-zinc-700 hover:border-accent hover:text-accent text-zinc-400 rounded-lg px-6 py-4 flex items-center justify-center gap-3 transition-all font-bold text-xs uppercase w-full sm:w-auto shrink-0"
               >
                 {isUploading ? <Loader2 size={18} className="animate-spin" /> : <UploadCloud size={18} />}
                 {isUploading ? 'Загрузка...' : 'Загрузить картинку'}
               </label>
 
               {formData.imageUrl && (
-                <div className="relative group bg-zinc-950 border border-zinc-700 rounded-lg p-2 h-16 w-16 flex items-center justify-center">
+                <div className="relative group bg-zinc-950 border border-zinc-700 rounded-lg p-2 h-16 w-16 flex items-center justify-center shrink-0">
                   <img src={formData.imageUrl} alt="preview" className="max-w-full max-h-full object-contain" />
                   <button 
                     onClick={() => setFormData(prev => ({ ...prev, imageUrl: '' }))}
