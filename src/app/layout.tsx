@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     apple: "/icon.png",
   },
   verification: {
-    yandex: "46cd23352c691aac",
+    yandex: ["46cd23352c691aac", "b1d0ee1f0c0830e4"],
   },
   openGraph: {
     title: "ПО ДЕЛАМ - Свежие заказы и работа",
