@@ -10,6 +10,9 @@ export const metadata: Metadata = {
     icon: "/icon.png",
     apple: "/icon.png",
   },
+  verification: {
+    yandex: "46cd23352c691aac",
+  },
   openGraph: {
     title: "ПО ДЕЛАМ - Свежие заказы и работа",
     description: "Агрегатор заказов по всем городам. Найди подработку, работу или крутых специалистов: мастер на час, грузчики, IT и многое другое.",
