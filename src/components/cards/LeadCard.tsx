@@ -166,7 +166,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
           onClick={() => onBuy(lead.id)}
           className="w-full mt-5 py-4 bg-accent text-black font-black text-sm border border-black hover:bg-[#F2FF00] active:scale-[0.98] transition-all flex items-center justify-center gap-2 uppercase tracking-tighter"
         >
-          [ ЗАБРАТЬ ЗАКАЗ ]
+          [ ЗАБРАТЬ КОНТАКТ ]
         </button>
       )}
 

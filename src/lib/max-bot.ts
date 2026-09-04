@@ -131,7 +131,7 @@ export function buildLeadTeaserMessage(lead: LeadMessageData): MaxMessagePayload
   if (mapLinks.length > 0) {
     buttons.push({ text: '🗺️ Карта объекта', url: mapLinks[0] });
   }
-  buttons.push({ text: '[ ЗАБРАТЬ ЗАКАЗ ]', url: buildMaxMiniAppLink(`lead_${lead.id}`) });
+  buttons.push({ text: '[ ЗАБРАТЬ КОНТАКТ ]', url: buildMaxMiniAppLink(`lead_${lead.id}`) });
 
   return {
     text,
