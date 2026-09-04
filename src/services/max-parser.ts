@@ -120,12 +120,16 @@ async function cleanupExpiredLeads(logs: LogEntry[]): Promise<void> {
     const categories = await prisma.category.findMany({ select: { id: true, ttlMinutes: true } });
     let deleted = 0;
     for (const category of categories) {
-      const result = await prisma.lead.deleteMany({
+      const result = await prisma.lead.updateMany({
         where: {
           categoryId: category.id,
           status: { in: ['NEW', 'SPAM'] },
           createdAt: { lt: businessCutoff(Date.now(), category.ttlMinutes || 1440) },
         },
+        data: {
+          status: 'ARCHIVED',
+          deletedAt: new Date(),
+        }
       });
       deleted += result.count;
     }
