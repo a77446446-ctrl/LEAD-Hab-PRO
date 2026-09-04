@@ -50,6 +50,7 @@ export async function POST(request: Request) {
     const parsed = asObject(JSON.parse(rawBody));
     if (!parsed) return NextResponse.json({ error: 'Некорректный webhook' }, { status: 400 });
     update = parsed;
+    (global as any).lastWebhook = rawBody;
   } catch {
     return NextResponse.json({ error: 'Некорректный JSON' }, { status: 400 });
   }

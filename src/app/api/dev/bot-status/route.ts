@@ -56,7 +56,8 @@ export async function GET(request: Request) {
       deliveries: Object.fromEntries(groups.map((group) => [group.status, group._count._all])),
       failures,
       chats,
-      recent: deliveriesAll
+      recent: deliveriesAll,
+      lastWebhook: (global as any).lastWebhook ? JSON.parse((global as any).lastWebhook) : null,
     });
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });
