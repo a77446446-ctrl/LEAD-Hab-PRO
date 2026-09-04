@@ -117,7 +117,8 @@ export default function ProfilePage() {
             </div>
             <button 
               onClick={() => setEditingCategories(!editingCategories)}
-              className="text-[10px] font-black uppercase border-b-2 border-black text-black hover:text-accent transition-colors"
+              className="text-accent text-[10px] font-black uppercase border-b-2 border-black hover:text-[#F2FF00] transition-colors pb-0.5"
+              style={{ textShadow: '1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000, 0px 1px 0 #000, 0px -1px 0 #000, 1px 0px 0 #000, -1px 0px 0 #000' }}
             >
               {editingCategories ? 'Скрыть' : 'Настроить'}
             </button>
@@ -129,8 +130,7 @@ export default function ProfilePage() {
                 categoryPreferences.filter(c => c.notifyEnabled).map((category) => (
                   <div 
                     key={category.id} 
-                    className="px-3 py-2 text-[10px] font-black uppercase border border-black bg-white text-accent flex items-center gap-1 shadow-[2px_2px_0_0_#000]"
-                    style={{ textShadow: '1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000, 0px 1px 0 #000, 0px -1px 0 #000, 1px 0px 0 #000, -1px 0px 0 #000' }}
+                    className="px-3 py-2 text-[10px] font-black uppercase border border-black bg-accent text-black flex items-center gap-1"
                   >
                      🔔 {category.name}
                   </div>
@@ -147,8 +147,7 @@ export default function ProfilePage() {
                   key={category.id}
                   type="button"
                   onClick={() => toggleCategoryNotifications(category)}
-                  className={`px-3 py-2 text-[10px] font-black uppercase border border-black transition-colors ${category.notifyEnabled ? 'bg-white text-accent shadow-[2px_2px_0_0_#000] translate-y-[-2px]' : 'bg-white text-[#999] hover:bg-gray-50'}`}
-                  style={category.notifyEnabled ? { textShadow: '1px 1px 0 #000, -1px 1px 0 #000, 1px -1px 0 #000, -1px -1px 0 #000, 0px 1px 0 #000, 0px -1px 0 #000, 1px 0px 0 #000, -1px 0px 0 #000' } : undefined}
+                  className={`px-3 py-2 text-[10px] font-black uppercase border border-black transition-colors ${category.notifyEnabled ? 'bg-accent text-black shadow-[2px_2px_0_0_#000] translate-y-[-2px]' : 'bg-white text-[#999] hover:bg-gray-50'}`}
                 >
                   {category.notifyEnabled ? '🔔 ' : '🔕 '}{category.name}
                 </button>
