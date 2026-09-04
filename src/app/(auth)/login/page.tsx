@@ -123,10 +123,10 @@ export default function LoginPage() {
             type="button"
             onClick={authenticate}
             disabled={loading || checkingSession}
-            className="w-full bg-accent text-black border-2 border-black py-4 px-2 text-xs sm:text-sm font-bold uppercase tracking-wider hover:bg-[#F2FF00] disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-center"
+            className="w-full bg-accent text-black border-2 border-black py-4 px-2 text-xs sm:text-sm font-black uppercase tracking-wider hover:bg-[#F2FF00] disabled:opacity-60 disabled:cursor-not-allowed active:scale-[0.98] transition-all flex items-center justify-center gap-2 text-center"
           >
             {(loading || checkingSession) && <Loader2 size={18} className="animate-spin shrink-0" />}
-            <span>{checkingSession ? 'Проверяем сессию' : loading ? 'Входим через MAX' : 'Начать работу'}</span>
+            <span>{checkingSession ? 'ПРОВЕРЯЕМ СЕССИЮ' : loading ? 'ВХОДИМ ЧЕРЕЗ MAX' : '[ НАЧАТЬ РАБОТУ ]'}</span>
           </button>
         )}
 

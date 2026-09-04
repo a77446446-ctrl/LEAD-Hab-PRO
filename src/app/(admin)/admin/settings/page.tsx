@@ -843,7 +843,15 @@ export default function SettingsPage() {
           </div>
           <h1 className="text-xs sm:text-sm font-bold tracking-widest text-white uppercase leading-none">НАСТРОЙКИ</h1>
           
-          <button onClick={handleSave} disabled={saving} className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-950 border border-zinc-700 rounded-lg text-accent text-[9px] font-bold uppercase tracking-widest transition-all hover:bg-zinc-800 sm:ml-4">
+          <button 
+            onClick={handleSave} 
+            disabled={saving || !hasUnsavedChanges} 
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all sm:ml-4 border ${
+              saving || !hasUnsavedChanges
+                ? 'bg-zinc-900 border-zinc-800 text-zinc-500 cursor-not-allowed opacity-70'
+                : 'bg-zinc-950 border-zinc-700 text-accent hover:bg-zinc-800'
+            }`}
+          >
             <div className="flex items-center gap-1.5">
               {saving ? <Loader2 className="animate-spin" size={12} /> : <Save size={12} />}
               <span>СОХРАНИТЬ</span>
