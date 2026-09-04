@@ -18,7 +18,7 @@ export async function GET(request: Request) {
         headers: { Authorization: token, "Content-Type": "application/json" },
         body: JSON.stringify({
           url: webhookUrl.toString(),
-          update_types: ["bot_started", "bot_stopped", "bot_added", "bot_removed", "chat_title_changed", "dialog_removed", "dialog_muted", "dialog_unmuted"],
+          update_types: ["bot_started", "bot_stopped", "bot_added", "bot_removed", "chat_title_changed", "dialog_removed", "dialog_muted", "dialog_unmuted", "message_created"],
           secret,
         }),
       });

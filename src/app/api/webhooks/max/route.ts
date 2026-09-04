@@ -103,24 +103,28 @@ export async function POST(request: Request) {
           data: { notifyEnabled: true },
         });
       }
-    } else if (['bot_added', 'chat_title_changed'].includes(updateType)) {
-      const chatId = normalizeMaxNumericId(update.chat_id);
+    } else if (['bot_added', 'chat_title_changed', 'message_created'].includes(updateType)) {
+      const chat = asObject(update.chat) || update;
+      const rawChatId = chat.id ?? chat.chat_id ?? update.chat_id;
+      const chatId = normalizeMaxNumericId(rawChatId);
       if (chatId) {
         await prisma.maxBotChat.upsert({
           where: { chatId },
           create: {
             chatId,
-            title: optionalText(update.title, 200),
-            kind: update.is_channel === true ? 'CHANNEL' : 'CHAT',
+            title: optionalText(chat.title ?? update.title, 200) || 'Unknown Chat',
+            kind: chat.type === 'channel' || update.is_channel === true ? 'CHANNEL' : 'CHAT',
           },
           update: {
             active: true,
-            ...(optionalText(update.title, 200) ? { title: optionalText(update.title, 200) } : {}),
+            ...(optionalText(chat.title ?? update.title, 200) ? { title: optionalText(chat.title ?? update.title, 200) } : {}),
           },
         });
       }
     } else if (updateType === 'bot_removed') {
-      const chatId = normalizeMaxNumericId(update.chat_id);
+      const chat = asObject(update.chat) || update;
+      const rawChatId = chat.id ?? chat.chat_id ?? update.chat_id;
+      const chatId = normalizeMaxNumericId(rawChatId);
       if (chatId) {
         await prisma.maxBotChat.updateMany({ where: { chatId }, data: { active: false } });
       }
