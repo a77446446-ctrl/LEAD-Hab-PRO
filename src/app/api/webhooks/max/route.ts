@@ -104,8 +104,9 @@ export async function POST(request: Request) {
         });
       }
     } else if (['bot_added', 'chat_title_changed', 'message_created'].includes(updateType)) {
-      const chat = asObject(update.chat) || update;
-      const rawChatId = chat.id ?? chat.chat_id ?? update.chat_id;
+      const messageObj = asObject(update.message);
+      const chat = asObject(update.chat) || asObject(messageObj?.chat) || update;
+      const rawChatId = chat.id ?? chat.chat_id ?? messageObj?.chat_id ?? update.chat_id;
       const chatId = normalizeMaxNumericId(rawChatId);
       if (chatId) {
         await prisma.maxBotChat.upsert({
