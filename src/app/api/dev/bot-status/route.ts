@@ -3,7 +3,31 @@ import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request: Request) {
+  const url = new URL(request.url);
+  
+  if (url.searchParams.get('register') === '1') {
+    try {
+      const token = (process.env.MAX_BOT_TOKEN || "").trim();
+      const secret = (process.env.MAX_WEBHOOK_SECRET || "").trim();
+      const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "").trim().replace(/\/+$/, "");
+      const webhookUrl = new URL("/api/webhooks/max", appUrl);
+      
+      const response = await fetch("https://platform-api2.max.ru/subscriptions", {
+        method: "POST",
+        headers: { Authorization: token, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          url: webhookUrl.toString(),
+          update_types: ["bot_started", "bot_stopped", "bot_added", "bot_removed", "chat_title_changed", "dialog_removed", "dialog_muted", "dialog_unmuted"],
+          secret,
+        }),
+      });
+      return NextResponse.json({ success: response.ok, result: await response.json().catch(() => null) });
+    } catch (e) {
+      return NextResponse.json({ error: String(e) });
+    }
+  }
+
   try {
     const [groups, failures, chats, deliveriesAll] = await Promise.all([
       prisma.botDelivery.groupBy({ by: ['status'], _count: { _all: true } }),
