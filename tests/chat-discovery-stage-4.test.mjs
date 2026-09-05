@@ -55,7 +55,7 @@ test('активные TargetChat подключены к парсеру без 
 test('админка предоставляет контроль источников и историю запусков', () => {
   const page = read('src/app/(admin)/admin/discovery/page.tsx');
   const route = read('src/app/api/admin/discovery/chats/route.ts');
-  assert.match(page, /Запустить поиск/);
+  assert.match(page, /ЗАПУСТИТЬ ПОИСК/i);
   assert.match(page, /'ACTIVE' \| 'PENDING' \| 'REJECTED'/);
   assert.match(route, /STATUSES/);
   assert.match(route, /addManualTargetChat/);

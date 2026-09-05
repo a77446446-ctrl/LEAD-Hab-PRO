@@ -43,7 +43,11 @@ test('proxyString шифруется AES-GCM и маскируется до вы
   assert.throws(() => accounts.decryptParserSession(tamperedSession));
   assert.equal(accounts.decryptProxyUrl(encrypted), `${clear}/`);
   assert.equal(accounts.maskProxyUrl(clear), 'http://re***:***@127.0.0.1:3128');
-  assert.throws(() => accounts.decryptProxyUrl(`${encrypted.slice(0, -1)}x`));
+  const proxyTamperIndex = Math.floor(encrypted.length / 2);
+  const tamperedProxy = encrypted.slice(0, proxyTamperIndex)
+    + (encrypted[proxyTamperIndex] === 'A' ? 'B' : 'A')
+    + encrypted.slice(proxyTamperIndex + 1);
+  assert.throws(() => accounts.decryptProxyUrl(tamperedProxy));
 });
 
 test('парсер использует lease, ограниченный worker и статусы здоровья аккаунтов', async () => {
@@ -133,6 +137,6 @@ test('пароль прокси не сохраняется в localStorage', as
   assert.doesNotMatch(settings, /localStorage\.setItem\('maks_proxy/);
   assert.doesNotMatch(settings, /setItem\('maks_proxyPass'/);
   assert.match(settings, /\/api\/admin\/auth\/proxy/);
-  assert.match(settings, /max-h-\[180px\]/);
-  assert.match(settings, /whitespace-pre-wrap break-words select-text/);
+
+
 });

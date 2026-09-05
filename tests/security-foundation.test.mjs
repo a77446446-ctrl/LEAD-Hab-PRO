@@ -46,3 +46,15 @@ test('cron endpoint requires a shared secret and respects runtime port', async (
   assert.match(client, /Authorization/);
   assert.doesNotMatch(client, /port:\s*3000/);
 });
+test('production включает базовые HTTP-заголовки безопасности', async () => {
+  const config = await read('next.config.js');
+  assert.match(config, /poweredByHeader:\s*false/);
+  assert.match(config, /X-Content-Type-Options/);
+  assert.match(config, /Strict-Transport-Security/);
+  assert.match(config, /process\.env\.NODE_ENV === 'production'/);
+});
+test('Next.js закреплён на исправленной Maintenance LTS версии', async () => {
+  const packageJson = JSON.parse(await read('package.json'));
+  assert.equal(packageJson.dependencies.next, '15.5.24');
+  assert.equal(packageJson.devDependencies['eslint-config-next'], '15.5.24');
+});

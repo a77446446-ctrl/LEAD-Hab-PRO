@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { requireAdmin } from '@/lib/auth/current-user';
+import { adminGuard } from '@/lib/auth/admin-guard';
 import fs from 'fs';
 import path from 'path';
 
@@ -8,8 +8,10 @@ export const maxDuration = 300; // 5 minutes timeout
 
 
 export async function POST() {
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   try {
-    await requireAdmin();
 
     // 1. Find the retention setting
     const retentionSetting = await prisma.setting.findUnique({

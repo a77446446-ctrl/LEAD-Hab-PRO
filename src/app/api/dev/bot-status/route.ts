@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
+import { adminGuard } from '@/lib/auth/admin-guard';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request: Request) {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   const url = new URL(request.url);
   
   if (url.searchParams.get('register') === '1') {
@@ -57,7 +64,6 @@ export async function GET(request: Request) {
       failures,
       chats,
       recent: deliveriesAll,
-      lastWebhook: (global as any).lastWebhook ? JSON.parse((global as any).lastWebhook) : null,
     });
   } catch (error) {
     return NextResponse.json({ error: String(error) }, { status: 500 });

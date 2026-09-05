@@ -23,9 +23,29 @@ test('MAX-ссылки и идентификаторы ограничены бе
   const bot = await loadMaxBotModule();
   assert.equal(bot.buildMaxMiniAppLink('lead_123-abc'), 'https://max.ru/PoDelamBot?startapp=lead_123-abc');
   assert.equal(bot.normalizeMaxNumericId('000123'), '123');
+  assert.equal(bot.normalizeMaxNumericId('0'), null);
+  assert.equal(bot.normalizeMaxNumericId('@mychannel'), null);
+  assert.equal(bot.normalizeMaxNumericId('max.ru/mychannel'), null);
+  assert.equal(bot.normalizeMaxNumericId('9223372036854775807'), '9223372036854775807');
+  assert.equal(bot.normalizeMaxNumericId('-9223372036854775808'), '-9223372036854775808');
+  assert.equal(bot.normalizeMaxNumericId(123n), '123');
+  const categoryPage = await read('src/app/(admin)/admin/categories/page.tsx');
+  assert.match(categoryPage, /inputMode="numeric"/);
+  assert.doesNotMatch(categoryPage, /@mychannel/);
+  assert.doesNotMatch(categoryPage, /max\.ru\/chat\//);
   assert.equal(bot.normalizeMaxNumericId(Number.MAX_SAFE_INTEGER + 1), null);
   assert.equal(bot.normalizeMaxNumericId('9223372036854775808'), null);
   assert.throws(() => bot.buildMaxMiniAppLink('bad payload'));
+});
+
+test('смена витринного чата проверяет webhook и восстанавливает незавершённые доставки', async () => {
+  const source = await read('src/app/api/admin/category/route.ts');
+  assert.match(source, /maxBotChat\.findUnique/);
+  assert.match(source, /knownChat\?\.active/);
+  assert.match(source, /prisma\.\$transaction/);
+  assert.match(source, /status: \{ in: \['PENDING', 'RETRY', 'FAILED'\] \}/);
+  assert.match(source, /status: 'RETRY'/);
+  assert.match(source, /attempts: 0/);
 });
 
 test('тизер не раскрывает контакты, покупка возвращает полный текст', async () => {
@@ -41,7 +61,7 @@ test('тизер не раскрывает контакты, покупка во
   };
   const teaser = bot.buildLeadTeaserMessage(lead);
   assert.doesNotMatch(teaser.text, /999 123|@master|mail@example|https:\/\/example/);
-  assert.match(teaser.text, /контакт скрыт/);
+  assert.match(teaser.text, /контакт скрыт/i);
   assert.match(teaser.attachments[0].payload.buttons[0][0].url, /startapp=lead_/);
 
   const purchase = bot.buildPurchaseMessage(lead);
@@ -54,6 +74,16 @@ test('секрет webhook сравнивается точно', async () => {
   assert.equal(bot.verifyMaxWebhookSecret('secret_123', 'secret_123'), true);
   assert.equal(bot.verifyMaxWebhookSecret('secret_124', 'secret_123'), false);
   assert.equal(bot.verifyMaxWebhookSecret(null, 'secret_123'), false);
+});
+
+test('сырой MAX webhook не сохраняется и не выдаётся диагностикой', async () => {
+  const [webhook, diagnostics] = await Promise.all([
+    read('src/app/api/webhooks/max/route.ts'),
+    read('src/app/api/dev/bot-status/route.ts'),
+  ]);
+
+  assert.doesNotMatch(webhook, /lastWebhook/);
+  assert.doesNotMatch(diagnostics, /lastWebhook/);
 });
 
 test('этап 2 использует webhook, outbox и транзакционные точки постановки', async () => {

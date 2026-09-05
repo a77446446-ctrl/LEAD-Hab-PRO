@@ -4,15 +4,16 @@ import { cookies } from 'next/headers';
 import { sessionCookie, createSessionToken } from '@/lib/auth/session';
 
 export async function GET() {
-  if (process.env.NODE_ENV === 'production') {
-    return NextResponse.json({ error: 'This endpoint is only available in development mode' }, { status: 403 });
+  if (process.env.NODE_ENV === 'production' || process.env.DEV_LOGIN_ENABLED !== 'true') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
   }
 
   // Generate a fake admin session without hitting the database
   const token = await createSessionToken('fake-admin-id', 'ADMIN');
 
   // Set cookie
-  cookies().set({
+  const cookieStore = await cookies();
+  cookieStore.set({
     name: sessionCookie.name,
     value: token,
     ...sessionCookie.options,

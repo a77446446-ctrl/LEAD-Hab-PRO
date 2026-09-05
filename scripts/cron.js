@@ -13,7 +13,7 @@ if (cronSecret.length === 0 && process.env.NODE_ENV === "production") {
   console.error("[CRON] CRON_SECRET is required in production");
 }
 
-function callInternal(path, key, onSuccess) {
+function callInternal(path, key, onSuccess, timeoutMs = 0) {
   if (state[key]) return;
   state[key] = true;
   const headers = cronSecret ? { Authorization: "Bearer " + cronSecret } : {};
@@ -37,6 +37,11 @@ function callInternal(path, key, onSuccess) {
     state[key] = false;
     console.error("[CRON] " + path + " failed: " + error.message);
   });
+  if (timeoutMs > 0) {
+    req.setTimeout(timeoutMs, () => {
+      req.destroy(new Error("Request timed out after " + timeoutMs + " ms"));
+    });
+  }
   req.end();
 }
 
@@ -53,7 +58,7 @@ function pollBot() {
     if ((result.processed || 0) > 0) {
       console.log("[CRON] MAX Bot -> sent: " + (result.sent || 0) + ", retry: " + (result.retried || 0) + ", failed: " + (result.failed || 0));
     }
-  });
+  }, 180_000);
 }
 
 function pollDiscovery() {

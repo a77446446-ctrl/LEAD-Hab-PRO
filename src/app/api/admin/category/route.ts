@@ -82,6 +82,16 @@ export async function POST(request: Request) {
     if (showcaseEnabled && !showcaseChatId) {
       return NextResponse.json({ error: 'Для витрины нужен корректный числовой chat_id MAX' }, { status: 400 });
     }
+    if (showcaseEnabled && showcaseChatId) {
+      const knownChat = await prisma.maxBotChat.findUnique({
+        where: { chatId: showcaseChatId },
+        select: { active: true },
+      });
+      if (!knownChat?.active) {
+        return NextResponse.json({ error: 'Бот не обнаружен в выбранном MAX-чате. Добавьте бота и дождитесь webhook bot_added' }, { status: 409 });
+      }
+    }
+
     const showcaseKind = typeof data.showcaseKind === 'string' ? data.showcaseKind.toUpperCase() : 'PUBLIC';
     if (!SHOWCASE_KINDS.has(showcaseKind)) {
       return NextResponse.json({ error: 'Некорректный тип канала-витрины' }, { status: 400 });
@@ -101,18 +111,50 @@ export async function POST(request: Request) {
       showcaseKind,
     };
 
-    const category = id
-      ? await prisma.category.update({ where: { id }, data: payload })
-      : await prisma.category.create({
-          data: {
-            ...payload,
-            slug: name
-              .normalize('NFKD')
-              .toLowerCase()
-              .replace(/[^\p{L}\p{N}]+/gu, '-')
-              .replace(/^-+|-+$/g, '') || `cat-${Date.now()}`,
-          },
-        });
+    let category;
+    if (id) {
+      category = await prisma.$transaction(async (tx) => {
+        const previous = await tx.category.findUnique({ where: { id }, select: { showcaseChatId: true } });
+
+        const updated = await tx.category.update({ where: { id }, data: payload });
+
+        if (
+          showcaseEnabled
+          && showcaseChatId
+          && previous?.showcaseChatId !== showcaseChatId
+        ) {
+          await tx.botDelivery.updateMany({
+            where: {
+              kind: 'LEAD_TEASER_CHANNEL',
+              recipientType: 'CHAT',
+              status: { in: ['PENDING', 'RETRY', 'FAILED'] },
+              lead: { is: { categoryId: id, status: 'NEW' } },
+            },
+            data: {
+              recipientId: showcaseChatId,
+              status: 'RETRY',
+              attempts: 0,
+              availableAt: new Date(),
+              lockedAt: null,
+              lastError: null,
+            },
+          });
+        }
+
+        return updated;
+      });
+    } else {
+      category = await prisma.category.create({
+        data: {
+          ...payload,
+          slug: name
+            .normalize('NFKD')
+            .toLowerCase()
+            .replace(/[^\p{L}\p{N}]+/gu, '-')
+            .replace(/^-+|-+$/g, '') || `cat-${Date.now()}`,
+        },
+      });
+    }
 
     return NextResponse.json(category);
   } catch (error) {

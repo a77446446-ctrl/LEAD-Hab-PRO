@@ -23,10 +23,11 @@ test('создание платежа использует официальны�
   assert.match(source, /confirmation: \{ type: 'redirect'/);
 });
 
-test('сумма и заказ берутся с сервера, а чек содержит email и услугу', () => {
+test('цена подписки берётся с сервера, пополнение ограничено, чек содержит email и услугу', () => {
   const source = read('src/services/yookassa.ts');
   assert.match(source, /category\.subscriptionPrice/);
-  assert.match(source, /amountKopecks < 10_000n/);
+  assert.match(source, /!Number\.isSafeInteger\(input\.amount\)/);
+  assert.match(source, /amount < 100 \|\| amount > 100_000/);
   assert.match(source, /receipt: \{ customer: \{ email:/);
   assert.match(source, /payment_subject: 'service'/);
   assert.match(source, /YOOKASSA_VAT_CODE/);

@@ -1,7 +1,14 @@
 import { NextResponse } from 'next/server';
+import { adminGuard } from '@/lib/auth/admin-guard';
 import { prisma } from '@/lib/prisma';
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   try {
     let output = "";
 

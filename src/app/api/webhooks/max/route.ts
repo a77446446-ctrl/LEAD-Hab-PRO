@@ -50,7 +50,6 @@ export async function POST(request: Request) {
     const parsed = asObject(JSON.parse(rawBody));
     if (!parsed) return NextResponse.json({ error: 'Некорректный webhook' }, { status: 400 });
     update = parsed;
-    (global as any).lastWebhook = rawBody;
   } catch {
     return NextResponse.json({ error: 'Некорректный JSON' }, { status: 400 });
   }
@@ -70,9 +69,9 @@ export async function POST(request: Request) {
 
       await prisma.$transaction(async (tx) => {
         const user = await tx.user.upsert({
-          where: { maxId: Number(maxId) },
+          where: { maxId: BigInt(maxId) },
           create: {
-            maxId: Number(maxId),
+            maxId: BigInt(maxId),
             name,
             notifyEnabled: true,
             botStartedAt: startedAt,
@@ -91,7 +90,7 @@ export async function POST(request: Request) {
       const maxId = normalizeMaxNumericId(maxUser?.user_id ?? maxUser?.id);
       if (maxId) {
         await prisma.user.updateMany({
-          where: { maxId: Number(maxId) },
+          where: { maxId: BigInt(maxId) },
           data: { notifyEnabled: false },
         });
       }
@@ -100,7 +99,7 @@ export async function POST(request: Request) {
       const maxId = normalizeMaxNumericId(maxUser?.user_id ?? maxUser?.id);
       if (maxId) {
         await prisma.user.updateMany({
-          where: { maxId: Number(maxId), botStartedAt: { not: null } },
+          where: { maxId: BigInt(maxId), botStartedAt: { not: null } },
           data: { notifyEnabled: true },
         });
       }

@@ -4,6 +4,7 @@ import { extractContactInfo, redactContactInfo } from '@/lib/redact-contact';
 const MAX_API_BASE_URL = 'https://platform-api2.max.ru';
 const MAX_MESSAGE_LIMIT = 4_000;
 const MAX_ID_LIMIT = 9_223_372_036_854_775_807n;
+const MIN_MAX_ID = -9_223_372_036_854_775_808n;
 
 export type MaxRecipientType = 'USER' | 'CHAT';
 
@@ -52,12 +53,19 @@ function truncate(value: string, maxLength: number): string {
 export function normalizeMaxNumericId(value: unknown): string | null {
   const raw = typeof value === 'string'
     ? value.trim()
-    : typeof value === 'number' && Number.isSafeInteger(value)
-      ? String(value)
-      : '';
-  if (!raw) return null;
-  if (!/^[A-Za-z0-9_@.-]{1,64}$/.test(raw)) return null;
-  return raw;
+    : typeof value === 'bigint'
+      ? value.toString()
+      : typeof value === 'number' && Number.isSafeInteger(value)
+        ? String(value)
+        : '';
+  if (!/^-?\d{1,19}$/.test(raw)) return null;
+  try {
+    const parsed = BigInt(raw);
+    if (parsed === 0n || parsed < MIN_MAX_ID || parsed > MAX_ID_LIMIT) return null;
+    return parsed.toString();
+  } catch {
+    return null;
+  }
 }
 
 export function verifyMaxWebhookSecret(actual: string | null, expected = process.env.MAX_WEBHOOK_SECRET): boolean {

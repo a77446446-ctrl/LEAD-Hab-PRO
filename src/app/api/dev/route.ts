@@ -1,9 +1,16 @@
 import { NextResponse } from 'next/server';
+import { adminGuard } from '@/lib/auth/admin-guard';
 import { prisma } from '@/lib/prisma';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 });
+  }
+  const denied = await adminGuard();
+  if (denied) return denied;
+
   // Clear locks
   await prisma.parserLease.updateMany({ where: { id: 'max-parser' }, data: { lockedUntil: null } });
   await prisma.setting.upsert({ where: { key: 'syncing' }, update: { value: 'false' }, create: { key: 'syncing', value: 'false' } });

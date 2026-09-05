@@ -10,7 +10,8 @@ export class AuthenticationError extends Error {}
 export class AuthorizationError extends Error {}
 
 export async function getCurrentUser() {
-  const token = cookies().get(sessionCookie.name)?.value;
+  const cookieStore = await cookies();
+  const token = cookieStore.get(sessionCookie.name)?.value;
   const session = await verifySessionToken(token);
   if (!session) return null;
   return prisma.user.findUnique({

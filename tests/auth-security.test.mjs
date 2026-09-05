@@ -43,12 +43,12 @@ test('сессия проверяет подпись и срок действи�
   assert.equal(await verifySessionToken(await createSessionToken('user-id', 'USER', -1)), null);
 });
 
-test('контакты скрываются, а деньги переводятся в копейки', () => {
+test('контакты скрываются, а деньги хранятся целыми рублями', () => {
   const redacted = redactContactInfo('Звонить +7 999 123-45-67 или https://max.ru/user @master');
   assert.doesNotMatch(redacted, /999 123|https:\/\/max\.ru|@master/);
   assert.equal((redacted.match(/\[контакт скрыт\]/g) ?? []).length, 3);
-  assert.equal(rublesToKopecks(123.45), 12_345n);
-  assert.equal(kopecksToRubles(12_345n), 123.45);
+  assert.equal(rublesToKopecks(123.45), 123);
+  assert.equal(kopecksToRubles(12_345), 12_345);
 });
 
 test('onboarding и покупка используют атомарные серверные условия', async () => {
@@ -60,7 +60,7 @@ test('onboarding и покупка используют атомарные се�
   assert.match(authRoute, /onboardingBonusGrantedAt:\s*null/);
   assert.match(authRoute, /bonusGrant\.count === 1/);
   assert.match(buyRoute, /TransactionIsolationLevel\.Serializable/);
-  assert.match(buyRoute, /balanceKopecks:\s*\{\s*gte:/);
+  assert.match(buyRoute, /balance:\s*\{\s*gte:/);
   assert.doesNotMatch(buyRoute, /const\s*\{\s*userId/);
   assert.doesNotMatch(leadsRoute, /purchasedBy/);
   assert.match(leadsRoute, /redactContactInfo/);

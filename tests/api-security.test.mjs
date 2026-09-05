@@ -15,7 +15,8 @@ test('mutation API не используют raw SQL и закрывают вн�
   for (const source of [category, leads, buy]) {
     assert.doesNotMatch(source, /\$queryRawUnsafe|\$executeRawUnsafe/);
   }
-  assert.match(category, /prisma\.category\.update/);
+  assert.match(category, /prisma\.\$transaction/);
+  assert.match(category, /tx\.category\.update/);
   assert.match(ingest, /process\.env\.INGEST_SECRET/);
   assert.match(ingest, /status:\s*401/);
   assert.match(topup, /status:\s*501/);

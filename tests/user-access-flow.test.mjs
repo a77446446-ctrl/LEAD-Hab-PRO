@@ -16,15 +16,15 @@ test('ADMIN_MAX_IDS является единственным источнико
   assert.match(currentUser, /role: isConfiguredAdminMaxId\(user\.maxId\) \? 'admin' : 'user'/);
 });
 
-test('профиль скрыт и закрыт для обычного пользователя', () => {
+test('профиль доступен обычному пользователю и защищён сессией', () => {
   const navigation = read('src/components/ui/BottomNav.tsx');
   const middleware = read('src/middleware.ts');
   const profile = read('src/app/(dashboard)/profile/page.tsx');
 
-  assert.match(navigation, /role === 'admin' \? \[\.\.\.userNavItems, adminProfileItem\] : userNavItems/);
-  assert.match(middleware, /pathname === '\/profile'/);
-  assert.match(profile, /user\.role !== 'admin'/);
-  assert.doesNotMatch(profile, /LegalAcceptanceCard/);
+  assert.match(navigation, /const navItems = \[\.\.\.userNavItems, adminProfileItem\]/);
+  assert.match(middleware, /'\/profile\/:path\*'/);
+  assert.match(profile, /if \(!user\) return null/);
+  assert.match(profile, /Уведомления от бота/);
 });
 
 test('обычный пользователь принимает документы до доступа к приложению, администратор освобождён', () => {
