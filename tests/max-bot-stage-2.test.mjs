@@ -134,23 +134,23 @@ test('тизер не раскрывает контакты, покупка во
   assert.match(teaser.text, /контакт скрыт/i);
   assert.match(teaser.text, /🗂️ Категория: Грузчики/);
   assert.match(teaser.text, /📍 Город: Москва/);
-  assert.match(teaser.text, /🫴🪙 Стоимость: 100 ₽/);
+  assert.match(teaser.text, /🏷️ Стоимость: 100 ₽/);
   assert.match(teaser.attachments[0].payload.buttons[0][0].url, /startapp=lead_/);
 
   const freeTeaser = bot.buildLeadTeaserMessage({ ...lead, price: 0 });
-  assert.match(freeTeaser.text, /🫴🪙 Стоимость: бесплатно/);
+  assert.match(freeTeaser.text, /🏷️ Стоимость: бесплатно/);
 
   const subscriptionTeaser = bot.buildLeadTeaserMessage({
     ...lead,
     category: { ...lead.category, paymentMode: 'SUBSCRIPTION' },
   });
-  assert.match(subscriptionTeaser.text, /🫴🪙 Стоимость: по подписке PRO/);
+  assert.match(subscriptionTeaser.text, /🏷️ Стоимость: по подписке PRO/);
 
   const purchase = bot.buildPurchaseMessage(lead);
   assert.match(purchase.text, /\+7 999 123-45-67/);
   assert.match(purchase.text, /🗂️ Категория: Грузчики/);
   assert.match(purchase.text, /📍 Город: Москва/);
-  assert.match(purchase.text, /🫴🪙 Стоимость: 100 ₽/);
+  assert.match(purchase.text, /🏷️ Стоимость: 100 ₽/);
   assert.match(purchase.attachments[0].payload.buttons[0][0].url, /startapp=purchase_/);
 });
 
