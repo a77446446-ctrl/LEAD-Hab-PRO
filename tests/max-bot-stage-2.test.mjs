@@ -42,10 +42,11 @@ test('MAX-ссылки мини-приложения и идентификато
 });
 
 test('администратор может включить webhook и обнаружить канал по событию MAX', async () => {
-  const [route, bot, webhookSetup] = await Promise.all([
+  const [route, bot, webhookSetup, categoryPage] = await Promise.all([
     read('src/app/api/admin/bot/chats/route.ts'),
     read('src/lib/max-bot.ts'),
     read('scripts/setup-max-webhook.js'),
+    read('src/app/(admin)/admin/categories/page.tsx'),
   ]);
 
   assert.match(route, /adminGuard/);
@@ -56,6 +57,9 @@ test('администратор может включить webhook и обна
   assert.match(bot, /'message_created'/);
   assert.match(bot, /MAX_WEBHOOK_SECRET/);
   assert.match(webhookSetup, /"message_created"/);
+  assert.match(categoryPage, /knownChatIds/);
+  assert.match(categoryPage, /detectedChat/);
+  assert.match(categoryPage, /showcaseChatId: detectedChat\.chatId/);
 });
 
 test('webhook MAX настраивается официальной подпиской и принимает события каналов', async () => {
@@ -171,6 +175,7 @@ test('этап 2 использует webhook, outbox и транзакцион�
   assert.match(ingest, /createLeadWithDeliveries/);
   assert.match(purchase, /enqueuePurchaseDelivery/);
   assert.match(cron, /\/api\/internal\/bot\/dispatch/);
+  assert.match(cron, /setInterval\(pollBot, 5_000\)/);
   assert.match(migration, /UNIQUE INDEX "BotDelivery_deduplicationKey_key"/);
   assert.doesNotMatch(migration, /DROP TABLE|DROP COLUMN|TRUNCATE/i);
 });
