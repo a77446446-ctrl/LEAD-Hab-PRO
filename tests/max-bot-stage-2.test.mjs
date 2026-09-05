@@ -26,11 +26,19 @@ test('MAX-ссылки и идентификаторы ограничены бе
   assert.equal(bot.normalizeMaxNumericId('0'), null);
   assert.equal(bot.normalizeMaxNumericId('@mychannel'), null);
   assert.equal(bot.normalizeMaxNumericId('max.ru/mychannel'), null);
+  assert.equal(bot.normalizeMaxChannelLink('https://max.ru/my_channel-1'), 'my_channel-1');
+  assert.equal(bot.normalizeMaxChannelLink('max.ru/my_channel-1'), 'my_channel-1');
+  assert.equal(bot.normalizeMaxChannelLink('@my_channel'), 'my_channel');
+  assert.equal(bot.normalizeMaxChannelLink('http://max.ru/my_channel'), null);
+  assert.equal(bot.normalizeMaxChannelLink('https://evil.example/my_channel'), null);
+  assert.equal(bot.normalizeMaxChannelLink('https://max.ru/one/two'), null);
   assert.equal(bot.normalizeMaxNumericId('9223372036854775807'), '9223372036854775807');
   assert.equal(bot.normalizeMaxNumericId('-9223372036854775808'), '-9223372036854775808');
   assert.equal(bot.normalizeMaxNumericId(123n), '123');
   const categoryPage = await read('src/app/(admin)/admin/categories/page.tsx');
-  assert.match(categoryPage, /inputMode="numeric"/);
+  assert.match(categoryPage, /Подключить публичный MAX-канал по ссылке/);
+  assert.match(categoryPage, /<select[\s\S]*showcaseChatId/);
+  assert.match(categoryPage, /method: 'POST'/);
   assert.doesNotMatch(categoryPage, /@mychannel/);
   assert.doesNotMatch(categoryPage, /max\.ru\/chat\//);
   assert.equal(bot.normalizeMaxNumericId(Number.MAX_SAFE_INTEGER + 1), null);
@@ -38,7 +46,54 @@ test('MAX-ссылки и идентификаторы ограничены бе
   assert.throws(() => bot.buildMaxMiniAppLink('bad payload'));
 });
 
-test('смена витринного чата проверяет webhook и восстанавливает незавершённые доставки', async () => {
+test('администратор может зарегистрировать публичный канал и выбрать его в категории', async () => {
+  const [route, bot, webhookSetup] = await Promise.all([
+    read('src/app/api/admin/bot/chats/route.ts'),
+    read('src/lib/max-bot.ts'),
+    read('scripts/setup-max-webhook.js'),
+  ]);
+
+  assert.match(route, /adminGuard/);
+  assert.match(route, /resolveMaxChannelByLink/);
+  assert.match(route, /maxBotChat\.upsert/);
+  assert.match(route, /where: \{ active: true \}/);
+  assert.match(bot, /platform-api2\.max\.ru/);
+  assert.match(bot, /\/chats\/\$\{encodeURIComponent\(link\)\}/);
+  assert.match(bot, /result\.status !== 'active'/);
+  assert.match(bot, /result\.is_public !== true/);
+  assert.match(webhookSetup, /"message_created"/);
+});
+
+test('MAX-канал по публичной ссылке сохраняет точный int64 chat_id', async () => {
+  process.env.MAX_BOT_TOKEN = 'test-token';
+  const bot = await loadMaxBotModule();
+  const originalFetch = globalThis.fetch;
+  let requestedUrl = '';
+
+  globalThis.fetch = async (url, options) => {
+    requestedUrl = String(url);
+    assert.equal(options.headers.Authorization, 'test-token');
+    return new Response(JSON.stringify({
+      chat_id: '9223372036854775807',
+      title: 'Биржа заказов',
+      type: 'channel',
+      status: 'active',
+      is_public: true,
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  };
+
+  try {
+    const channel = await bot.resolveMaxChannelByLink('https://max.ru/orders_channel');
+    assert.equal(channel.chatId, '9223372036854775807');
+    assert.equal(channel.title, 'Биржа заказов');
+    assert.match(requestedUrl, /platform-api2\.max\.ru\/chats\/orders_channel$/);
+  } finally {
+    globalThis.fetch = originalFetch;
+    delete process.env.MAX_BOT_TOKEN;
+  }
+});
+
+test('сохранение витринного чата проверяет MAX и ставит все NEW-лиды в очередь без дублей', async () => {
   const source = await read('src/app/api/admin/category/route.ts');
   assert.match(source, /maxBotChat\.findUnique/);
   assert.match(source, /knownChat\?\.active/);
@@ -46,6 +101,11 @@ test('смена витринного чата проверяет webhook и в�
   assert.match(source, /status: \{ in: \['PENDING', 'RETRY', 'FAILED'\] \}/);
   assert.match(source, /status: 'RETRY'/);
   assert.match(source, /attempts: 0/);
+  assert.match(source, /tx\.lead\.findMany/);
+  assert.match(source, /status: 'NEW', deletedAt: null/);
+  assert.match(source, /tx\.botDelivery\.createMany/);
+  assert.match(source, /skipDuplicates: true/);
+  assert.match(source, /offset \+= 500/);
 });
 
 test('тизер не раскрывает контакты, покупка возвращает полный текст', async () => {

@@ -67,6 +67,9 @@ export default function AdminCategoriesPage() {
   const [saving, setSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [maxBotChats, setMaxBotChats] = useState<MaxBotChat[]>([]);
+  const [channelLink, setChannelLink] = useState('');
+  const [registeringChannel, setRegisteringChannel] = useState(false);
+  const [channelError, setChannelError] = useState('');
   
   // Tag Inputs State
   const [plusTags, setPlusTags] = useState<string[]>([]);
@@ -86,14 +89,21 @@ export default function AdminCategoriesPage() {
     showcaseKind: 'PUBLIC'
   });
 
+  const fetchMaxBotChats = async () => {
+    try {
+      const response = await fetch('/api/admin/bot/chats', { cache: 'no-store' });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Не удалось загрузить MAX-каналы');
+      setMaxBotChats(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setMaxBotChats([]);
+      setChannelError(error instanceof Error ? error.message : 'Не удалось загрузить MAX-каналы');
+    }
+  };
+
   useEffect(() => {
     fetchCategories();
-
-
-    fetch('/api/admin/bot/chats')
-      .then((response) => response.ok ? response.json() : [])
-      .then((data) => setMaxBotChats(Array.isArray(data) ? data : []))
-      .catch(() => setMaxBotChats([]));
+    fetchMaxBotChats();
   }, []);
 
   const fetchCategories = async () => {
@@ -209,6 +219,38 @@ export default function AdminCategoriesPage() {
       alert('Ошибка при загрузке картинки');
     } finally {
       setIsUploading(false);
+    }
+  };
+
+  const handleRegisterChannel = async () => {
+    if (!channelLink.trim()) {
+      setChannelError('Вставьте публичную ссылку MAX-канала');
+      return;
+    }
+
+    setRegisteringChannel(true);
+    setChannelError('');
+    try {
+      const response = await fetch('/api/admin/bot/chats', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ link: channelLink.trim() }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.error || 'Не удалось подключить MAX-канал');
+
+      await fetchMaxBotChats();
+      setFormData((current) => ({
+        ...current,
+        showcaseEnabled: true,
+        showcaseChatId: data.chatId,
+        showcaseKind: 'PUBLIC',
+      }));
+      setChannelLink('');
+    } catch (error) {
+      setChannelError(error instanceof Error ? error.message : 'Не удалось подключить MAX-канал');
+    } finally {
+      setRegisteringChannel(false);
     }
   };
 
@@ -413,25 +455,23 @@ export default function AdminCategoriesPage() {
             Публиковать в MAX
           </label>
           <div className="md:col-span-6 space-y-2">
-            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Числовой chat_id канала</label>
-            <input
-              inputMode="numeric"
-              pattern="-?[0-9]{1,19}"
-              list="max-bot-chats"
+            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Канал для публикации лидов</label>
+            <select
               value={formData.showcaseChatId || ''}
-              onChange={(event) => {
-                const value = event.target.value.trim();
-                if (/^-?\d{0,19}$/.test(value)) setFormData({ ...formData, showcaseChatId: value });
-              }}
+              onChange={(event) => setFormData({ ...formData, showcaseChatId: event.target.value })}
               disabled={!formData.showcaseEnabled}
-              placeholder="Например: 1234567890"
               className="w-full bg-zinc-900 border border-zinc-700 rounded-lg py-3 px-4 text-xs sm:text-sm font-bold text-white disabled:opacity-40"
-            />
-            <datalist id="max-bot-chats">
+            >
+              <option value="">Выберите подключённый MAX-канал</option>
               {maxBotChats.filter((chat) => chat.active).map((chat) => (
-                <option key={chat.chatId} value={chat.chatId}>{chat.title || `${chat.kind} ${chat.chatId}`}</option>
+                <option key={chat.chatId} value={chat.chatId}>
+                  {chat.title || `${chat.kind} ${chat.chatId}`}
+                </option>
               ))}
-            </datalist>
+              {formData.showcaseChatId && !maxBotChats.some((chat) => chat.chatId === formData.showcaseChatId) && (
+                <option value={formData.showcaseChatId}>Текущий chat_id: {formData.showcaseChatId}</option>
+              )}
+            </select>
           </div>
           <div className="md:col-span-3 space-y-2">
             <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Тип витрины</label>
@@ -445,7 +485,33 @@ export default function AdminCategoriesPage() {
               <option value="PRIVATE">ПРИВАТНАЯ</option>
             </select>
           </div>
-          <p className="md:col-span-12 text-[10px] text-zinc-500">Добавьте бота администратором канала. После события bot_added найденный chat_id появится в подсказках.</p>
+          <div className="md:col-span-12 space-y-2 border-t border-zinc-800 pt-4">
+            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Подключить публичный MAX-канал по ссылке</label>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <input
+                type="url"
+                value={channelLink}
+                onChange={(event) => setChannelLink(event.target.value)}
+                placeholder="https://max.ru/channel_name"
+                className="min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-xs font-bold text-white placeholder:text-zinc-600"
+              />
+              <button
+                type="button"
+                onClick={handleRegisterChannel}
+                disabled={registeringChannel || !channelLink.trim()}
+                className="flex items-center justify-center gap-2 rounded-lg border border-accent bg-accent px-5 py-3 text-[10px] font-bold uppercase text-black transition-all hover:bg-[#F2FF00] disabled:opacity-40"
+              >
+                {registeringChannel ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                Подключить канал
+              </button>
+            </div>
+            {channelError && <p className="text-[10px] font-bold text-red-400">{channelError}</p>}
+            {!channelError && (
+              <p className="text-[10px] text-zinc-500">
+                Бот должен быть администратором канала. После подключения chat_id определится автоматически, а канал будет выбран для этой категории.
+              </p>
+            )}
+          </div>
         </div>
 
         {/* TAG INPUTS */}

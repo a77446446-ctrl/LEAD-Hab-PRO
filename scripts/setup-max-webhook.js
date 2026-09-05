@@ -26,6 +26,7 @@ async function main() {
         "bot_added",
         "bot_removed",
         "chat_title_changed",
+        "message_created",
         "dialog_removed",
         "dialog_muted",
         "dialog_unmuted",

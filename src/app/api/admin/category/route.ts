@@ -118,20 +118,33 @@ export async function POST(request: Request) {
 
         const updated = await tx.category.update({ where: { id }, data: payload });
 
-        if (
-          showcaseEnabled
-          && showcaseChatId
-          && previous?.showcaseChatId !== showcaseChatId
-        ) {
+        if (showcaseEnabled && showcaseChatId) {
+          if (previous?.showcaseChatId && previous.showcaseChatId !== showcaseChatId) {
+            await tx.botDelivery.updateMany({
+              where: {
+                kind: 'LEAD_TEASER_CHANNEL',
+                recipientType: 'CHAT',
+                recipientId: { not: showcaseChatId },
+                status: { in: ['PENDING', 'RETRY', 'FAILED'] },
+                lead: { is: { categoryId: id, status: 'NEW' } },
+              },
+              data: {
+                status: 'SKIPPED',
+                lockedAt: null,
+                lastError: 'Канал публикации категории изменён',
+              },
+            });
+          }
+
           await tx.botDelivery.updateMany({
             where: {
               kind: 'LEAD_TEASER_CHANNEL',
               recipientType: 'CHAT',
+              recipientId: showcaseChatId,
               status: { in: ['PENDING', 'RETRY', 'FAILED'] },
               lead: { is: { categoryId: id, status: 'NEW' } },
             },
             data: {
-              recipientId: showcaseChatId,
               status: 'RETRY',
               attempts: 0,
               availableAt: new Date(),
@@ -139,10 +152,27 @@ export async function POST(request: Request) {
               lastError: null,
             },
           });
+
+          const leads = await tx.lead.findMany({
+            where: { categoryId: id, status: 'NEW', deletedAt: null },
+            select: { id: true },
+          });
+          for (let offset = 0; offset < leads.length; offset += 500) {
+            await tx.botDelivery.createMany({
+              data: leads.slice(offset, offset + 500).map((lead) => ({
+                kind: 'LEAD_TEASER_CHANNEL',
+                deduplicationKey: `lead-channel:${lead.id}:${showcaseChatId}`,
+                recipientType: 'CHAT',
+                recipientId: showcaseChatId,
+                leadId: lead.id,
+              })),
+              skipDuplicates: true,
+            });
+          }
         }
 
         return updated;
-      });
+      }, { timeout: 30_000 });
     } else {
       category = await prisma.category.create({
         data: {
