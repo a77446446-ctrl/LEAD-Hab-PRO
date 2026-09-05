@@ -35,25 +35,25 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
       if (part.startsWith('[контакт скрыт')) {
         charsToAdd = 16;
         if (part === '[контакт скрыт:phone]') {
-          nodeToAdd = <span key={i} className="inline-flex items-center gap-1 bg-accent text-black px-1.5 py-0.5 rounded text-[11px] font-black border border-black whitespace-nowrap mx-1"><Phone size={10} /> КОНТАКТ СКРЫТ</span>;
+          nodeToAdd = <span key={i} className="m-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-accent px-1.5 py-0.5 align-middle text-[11px] font-black text-black"><Phone size={10} /> КОНТАКТ СКРЫТ</span>;
         } else if (part === '[контакт скрыт:yandex]') {
-          nodeToAdd = <span key={i} className="inline-flex items-center gap-1 bg-[#FFCC00] text-black px-1.5 py-0.5 rounded text-[11px] font-black border border-black whitespace-nowrap mx-1"><MapPin size={10} /> КОНТАКТ СКРЫТ</span>;
+          nodeToAdd = <span key={i} className="m-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-[#FFCC00] px-1.5 py-0.5 align-middle text-[11px] font-black text-black"><MapPin size={10} /> КОНТАКТ СКРЫТ</span>;
         } else {
-          nodeToAdd = <span key={i} className="inline-flex items-center gap-1 bg-black text-white px-1.5 py-0.5 rounded text-[11px] font-black border border-black whitespace-nowrap mx-1"><LinkIcon size={10} /> КОНТАКТ СКРЫТ</span>;
+          nodeToAdd = <span key={i} className="m-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-black px-1.5 py-0.5 align-middle text-[11px] font-black text-white"><LinkIcon size={10} /> КОНТАКТ СКРЫТ</span>;
         }
       } else if (part.match(/(https?:\/\/[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/[^\s]*|@[a-zA-Z0-9_]+)/)) {
         charsToAdd = 16; 
         const isMapLink = /(yandex\.(ru|com)\/maps|maps\.yandex\.(ru|com)|2gis\.(ru|com)|go\.2gis\.com|maps\.google|goo\.gl\/maps)/i.test(part);
         
         if (shouldMask && !isMapLink) {
-          nodeToAdd = <span key={i} className="inline-flex items-center gap-1 bg-black text-white px-1.5 py-0.5 rounded text-[11px] font-black border border-black whitespace-nowrap mx-1"><LinkIcon size={10} /> КОНТАКТ СКРЫТ</span>;
+          nodeToAdd = <span key={i} className="m-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-black px-1.5 py-0.5 align-middle text-[11px] font-black text-white"><LinkIcon size={10} /> КОНТАКТ СКРЫТ</span>;
         } else {
           let href = part;
           if (part.startsWith('@')) href = `https://t.me/${part.substring(1)}`;
           else if (!part.startsWith('http')) href = `https://${part}`;
           
           let linkText = part;
-          let linkClass = "px-1.5 py-0.5 rounded text-xs font-bold border border-black transition-all mx-1 inline-block break-all ";
+          let linkClass = "m-1 inline-block break-all rounded border border-black px-1.5 py-0.5 align-middle text-xs font-bold transition-all ";
 
           if (isMapLink) {
              if (part.includes('yandex')) linkText = '🗺️ Яндекс.Карты';
@@ -71,10 +71,10 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
       } else if (part.match(/(?:\+?7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}|\b\d{10}\b/)) {
         charsToAdd = 16;
         if (shouldMask) {
-          nodeToAdd = <span key={i} className="inline-flex items-center gap-1 bg-accent text-black px-1.5 py-0.5 rounded text-[11px] font-black border border-black whitespace-nowrap mx-1"><Phone size={10} /> КОНТАКТ СКРЫТ</span>;
+          nodeToAdd = <span key={i} className="m-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-accent px-1.5 py-0.5 align-middle text-[11px] font-black text-black"><Phone size={10} /> КОНТАКТ СКРЫТ</span>;
         } else {
           const cleanPhone = part.replace(/[^\d+]/g, '');
-          nodeToAdd = <a key={i} href={`tel:${cleanPhone}`} className="bg-accent text-black px-1.5 py-0.5 rounded text-xs font-bold border border-black hover:bg-black hover:text-accent transition-colors mx-1" onClick={(e) => e.stopPropagation()}>{part}</a>;
+          nodeToAdd = <a key={i} href={`tel:${cleanPhone}`} className="m-1 inline-flex rounded border border-black bg-accent px-1.5 py-0.5 align-middle text-xs font-bold text-black transition-colors hover:bg-black hover:text-accent" onClick={(e) => e.stopPropagation()}>{part}</a>;
         }
       } else {
         if (truncateAt && currentLength + charsToAdd > truncateAt) {

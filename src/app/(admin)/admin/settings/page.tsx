@@ -1234,7 +1234,15 @@ export default function SettingsPage() {
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 border border-zinc-700 bg-zinc-950 rounded-none flex items-center justify-center text-white"><Bot size={14} /></div>
                 <div>
-                  <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-zinc-400">Очередь чатов</h3>
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-zinc-400">Очередь чатов</h3>
+                    <span
+                      aria-label={`Сохранено чатов: ${parsingChats.length}`}
+                      className="inline-flex min-w-5 items-center justify-center rounded border border-accent bg-accent px-1.5 py-0.5 text-[9px] font-black leading-none text-black"
+                    >
+                      {parsingChats.length}
+                    </span>
+                  </div>
                   <p className="text-[8px] text-zinc-500 font-bold uppercase tracking-[0.2em]">Статус парсера</p>
                 </div>
               </div>
