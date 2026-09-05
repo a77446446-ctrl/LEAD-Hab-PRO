@@ -18,7 +18,7 @@ const selfContained = source.replace(
   return import(`data:text/javascript;base64,${Buffer.from(output).toString('base64')}`);
 }
 
-test('MAX-ссылки и идентификаторы ограничены безопасным форматом', async () => {
+test('MAX-ссылки мини-приложения и идентификаторы ограничены безопасным форматом', async () => {
   process.env.MAX_BOT_USERNAME = '@PoDelamBot';
   const bot = await loadMaxBotModule();
   assert.equal(bot.buildMaxMiniAppLink('lead_123-abc'), 'https://max.ru/PoDelamBot?startapp=lead_123-abc');
@@ -26,17 +26,12 @@ test('MAX-ссылки и идентификаторы ограничены бе
   assert.equal(bot.normalizeMaxNumericId('0'), null);
   assert.equal(bot.normalizeMaxNumericId('@mychannel'), null);
   assert.equal(bot.normalizeMaxNumericId('max.ru/mychannel'), null);
-  assert.equal(bot.normalizeMaxChannelLink('https://max.ru/my_channel-1'), 'my_channel-1');
-  assert.equal(bot.normalizeMaxChannelLink('max.ru/my_channel-1'), 'my_channel-1');
-  assert.equal(bot.normalizeMaxChannelLink('@my_channel'), 'my_channel');
-  assert.equal(bot.normalizeMaxChannelLink('http://max.ru/my_channel'), null);
-  assert.equal(bot.normalizeMaxChannelLink('https://evil.example/my_channel'), null);
-  assert.equal(bot.normalizeMaxChannelLink('https://max.ru/one/two'), null);
   assert.equal(bot.normalizeMaxNumericId('9223372036854775807'), '9223372036854775807');
   assert.equal(bot.normalizeMaxNumericId('-9223372036854775808'), '-9223372036854775808');
   assert.equal(bot.normalizeMaxNumericId(123n), '123');
   const categoryPage = await read('src/app/(admin)/admin/categories/page.tsx');
-  assert.match(categoryPage, /Подключить публичный MAX-канал по ссылке/);
+  assert.match(categoryPage, /Начать обнаружение/);
+  assert.match(categoryPage, /Опубликуйте любой новый пост/);
   assert.match(categoryPage, /<select[\s\S]*showcaseChatId/);
   assert.match(categoryPage, /method: 'POST'/);
   assert.doesNotMatch(categoryPage, /@mychannel/);
@@ -46,7 +41,7 @@ test('MAX-ссылки и идентификаторы ограничены бе
   assert.throws(() => bot.buildMaxMiniAppLink('bad payload'));
 });
 
-test('администратор может зарегистрировать публичный канал и выбрать его в категории', async () => {
+test('администратор может включить webhook и обнаружить канал по событию MAX', async () => {
   const [route, bot, webhookSetup] = await Promise.all([
     read('src/app/api/admin/bot/chats/route.ts'),
     read('src/lib/max-bot.ts'),
@@ -54,42 +49,53 @@ test('администратор может зарегистрировать п�
   ]);
 
   assert.match(route, /adminGuard/);
-  assert.match(route, /resolveMaxChannelByLink/);
-  assert.match(route, /maxBotChat\.upsert/);
+  assert.match(route, /configureMaxWebhookSubscription/);
   assert.match(route, /where: \{ active: true \}/);
   assert.match(bot, /platform-api2\.max\.ru/);
-  assert.match(bot, /\/chats\/\$\{encodeURIComponent\(link\)\}/);
-  assert.match(bot, /result\.status !== 'active'/);
-  assert.match(bot, /result\.is_public !== true/);
+  assert.match(bot, /\/subscriptions/);
+  assert.match(bot, /'message_created'/);
+  assert.match(bot, /MAX_WEBHOOK_SECRET/);
   assert.match(webhookSetup, /"message_created"/);
 });
 
-test('MAX-канал по публичной ссылке сохраняет точный int64 chat_id', async () => {
+test('webhook MAX настраивается официальной подпиской и принимает события каналов', async () => {
   process.env.MAX_BOT_TOKEN = 'test-token';
+  process.env.MAX_WEBHOOK_SECRET = 'test-secret';
+  process.env.NEXT_PUBLIC_APP_URL = 'https://podelam24.ru';
   const bot = await loadMaxBotModule();
   const originalFetch = globalThis.fetch;
   let requestedUrl = '';
+  let requestedOptions;
 
   globalThis.fetch = async (url, options) => {
     requestedUrl = String(url);
+    requestedOptions = options;
     assert.equal(options.headers.Authorization, 'test-token');
-    return new Response(JSON.stringify({
-      chat_id: '9223372036854775807',
-      title: 'Биржа заказов',
-      type: 'channel',
-      status: 'active',
-      is_public: true,
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    return new Response(JSON.stringify({ success: true }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    });
   };
 
   try {
-    const channel = await bot.resolveMaxChannelByLink('https://max.ru/orders_channel');
-    assert.equal(channel.chatId, '9223372036854775807');
-    assert.equal(channel.title, 'Биржа заказов');
-    assert.match(requestedUrl, /platform-api2\.max\.ru\/chats\/orders_channel$/);
+    const webhookUrl = await bot.configureMaxWebhookSubscription();
+    const requestBody = JSON.parse(requestedOptions.body);
+    assert.equal(webhookUrl, 'https://podelam24.ru/api/webhooks/max');
+    assert.match(requestedUrl, /platform-api2\.max\.ru\/subscriptions$/);
+    assert.equal(requestedOptions.method, 'POST');
+    assert.equal(requestBody.url, webhookUrl);
+    assert.equal(requestBody.secret, 'test-secret');
+    assert.ok(requestBody.update_types.includes('message_created'));
+    assert.ok(requestBody.update_types.includes('bot_added'));
+
+    const webhookRoute = await read('src/app/api/webhooks/max/route.ts');
+    assert.match(webhookRoute, /recipient\?\.chat_id/);
+    assert.match(webhookRoute, /exactChatIdFromJson\(rawBody\)/);
   } finally {
     globalThis.fetch = originalFetch;
     delete process.env.MAX_BOT_TOKEN;
+    delete process.env.MAX_WEBHOOK_SECRET;
+    delete process.env.NEXT_PUBLIC_APP_URL;
   }
 });
 

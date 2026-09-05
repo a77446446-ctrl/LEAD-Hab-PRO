@@ -67,9 +67,9 @@ export default function AdminCategoriesPage() {
   const [saving, setSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [maxBotChats, setMaxBotChats] = useState<MaxBotChat[]>([]);
-  const [channelLink, setChannelLink] = useState('');
-  const [registeringChannel, setRegisteringChannel] = useState(false);
+  const [discoveringChannels, setDiscoveringChannels] = useState(false);
   const [channelError, setChannelError] = useState('');
+  const [discoveryMessage, setDiscoveryMessage] = useState('');
   
   // Tag Inputs State
   const [plusTags, setPlusTags] = useState<string[]>([]);
@@ -89,15 +89,18 @@ export default function AdminCategoriesPage() {
     showcaseKind: 'PUBLIC'
   });
 
-  const fetchMaxBotChats = async () => {
+  const fetchMaxBotChats = async (): Promise<MaxBotChat[]> => {
     try {
       const response = await fetch('/api/admin/bot/chats', { cache: 'no-store' });
       const data = await response.json();
       if (!response.ok) throw new Error(data.error || 'Не удалось загрузить MAX-каналы');
-      setMaxBotChats(Array.isArray(data) ? data : []);
+      const chats = Array.isArray(data) ? data : [];
+      setMaxBotChats(chats);
+      return chats;
     } catch (error) {
       setMaxBotChats([]);
       setChannelError(error instanceof Error ? error.message : 'Не удалось загрузить MAX-каналы');
+      return [];
     }
   };
 
@@ -222,35 +225,39 @@ export default function AdminCategoriesPage() {
     }
   };
 
-  const handleRegisterChannel = async () => {
-    if (!channelLink.trim()) {
-      setChannelError('Вставьте публичную ссылку MAX-канала');
-      return;
-    }
-
-    setRegisteringChannel(true);
+  const handleDiscoverChannels = async () => {
+    const knownChatIds = new Set(maxBotChats.map((chat) => chat.chatId));
+    setDiscoveringChannels(true);
     setChannelError('');
+    setDiscoveryMessage('');
     try {
       const response = await fetch('/api/admin/bot/chats', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ link: channelLink.trim() }),
       });
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Не удалось подключить MAX-канал');
+      if (!response.ok) throw new Error(data.error || 'Не удалось включить обнаружение MAX-каналов');
 
-      await fetchMaxBotChats();
-      setFormData((current) => ({
-        ...current,
-        showcaseEnabled: true,
-        showcaseChatId: data.chatId,
-        showcaseKind: 'PUBLIC',
-      }));
-      setChannelLink('');
+      setDiscoveryMessage('Webhook включён. Опубликуйте любой новый пост в канале MAX — ожидаю событие до 60 секунд.');
+      for (let attempt = 0; attempt < 30; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 2_000));
+        const chats = await fetchMaxBotChats();
+        const detectedChat = chats.find((chat) => chat.active && !knownChatIds.has(chat.chatId));
+        if (!detectedChat) continue;
+
+        setFormData((current) => ({
+          ...current,
+          showcaseEnabled: true,
+          showcaseChatId: detectedChat.chatId,
+          showcaseKind: 'PUBLIC',
+        }));
+        setDiscoveryMessage('Канал обнаружен и выбран. Сохраните изменения категории.');
+        return;
+      }
+      setDiscoveryMessage('Новое событие от MAX пока не получено. Опубликуйте новый пост в канале и повторите обнаружение.');
     } catch (error) {
-      setChannelError(error instanceof Error ? error.message : 'Не удалось подключить MAX-канал');
+      setChannelError(error instanceof Error ? error.message : 'Не удалось включить обнаружение MAX-каналов');
     } finally {
-      setRegisteringChannel(false);
+      setDiscoveringChannels(false);
     }
   };
 
@@ -486,29 +493,31 @@ export default function AdminCategoriesPage() {
             </select>
           </div>
           <div className="md:col-span-12 space-y-2 border-t border-zinc-800 pt-4">
-            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Подключить публичный MAX-канал по ссылке</label>
+            <label className="text-[9px] font-bold text-zinc-500 uppercase tracking-widest">Обнаружить MAX-канал</label>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <input
-                type="url"
-                value={channelLink}
-                onChange={(event) => setChannelLink(event.target.value)}
-                placeholder="https://max.ru/channel_name"
-                className="min-w-0 flex-1 rounded-lg border border-zinc-700 bg-zinc-900 px-4 py-3 text-xs font-bold text-white placeholder:text-zinc-600"
-              />
               <button
                 type="button"
-                onClick={handleRegisterChannel}
-                disabled={registeringChannel || !channelLink.trim()}
+                onClick={handleDiscoverChannels}
+                disabled={discoveringChannels}
                 className="flex items-center justify-center gap-2 rounded-lg border border-accent bg-accent px-5 py-3 text-[10px] font-bold uppercase text-black transition-all hover:bg-[#F2FF00] disabled:opacity-40"
               >
-                {registeringChannel ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-                Подключить канал
+                {discoveringChannels ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+                {discoveringChannels ? 'Ожидаю событие MAX…' : 'Начать обнаружение'}
+              </button>
+              <button
+                type="button"
+                onClick={() => void fetchMaxBotChats()}
+                disabled={discoveringChannels}
+                className="flex items-center justify-center rounded-lg border border-zinc-700 bg-zinc-900 px-5 py-3 text-[10px] font-bold uppercase text-zinc-300 transition-all hover:border-zinc-500 disabled:opacity-40"
+              >
+                Обновить список
               </button>
             </div>
             {channelError && <p className="text-[10px] font-bold text-red-400">{channelError}</p>}
-            {!channelError && (
+            {discoveryMessage && <p className="text-[10px] font-bold text-lime-300">{discoveryMessage}</p>}
+            {!channelError && !discoveryMessage && (
               <p className="text-[10px] text-zinc-500">
-                Бот должен быть администратором канала. После подключения chat_id определится автоматически, а канал будет выбран для этой категории.
+                Нажмите «Начать обнаружение», затем опубликуйте любой новый пост в канале. Бот должен быть администратором с правом читать и отправлять сообщения.
               </p>
             )}
           </div>

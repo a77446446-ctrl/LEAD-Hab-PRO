@@ -35,15 +35,6 @@ export interface MaxMessagePayload {
   notify?: boolean;
 }
 
-export interface MaxChannelInfo {
-  chatId: string;
-  title: string | null;
-  kind: 'CHANNEL';
-  active: boolean;
-  isPublic: boolean;
-  link: string;
-}
-
 export class MaxBotApiError extends Error {
   constructor(
     message: string,
@@ -77,90 +68,63 @@ export function normalizeMaxNumericId(value: unknown): string | null {
   }
 }
 
-export function normalizeMaxChannelLink(value: unknown): string | null {
-  if (typeof value !== 'string') return null;
-  const raw = value.trim();
-  if (!raw || raw.length > 512) return null;
-
-  const candidate = raw.startsWith('@')
-    ? `https://max.ru/${raw.slice(1)}`
-    : /^https?:\/\//i.test(raw)
-      ? raw
-      : `https://${raw.replace(/^\/+/, '')}`;
-
-  try {
-    const url = new URL(candidate);
-    const hostname = url.hostname.toLowerCase().replace(/^www\./, '');
-    if (url.protocol !== 'https:' || hostname !== 'max.ru') return null;
-    const segments = url.pathname.split('/').filter(Boolean);
-    if (segments.length !== 1) return null;
-    const link = decodeURIComponent(segments[0]).replace(/^@/, '');
-    return /^[A-Za-z][A-Za-z0-9_-]{1,127}$/.test(link) ? link : null;
-  } catch {
-    return null;
-  }
-}
-
-function exactChatId(rawBody: string, fallback: unknown): string | null {
-  const match = rawBody.match(/"chat_id"\s*:\s*(?:"(-?\d{1,19})"|(-?\d{1,19}))/);
-  return normalizeMaxNumericId(match?.[1] || match?.[2] || fallback);
-}
-
-export async function resolveMaxChannelByLink(value: unknown): Promise<MaxChannelInfo> {
+export async function configureMaxWebhookSubscription(): Promise<string> {
   const token = (process.env.MAX_BOT_TOKEN || '').trim();
   if (!token) throw new MaxBotApiError('MAX_BOT_TOKEN не настроен', 503, true);
 
-  const link = normalizeMaxChannelLink(value);
-  if (!link) {
-    throw new MaxBotApiError('Укажите публичную ссылку канала вида https://max.ru/channel_name', 400, false);
+  const secret = (process.env.MAX_WEBHOOK_SECRET || '').trim();
+  if (!/^[A-Za-z0-9_-]{5,256}$/.test(secret)) {
+    throw new MaxBotApiError('MAX_WEBHOOK_SECRET не настроен', 503, false);
+  }
+
+  let webhookUrl: URL;
+  try {
+    webhookUrl = new URL('/api/webhooks/max', (process.env.NEXT_PUBLIC_APP_URL || '').trim());
+  } catch {
+    throw new MaxBotApiError('NEXT_PUBLIC_APP_URL не настроен', 503, false);
+  }
+  if (webhookUrl.protocol !== 'https:' || webhookUrl.port) {
+    throw new MaxBotApiError('NEXT_PUBLIC_APP_URL должен быть HTTPS-доменом без нестандартного порта', 503, false);
   }
 
   let response: Response;
   try {
-    response = await fetch(`${MAX_API_BASE_URL}/chats/${encodeURIComponent(link)}`, {
-      headers: { Authorization: token },
-      signal: AbortSignal.timeout(10_000),
+    response = await fetch(`${MAX_API_BASE_URL}/subscriptions`, {
+      method: 'POST',
+      headers: { Authorization: token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url: webhookUrl.toString(),
+        update_types: [
+          'bot_started',
+          'bot_stopped',
+          'bot_added',
+          'bot_removed',
+          'chat_title_changed',
+          'message_created',
+          'dialog_removed',
+          'dialog_muted',
+          'dialog_unmuted',
+        ],
+        secret,
+      }),
+      signal: AbortSignal.timeout(15_000),
     });
   } catch {
     throw new MaxBotApiError('MAX API временно недоступен', 503, true);
   }
 
-  const rawBody = await response.text();
-  const result = (() => {
-    try {
-      return JSON.parse(rawBody) as Record<string, unknown>;
-    } catch {
-      return null;
-    }
-  })();
+  const result = await response.json().catch(() => null) as {
+    success?: boolean;
+    message?: string;
+  } | null;
 
-  if (!response.ok || !result) {
+  if (!response.ok || result?.success !== true) {
     const retryable = response.status === 408 || response.status === 429 || response.status >= 500;
-    throw new MaxBotApiError(`MAX не смог открыть канал по ссылке, HTTP ${response.status}`, response.status, retryable);
+    const detail = typeof result?.message === 'string' ? `: ${result.message.slice(0, 200)}` : '';
+    throw new MaxBotApiError(`MAX отклонил настройку webhook, HTTP ${response.status}${detail}`, response.status, retryable);
   }
 
-  const chatId = exactChatId(rawBody, result.chat_id);
-  if (!chatId) throw new MaxBotApiError('MAX вернул некорректный chat_id канала', 502, true);
-  if (result.type !== 'channel') {
-    throw new MaxBotApiError('По этой ссылке найден не канал MAX', 400, false);
-  }
-  if (result.status !== 'active') {
-    throw new MaxBotApiError('Бот не является активным участником этого канала', 409, false);
-  }
-  if (result.is_public !== true) {
-    throw new MaxBotApiError('Канал должен быть публичным', 409, false);
-  }
-
-  return {
-    chatId,
-    title: typeof result.title === 'string' && result.title.trim()
-      ? result.title.trim().slice(0, 200)
-      : null,
-    kind: 'CHANNEL',
-    active: true,
-    isPublic: true,
-    link: `https://max.ru/${link}`,
-  };
+  return webhookUrl.toString();
 }
 
 export function verifyMaxWebhookSecret(actual: string | null, expected = process.env.MAX_WEBHOOK_SECRET): boolean {

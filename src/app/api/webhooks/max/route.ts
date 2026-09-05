@@ -27,6 +27,11 @@ function eventDate(value: unknown): Date {
   return Number.isNaN(date.getTime()) || distance > 24 * 60 * 60 * 1_000 ? new Date() : date;
 }
 
+function exactChatIdFromJson(rawBody: string): string | null {
+  const match = rawBody.match(/"chat_id"\s*:\s*(?:"(-?\d{1,19})"|(-?\d{1,19}))/);
+  return normalizeMaxNumericId(match?.[1] || match?.[2]);
+}
+
 export async function POST(request: Request) {
   const configuredSecret = process.env.MAX_WEBHOOK_SECRET;
   if (!configuredSecret) {
@@ -42,8 +47,9 @@ export async function POST(request: Request) {
   }
 
   let update: Record<string, unknown>;
+  let rawBody = '';
   try {
-    const rawBody = await request.text();
+    rawBody = await request.text();
     if (!rawBody || Buffer.byteLength(rawBody, 'utf8') > MAX_WEBHOOK_BYTES) {
       return NextResponse.json({ error: 'Некорректный размер webhook' }, { status: 400 });
     }
@@ -105,16 +111,20 @@ export async function POST(request: Request) {
       }
     } else if (['bot_added', 'chat_title_changed', 'message_created'].includes(updateType)) {
       const messageObj = asObject(update.message);
+      const recipient = asObject(messageObj?.recipient);
       const chat = asObject(update.chat) || asObject(messageObj?.chat) || update;
-      const rawChatId = chat.id ?? chat.chat_id ?? messageObj?.chat_id ?? update.chat_id;
-      const chatId = normalizeMaxNumericId(rawChatId);
+      const rawChatId = chat.id ?? chat.chat_id ?? recipient?.chat_id ?? messageObj?.chat_id ?? update.chat_id;
+      const chatId = normalizeMaxNumericId(rawChatId) || exactChatIdFromJson(rawBody);
       if (chatId) {
+        const isChannel = chat.type === 'channel'
+          || recipient?.chat_type === 'channel'
+          || update.is_channel === true;
         await prisma.maxBotChat.upsert({
           where: { chatId },
           create: {
             chatId,
-            title: optionalText(chat.title ?? update.title, 200) || 'Unknown Chat',
-            kind: chat.type === 'channel' || update.is_channel === true ? 'CHANNEL' : 'CHAT',
+            title: optionalText(chat.title ?? update.title, 200) || (isChannel ? 'MAX-канал' : 'MAX-чат'),
+            kind: isChannel ? 'CHANNEL' : 'CHAT',
           },
           update: {
             active: true,
