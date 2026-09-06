@@ -1,4 +1,6 @@
 import { redactContactInfo } from '@/lib/redact-contact';
+import { buildLeadTitle } from '@/lib/lead-title';
+import { classifyLeadCategory, type LeadCategoryMatch, type LeadCategoryRule } from '@/lib/lead-category';
 import { prisma } from '@/lib/prisma';
 
 export interface RawLead {
@@ -13,6 +15,7 @@ export interface ProcessedLead {
   budget: string;
   score: number;
   isSpam: boolean;
+  categoryMatched: boolean;
   cleanedText?: string;
 }
 
@@ -80,7 +83,11 @@ function cleanRawText(text: string): string {
 }
 
 // Вспомогательная функция локального парсинга без ИИ
-function fallbackScriptParse(rawText: string, categories: any[]): ProcessedLead {
+function fallbackScriptParse(
+  rawText: string,
+  categories: LeadCategoryRule[],
+  categoryMatch: LeadCategoryMatch = classifyLeadCategory(rawText, categories),
+): ProcessedLead {
   const lowerText = rawText.toLowerCase();
 
   // Базовый антиспам теперь проверяется глобально в processLead перед вызовом fallbackScriptParse
@@ -136,52 +143,17 @@ function fallbackScriptParse(rawText: string, categories: any[]): ProcessedLead 
     }
   }
 
-  // 3. Определение категории по ключевым словам из БД (с учетом минус-слов и веса)
-  let detectedCategory = 'other';
-  let categoryName = 'Другое';
-  let bestScore = 0;
-
-  for (const cat of categories) {
-    let isMinusTriggered = false;
-    if (cat.minusKeywords) {
-      const minuses = cat.minusKeywords.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean);
-      if (minuses.some((kw: string) => lowerText.includes(kw))) {
-        isMinusTriggered = true;
-      }
-    }
-
-    if (isMinusTriggered) continue; // Пропускаем категорию, если найдено стоп-слово
-
-    let score = 0;
-    if (cat.plusKeywords) {
-      const pluses = cat.plusKeywords.split(',').map((k: string) => k.trim().toLowerCase()).filter(Boolean);
-      for (const kw of pluses) {
-        if (lowerText.includes(kw)) {
-          // Если слово длинное, даем больший вес
-          score += kw.length > 5 ? 2 : 1; 
-        }
-      }
-    }
-
-    if (score > bestScore) {
-      bestScore = score;
-      detectedCategory = cat.slug;
-      categoryName = cat.name;
-    }
-  }
-
-  // 4. Формирование сгенерированного заголовка
-  // Используем начало сообщения как заголовок, чтобы сразу было понятно о чем речь
-  const snippet = rawText.trim().replace(/\s+/g, ' ').substring(0, 50) + (rawText.length > 50 ? '...' : '');
-  const title = snippet || 'Без названия';
+  // Заголовок строится по смысловой фразе и никогда не обрывается посреди слова.
+  const title = buildLeadTitle(rawText);
 
   return {
     title,
-    category: detectedCategory,
+    category: categoryMatch.categorySlug,
     city: detectedCity,
     budget: 'По договоренности',
     score: isSpam ? 0 : 80,
     isSpam,
+    categoryMatched: categoryMatch.matched,
     cleanedText: cleanRawText(rawText)
   };
 }
@@ -218,6 +190,7 @@ export const aiService = {
             budget: '',
             score: 0,
             isSpam: true,
+            categoryMatched: false,
             cleanedText: cleanRawText(rawText)
          };
       }
@@ -226,9 +199,10 @@ export const aiService = {
       const dbCategories = await prisma.category.findMany({
         where: { active: true }
       });
+      const categoryMatch = classifyLeadCategory(rawText, dbCategories);
 
       if (dbCategories.length === 0) {
-        return fallbackScriptParse(rawText, []);
+        return fallbackScriptParse(rawText, [], categoryMatch);
       }
 
       // 2. Проверяем, включен ли ИИ вообще
@@ -239,7 +213,7 @@ export const aiService = {
 
       if (!isAiEnabled) {
         console.log('AI is disabled (Feature Toggle). Using local script parser.');
-        return fallbackScriptParse(rawText, dbCategories);
+        return fallbackScriptParse(rawText, dbCategories, categoryMatch);
       }
 
       console.log('AI is processing lead with DeepSeek (Dynamic Categories)');
@@ -316,12 +290,14 @@ ${categoriesList}
           const result = JSON.parse(content);
           
           return {
-            title: result.title || 'Новый заказ',
-            category: result.category || 'other',
+            title: buildLeadTitle(rawText, result.title),
+            // Категорию всегда определяют локальные плюс- и минус-правила.
+            category: categoryMatch.categorySlug,
             city: result.city || 'НЕ УКАЗАН',
             budget: result.budget || 'По договоренности',
             score: result.score || 70,
             isSpam: result.isSpam || false,
+            categoryMatched: categoryMatch.matched,
             cleanedText: cleanRawText(rawText) // Не тратим токены ИИ на очистку, чистим скриптом
           };
         } catch (error) {
@@ -334,7 +310,7 @@ ${categoriesList}
       }
 
       console.warn('DeepSeek attempts exhausted. Falling back to script parser.');
-      return fallbackScriptParse(rawText, dbCategories);
+      return fallbackScriptParse(rawText, dbCategories, categoryMatch);
     } catch (error: any) {
       console.error('AI Pipeline Fatal Error:', error);
       throw new Error(`AI Pipeline Error: ${error.message || 'Unknown'}`);

@@ -1,5 +1,6 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
+import { hasActionableLeadContact } from '@/lib/redact-contact';
 import {
   buildLeadTeaserMessage,
   buildMaxMiniAppLink,
@@ -14,6 +15,17 @@ const STALE_LOCK_MS = 5 * 60 * 1_000;
 const MAX_BATCH_SIZE = 20;
 
 type TransactionClient = Prisma.TransactionClient;
+
+export class LeadContactRequiredError extends Error {
+  constructor() {
+    super('Лид не содержит телефона или ссылки для связи');
+    this.name = 'LeadContactRequiredError';
+  }
+}
+
+function contactText(lead: { title: string; rawText: string; phone?: string | null }): string {
+  return [lead.title, lead.rawText, lead.phone || ''].join('\n');
+}
 
 export async function enqueueLeadDeliveries(
   tx: TransactionClient,
@@ -63,6 +75,9 @@ export async function enqueueLeadDeliveries(
 }
 
 export async function createLeadWithDeliveries(data: Prisma.LeadUncheckedCreateInput) {
+  if (!hasActionableLeadContact(contactText(data))) {
+    throw new LeadContactRequiredError();
+  }
   return prisma.$transaction(async (tx) => {
     const lead = await tx.lead.create({ data });
     await enqueueLeadDeliveries(tx, lead.id, lead.categoryId);
@@ -181,6 +196,12 @@ export async function dispatchBotDeliveries(requestedLimit = 10): Promise<{
 
     if (delivery.kind.startsWith('LEAD_TEASER') && delivery.lead?.status !== 'NEW') {
       await markSkipped(delivery.id, 'Лид уже недоступен');
+      summary.skipped += 1;
+      continue;
+    }
+
+    if (delivery.kind.startsWith('LEAD_TEASER') && delivery.lead && !hasActionableLeadContact(contactText(delivery.lead))) {
+      await markSkipped(delivery.id, 'В лиде отсутствует телефон или ссылка для связи');
       summary.skipped += 1;
       continue;
     }

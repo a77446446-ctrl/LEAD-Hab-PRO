@@ -12,7 +12,7 @@ import {
 } from '@/lib/parser-accounts';
 import { normalizeMaxChatUrl } from '@/lib/max-chat-url';
 import { parserPythonExecutable, parserPythonSpawnError } from '@/lib/python-runtime';
-import { extractContactInfo } from '@/lib/redact-contact';
+import { hasActionableLeadContact } from '@/lib/redact-contact';
 import { hasOnlyExpiredLeadDates } from '@/lib/lead-date';
 import { createLeadWithDeliveries } from './bot-outbox';
 import { aiService } from './ai';
@@ -286,13 +286,21 @@ async function processMessage(
     pushLog(logs, 'Сообщение пропущено: все указанные даты уже прошли');
     return false;
   }
-  // When parseAll is false, require contact info; when true, accept all messages
-  if (!parseAll && extractContactInfo(original).length === 0) return false;
+  // Контакт обязателен даже для чатов с режимом «парсить всё».
+  if (!hasActionableLeadContact(cleaned)) {
+    pushLog(logs, 'Сообщение пропущено: отсутствует телефон или ссылка для связи');
+    return false;
+  }
 
   try {
     const processed = await aiService.processLead(cleaned);
 
-    if (!parseAll && (processed.isSpam || processed.score < 30)) return false;
+    if (!parseAll && processed.isSpam) return false;
+    if (!parseAll && !processed.categoryMatched) {
+      pushLog(logs, 'Сообщение пропущено: нет совпадений с активными категориями');
+      return false;
+    }
+    if (!parseAll && processed.score < 30) return false;
     const category = await resolveCategory(processed.category);
     const stableText = String(processed.cleanedText || cleaned).trim().slice(0, 1500);
     

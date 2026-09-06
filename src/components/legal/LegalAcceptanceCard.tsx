@@ -17,6 +17,7 @@ export function LegalAcceptanceCard({ onAccepted }: LegalAcceptanceCardProps) {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const allDocumentsAccepted = offerAccepted && privacyRead && consentGiven;
 
   useEffect(() => {
     let active = true;
@@ -72,6 +73,8 @@ export function LegalAcceptanceCard({ onAccepted }: LegalAcceptanceCardProps) {
     <label className="flex cursor-pointer items-start gap-3 text-sm leading-6"><input type="checkbox" checked={privacyRead} onChange={(event) => setPrivacyRead(event.target.checked)} className="mt-1 h-4 w-4" /><span>Я ознакомлен с <Link className="underline" href="/legal/privacy">политикой конфиденциальности</Link>.</span></label>
     <label className="flex cursor-pointer items-start gap-3 text-sm leading-6"><input type="checkbox" checked={consentGiven} onChange={(event) => setConsentGiven(event.target.checked)} className="mt-1 h-4 w-4" /><span>Отдельно даю <Link className="underline" href="/legal/consent">согласие на обработку персональных данных</Link>.</span></label>
     {error && <p className="text-sm text-red-700">{error}</p>}
-    <button type="button" disabled={!offerAccepted || !privacyRead || !consentGiven || saving} onClick={() => void accept()} className="w-full border border-black bg-black px-4 py-3 font-black uppercase text-white disabled:opacity-40">{saving ? 'Сохраняем…' : 'Подтвердить версию ' + version}</button>
+    <button type="button" disabled={!allDocumentsAccepted || saving} onClick={() => void accept()} className="w-full border border-black bg-black px-4 py-3 font-black uppercase text-white disabled:opacity-40">
+      {saving ? 'Сохраняем согласие…' : allDocumentsAccepted ? 'Подтвердить согласие' : 'Отметьте все пункты'}
+    </button>
   </div>;
 }

@@ -33,6 +33,15 @@ test('согласие на данные отделено от акцепта о
   assert.doesNotMatch(card, /const \[checked, setChecked\]/);
 });
 
+test('кнопка согласия показывает понятное действие без номера версии', () => {
+  const card = read('src/components/legal/LegalAcceptanceCard.tsx');
+  assert.match(card, /Отметьте все пункты/);
+  assert.match(card, /Подтвердить согласие/);
+  assert.match(card, /Сохраняем согласие…/);
+  assert.doesNotMatch(card, /Подтвердить версию/);
+  assert.match(card, /JSON\.stringify\(\{ acceptedDocuments: \['OFFER', 'PRIVACY', 'CONSENT'\], version \}\)/);
+});
+
 test('сервер принимает только актуальную полную версию и сохраняет SHA-256', () => {
   const legal = read('src/lib/legal.ts');
   const route = read('src/app/api/legal/acceptance/route.ts');

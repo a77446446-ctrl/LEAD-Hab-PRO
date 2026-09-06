@@ -26,3 +26,7 @@ export function extractContactInfo(value: string): string[] {
     return true;
   }))).slice(0, 20);
 }
+
+export function hasActionableLeadContact(value: string): boolean {
+  return extractContactInfo(value).length > 0;
+}

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { aiService } from '@/services/ai';
 import { prisma } from '@/lib/prisma';
 import { verifyBearerSecret } from '@/lib/security/api-secret';
-import { createLeadWithDeliveries } from '@/services/bot-outbox';
+import { createLeadWithDeliveries, LeadContactRequiredError } from '@/services/bot-outbox';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +47,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ status: 'success', leadId: lead.id });
   } catch (error) {
+    if (error instanceof LeadContactRequiredError) {
+      return NextResponse.json({ status: 'ignored', reason: 'contact_not_found' });
+    }
     console.error('[INGEST]', error);
     return NextResponse.json({ error: 'Не удалось обработать лид' }, { status: 500 });
   }

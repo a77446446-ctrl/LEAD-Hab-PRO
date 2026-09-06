@@ -2,7 +2,8 @@ import { NextResponse } from 'next/server';
 import type { Prisma } from '@prisma/client';
 import { AuthenticationError, requireCurrentUser } from '@/lib/auth/current-user';
 import { prisma } from '@/lib/prisma';
-import { redactContactInfo } from '@/lib/redact-contact';
+import { hasActionableLeadContact, redactContactInfo } from '@/lib/redact-contact';
+import { buildLeadTitle } from '@/lib/lead-title';
 
 export const dynamic = 'force-dynamic';
 
@@ -48,9 +49,10 @@ export async function GET(request: Request) {
       where.status = 'NEW';
     }
 
+    const databaseTake = owned ? take : Math.min(take * 3, 600);
     const leads = await withRetry(() => prisma.lead.findMany({
       where,
-      take,
+      take: databaseTake,
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,
@@ -70,16 +72,27 @@ export async function GET(request: Request) {
       },
     }));
 
-    return NextResponse.json(leads.map((lead) => owned ? {
-      ...lead,
-      isPurchased: true,
-    } : {
-      ...lead,
-      title: redactContactInfo(lead.title, true),
-      rawText: redactContactInfo(lead.rawText, true),
-      phone: null,
-      sourceChat: null,
-      isPurchased: false,
+    const visibleLeads = owned
+      ? leads
+      : leads
+        .filter((lead) => lead.category.slug === 'info'
+          || hasActionableLeadContact([lead.title, lead.rawText, lead.phone || ''].join('\n')))
+        .slice(0, take);
+
+    return NextResponse.json(visibleLeads.map((lead) => {
+      const title = buildLeadTitle(lead.rawText, lead.title);
+      return owned ? {
+        ...lead,
+        title,
+        isPurchased: true,
+      } : {
+        ...lead,
+        title: redactContactInfo(title, true),
+        rawText: redactContactInfo(lead.rawText, true),
+        phone: null,
+        sourceChat: null,
+        isPurchased: false,
+      };
     }));
   } catch (error) {
     if (error instanceof AuthenticationError) {
