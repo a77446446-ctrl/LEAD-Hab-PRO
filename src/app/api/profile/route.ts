@@ -45,6 +45,7 @@ export async function PATCH(request: Request) {
         rating: true,
         notifyEnabled: true,
         botStartedAt: true,
+        registrationCycle: true,
         createdAt: true,
       },
     });

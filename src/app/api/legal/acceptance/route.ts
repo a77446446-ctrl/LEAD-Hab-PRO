@@ -45,9 +45,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Необходимо принять актуальные версии документов' }, { status: 400 });
     }
     await prisma.$transaction(LEGAL_DOCUMENT_TYPES.map((documentType) => prisma.legalAcceptance.upsert({
-      where: { userId_documentType_version: { userId: user.id, documentType, version } },
+      where: {
+        userId_documentType_version_registrationCycle: {
+          userId: user.id,
+          documentType,
+          version,
+          registrationCycle: user.registrationCycle,
+        },
+      },
       update: { documentHash: legalDocumentHash(documentType), source: 'MINI_APP', acceptedAt: new Date() },
-      create: { userId: user.id, documentType, version, documentHash: legalDocumentHash(documentType), source: 'MINI_APP' },
+      create: {
+        userId: user.id,
+        documentType,
+        version,
+        registrationCycle: user.registrationCycle,
+        documentHash: legalDocumentHash(documentType),
+        source: 'MINI_APP',
+      },
     })));
     return NextResponse.json({ ...await getLegalAcceptance(user.id), exempt: false, documents });
   } catch (error) {

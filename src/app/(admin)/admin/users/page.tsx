@@ -80,7 +80,7 @@ export default function UsersPage() {
 
     const confirmed = window.confirm(mode === 'block'
       ? `Полностью заблокировать ${user.name}? Пользователь больше не сможет зарегистрироваться.`
-      : `Удалить ${user.name}? Активные подписки завершатся, но пользователь сможет зарегистрироваться заново.`);
+      : `Удалить ${user.name}? Активные подписки завершатся. Для возврата потребуется заново войти через MAX и принять документы.`);
     if (!confirmed) return;
 
     setPendingAction(`${user.id}:${mode}`);

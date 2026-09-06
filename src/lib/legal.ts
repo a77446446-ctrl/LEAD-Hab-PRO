@@ -34,8 +34,20 @@ export function legalDocumentHash(type: LegalDocumentType): string {
 
 export async function getLegalAcceptance(userId: string) {
   const { version } = getLegalConfig();
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { registrationCycle: true },
+  });
+  if (!user) {
+    return { version, accepted: false, acceptedAt: null };
+  }
   const accepted = await prisma.legalAcceptance.findMany({
-    where: { userId, version, documentType: { in: [...LEGAL_DOCUMENT_TYPES] } },
+    where: {
+      userId,
+      version,
+      registrationCycle: user.registrationCycle,
+      documentType: { in: [...LEGAL_DOCUMENT_TYPES] },
+    },
     select: { documentType: true, acceptedAt: true },
   });
   const types = new Set(accepted.map((item) => item.documentType));
@@ -47,7 +59,10 @@ export async function getLegalAcceptance(userId: string) {
 }
 
 export async function hasCurrentLegalAcceptance(userId: string): Promise<boolean> {
-  const user = await prisma.user.findUnique({ where: { id: userId }, select: { maxId: true } });
+  const user = await prisma.user.findFirst({
+    where: { id: userId, deletedAt: null },
+    select: { maxId: true },
+  });
   if (!user) return false;
   if (isConfiguredAdminMaxId(user.maxId)) return true;
   return (await getLegalAcceptance(userId)).accepted;

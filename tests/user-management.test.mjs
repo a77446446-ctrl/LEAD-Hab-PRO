@@ -13,6 +13,7 @@ test('удалённая учётная запись теряет сессию, 
   assert.match(adminUsers, /subscription\.updateMany/);
   assert.match(adminUsers, /notifyEnabled:\s*false/);
   assert.match(adminUsers, /botStartedAt:\s*null/);
+  assert.match(adminUsers, /registrationCycle:\s*\{\s*increment:\s*1\s*\}/);
   assert.match(adminUsers, /isConfiguredAdminMaxId\(target\.maxId\)/);
 });
 
@@ -36,4 +37,15 @@ test('админка показывает отдельные действия у
   assert.match(page, /Полный блок/);
   assert.match(page, /method:\s*'DELETE'/);
   assert.match(page, /window\.confirm/);
+});
+
+test('после удаления требуется явный вход через MAX и новый комплект согласий', () => {
+  const login = read('src/app/(auth)/login/page.tsx');
+  const legal = read('src/lib/legal.ts');
+  const schema = read('prisma/schema.prisma');
+
+  assert.match(login, /onClick=\{authenticate\}/);
+  assert.match(login, /destinationAfterLegal/);
+  assert.match(legal, /registrationCycle:\s*user\.registrationCycle/);
+  assert.match(schema, /@@unique\(\[userId, documentType, version, registrationCycle\], map: "LegalAcceptance_registration_cycle_key"\)/);
 });

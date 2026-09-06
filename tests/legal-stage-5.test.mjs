@@ -8,8 +8,8 @@ test('юридические согласия версионируются и м
   const schema = read('prisma/schema.prisma');
   const migration = read('prisma/migrations/20260823050000_stage_5_legal/migration.sql');
   assert.match(schema, /model LegalAcceptance/);
-  assert.match(schema, /@@unique\(\[userId, documentType, version\]\)/);
-  assert.match(schema, /documentHash String/);
+  assert.match(schema, /@@unique\(\[userId, documentType, version, registrationCycle\], map: "LegalAcceptance_registration_cycle_key"\)/);
+  assert.match(schema, /documentHash\s+String/);
   assert.doesNotMatch(migration, /^\s*(?:DROP\b|TRUNCATE\b|DELETE\s+FROM\b)/im);
 });
 
@@ -40,6 +40,8 @@ test('сервер принимает только актуальную полн
   assert.match(route, /LEGAL_DOCUMENT_TYPES\.every/);
   assert.match(route, /body\.version !== version/);
   assert.match(route, /legalAcceptance\.upsert/);
+  assert.match(legal, /registrationCycle:\s*user\.registrationCycle/);
+  assert.match(route, /userId_documentType_version_registrationCycle/);
 });
 
 test('покупка заблокирована до принятия актуальных документов', () => {

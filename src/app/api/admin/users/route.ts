@@ -90,6 +90,7 @@ export async function DELETE(request: Request) {
           deletedAt: now,
           notifyEnabled: false,
           botStartedAt: null,
+          registrationCycle: { increment: 1 },
         },
       });
     });
@@ -98,7 +99,7 @@ export async function DELETE(request: Request) {
       ok: true,
       message: mode === 'block'
         ? 'Пользователь полностью заблокирован'
-        : 'Пользователь удалён и сможет зарегистрироваться заново',
+        : 'Пользователь удалён и должен заново войти через MAX и принять документы',
     });
   } catch (error) {
     console.error('Не удалось изменить доступ пользователя:', error);

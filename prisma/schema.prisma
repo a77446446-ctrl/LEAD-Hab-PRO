@@ -22,6 +22,7 @@ model User {
   botStartedAt             DateTime?
   lastLoginAt              DateTime?
   deletedAt                DateTime?
+  registrationCycle        Int                      @default(1)
   createdAt                DateTime                 @default(now())
   updatedAt                DateTime                 @updatedAt
   subscriptions            Subscription[]
@@ -252,16 +253,17 @@ model DiscoveryRun {
 }
 
 model LegalAcceptance {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  documentType String
-  version      String
-  documentHash String
-  source       String   @default("MINI_APP")
-  acceptedAt   DateTime @default(now())
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documentType      String
+  version           String
+  registrationCycle Int      @default(1)
+  documentHash      String
+  source            String   @default("MINI_APP")
+  acceptedAt        DateTime @default(now())
 
-  @@unique([userId, documentType, version])
+  @@unique([userId, documentType, version, registrationCycle], map: "LegalAcceptance_registration_cycle_key")
   @@index([userId, acceptedAt])
 }
 

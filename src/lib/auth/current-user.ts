@@ -25,6 +25,7 @@ export async function getCurrentUser() {
       rating: true,
       notifyEnabled: true,
       botStartedAt: true,
+      registrationCycle: true,
       createdAt: true,
     },
   });
