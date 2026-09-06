@@ -59,6 +59,7 @@ export async function GET(request: Request) {
         title: true,
         rawText: true,
         phone: true,
+        allowContactless: true,
         city: true,
         categoryId: true,
         sourceChat: true,
@@ -75,7 +76,8 @@ export async function GET(request: Request) {
     const visibleLeads = owned
       ? leads
       : leads
-        .filter((lead) => lead.category.slug === 'info'
+        .filter((lead) => lead.allowContactless
+          || lead.category.slug === 'info'
           || hasActionableLeadContact([lead.title, lead.rawText, lead.phone || ''].join('\n')))
         .slice(0, take);
 

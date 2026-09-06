@@ -11,11 +11,13 @@ import {
   synchronizeParserSessionFiles,
 } from '@/lib/parser-accounts';
 import { normalizeMaxChatUrl } from '@/lib/max-chat-url';
+import { buildLeadTitle } from '@/lib/lead-title';
+import { buildParserMessageFingerprint, isTechnicalParserMessage } from '@/lib/parser-message-policy';
 import { parserPythonExecutable, parserPythonSpawnError } from '@/lib/python-runtime';
 import { hasActionableLeadContact } from '@/lib/redact-contact';
 import { hasOnlyExpiredLeadDates } from '@/lib/lead-date';
 import { createLeadWithDeliveries } from './bot-outbox';
-import { aiService } from './ai';
+import { aiService, type ProcessedLead } from './ai';
 
 type ParserAccount = {
   id: string;
@@ -271,6 +273,30 @@ async function resolveCategory(categoryValue: unknown) {
   }));
 }
 
+async function parserMessageWasProcessed(fingerprint: string): Promise<boolean> {
+  const [lead, seen] = await withDbRetry(() => Promise.all([
+    prisma.lead.findUnique({ where: { fingerprint }, select: { id: true } }),
+    prisma.parserSeenMessage.findUnique({ where: { fingerprint }, select: { fingerprint: true } }),
+  ]));
+  return Boolean(lead || seen);
+}
+
+async function rememberFilteredMessage(
+  fingerprint: string,
+  chatUrl: string,
+  messageId: string | undefined,
+): Promise<void> {
+  await withDbRetry(() => prisma.parserSeenMessage.upsert({
+    where: { fingerprint },
+    update: {},
+    create: {
+      fingerprint,
+      sourceChat: chatUrl,
+      messageId: messageId?.trim().slice(0, 200) || null,
+    },
+  }));
+}
+
 async function processMessage(
   message: { text: string; id?: string },
   chatUrl: string,
@@ -278,34 +304,74 @@ async function processMessage(
   parseAll: boolean,
   logs: LogEntry[],
 ): Promise<boolean> {
-  const original = message.text.trim();
-  if (original.length <= 15 || original.length >= 2000 || /^\p{L}+$/u.test(original)) return false;
-  const cleaned = cleanMessageText(original, chatTitle);
-  if (cleaned.length <= 15) return false;
-  if (hasOnlyExpiredLeadDates(cleaned)) {
-    pushLog(logs, 'Сообщение пропущено: все указанные даты уже прошли');
-    return false;
-  }
-  // Контакт обязателен даже для чатов с режимом «парсить всё».
-  if (!hasActionableLeadContact(cleaned)) {
-    pushLog(logs, 'Сообщение пропущено: отсутствует телефон или ссылка для связи');
-    return false;
-  }
-
   try {
-    const processed = await aiService.processLead(cleaned);
-
-    if (!parseAll && processed.isSpam) return false;
-    if (!parseAll && !processed.categoryMatched) {
-      pushLog(logs, 'Сообщение пропущено: нет совпадений с активными категориями');
+    const original = message.text.replace(/\u0000/g, '').trim();
+    if (isTechnicalParserMessage(original)) {
+      pushLog(logs, 'Сообщение пропущено: пустое, удалённое или служебное');
       return false;
     }
-    if (!parseAll && processed.score < 30) return false;
-    const category = await resolveCategory(processed.category);
-    const stableText = String(processed.cleanedText || cleaned).trim().slice(0, 1500);
+    const fingerprint = buildParserMessageFingerprint(chatUrl, message.id, original);
+    if (await parserMessageWasProcessed(fingerprint)) return false;
+
+    let processed: ProcessedLead | null = null;
+    let stableText: string;
+
+    if (parseAll) {
+      // В режиме «Все» анализ используется только для метаданных и не может отклонить сообщение.
+      stableText = original.slice(0, 1500);
+      try {
+        processed = await aiService.processLead(stableText);
+      } catch (error) {
+        pushLog(logs, `Обогащение сообщения недоступно, используется категория «Другое»: ${safeParserError(error)}`);
+      }
+    } else {
+      // Проверенный конвейер целевых лидов: качество, срок, контакт, плюс/минус и антиспам.
+      if (original.length <= 15 || original.length >= 2000 || /^\p{L}+$/u.test(original)) {
+        await rememberFilteredMessage(fingerprint, chatUrl, message.id);
+        return false;
+      }
+      const cleaned = cleanMessageText(original, chatTitle);
+      if (cleaned.length <= 15) {
+        await rememberFilteredMessage(fingerprint, chatUrl, message.id);
+        return false;
+      }
+      if (hasOnlyExpiredLeadDates(cleaned)) {
+        pushLog(logs, 'Сообщение пропущено: все указанные даты уже прошли');
+        await rememberFilteredMessage(fingerprint, chatUrl, message.id);
+        return false;
+      }
+      if (!hasActionableLeadContact(cleaned)) {
+        pushLog(logs, 'Сообщение пропущено: отсутствует телефон или ссылка для связи');
+        await rememberFilteredMessage(fingerprint, chatUrl, message.id);
+        return false;
+      }
+
+      processed = await aiService.processLead(cleaned);
+      if (processed.isSpam) {
+        await rememberFilteredMessage(fingerprint, chatUrl, message.id);
+        return false;
+      }
+      if (!processed.categoryMatched) {
+        pushLog(logs, 'Сообщение пропущено: нет совпадений с активными категориями');
+        await rememberFilteredMessage(fingerprint, chatUrl, message.id);
+        return false;
+      }
+      if (processed.score < 30) {
+        await rememberFilteredMessage(fingerprint, chatUrl, message.id);
+        return false;
+      }
+      stableText = String(processed.cleanedText || cleaned).trim().slice(0, 1500);
+    }
+
+    const category = await resolveCategory(processed?.category || 'other');
     
     const duplicate = await withDbRetry(() => prisma.lead.findFirst({
-      where: { rawText: stableText, sourceChat: chatUrl },
+      where: {
+        OR: [
+          { fingerprint },
+          { rawText: stableText, sourceChat: chatUrl },
+        ],
+      },
       select: { id: true },
     }));
     
@@ -314,14 +380,16 @@ async function processMessage(
     }
 
     await withDbRetry(() => createLeadWithDeliveries({
-      title: String(processed.title || 'Новое сообщение').slice(0, 200),
+      title: buildLeadTitle(stableText, processed?.title).slice(0, 200),
       rawText: stableText,
-      city: String(processed.city || 'Не указан').slice(0, 100),
+      city: String(processed?.city || 'Не указан').slice(0, 100),
       categoryId: category.id,
       sourceChat: chatUrl,
-      score: parseAll ? 100 : Math.min(100, Math.max(0, processed.score || 50)),
+      fingerprint,
+      allowContactless: parseAll,
+      score: parseAll ? 100 : Math.min(100, Math.max(0, processed?.score || 50)),
       price: category.leadPrice ?? 100,
-      status: processed.isSpam ? 'SPAM' : 'NEW',
+      status: 'NEW',
     }));
     return true;
   } catch (error) {

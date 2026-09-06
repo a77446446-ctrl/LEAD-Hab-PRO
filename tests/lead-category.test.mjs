@@ -47,7 +47,7 @@ test('при пересечении выбирается наиболее под
 test('режим Целевые требует реального совпадения с категорией', () => {
   const parser = read('src/services/max-parser.ts');
   const ai = read('src/services/ai.ts');
-  assert.match(parser, /!parseAll && !processed\.categoryMatched/);
+  assert.match(parser, /if \(parseAll\)[\s\S]*else \{[\s\S]*if \(!processed\.categoryMatched\)/);
   assert.match(parser, /нет совпадений с активными категориями/);
   assert.match(ai, /category: categoryMatch\.categorySlug/);
   assert.match(ai, /categoryMatched: categoryMatch\.matched/);

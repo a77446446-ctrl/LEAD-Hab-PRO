@@ -80,6 +80,7 @@ model Lead {
   title         String
   rawText       String
   phone         String?
+  allowContactless Boolean     @default(false)
   city          String
   categoryId    String
   category      Category      @relation(fields: [categoryId], references: [id])
@@ -213,6 +214,15 @@ model ParserLease {
   lastFinishedAt DateTime?
   lastResult     String?
   updatedAt      DateTime  @updatedAt
+}
+
+model ParserSeenMessage {
+  fingerprint String   @id
+  sourceChat  String
+  messageId   String?
+  firstSeenAt DateTime @default(now())
+
+  @@index([sourceChat, firstSeenAt])
 }
 
 model TargetChat {

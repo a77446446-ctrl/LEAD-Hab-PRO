@@ -75,7 +75,7 @@ export async function enqueueLeadDeliveries(
 }
 
 export async function createLeadWithDeliveries(data: Prisma.LeadUncheckedCreateInput) {
-  if (!hasActionableLeadContact(contactText(data))) {
+  if (!data.allowContactless && !hasActionableLeadContact(contactText(data))) {
     throw new LeadContactRequiredError();
   }
   return prisma.$transaction(async (tx) => {
@@ -200,7 +200,7 @@ export async function dispatchBotDeliveries(requestedLimit = 10): Promise<{
       continue;
     }
 
-    if (delivery.kind.startsWith('LEAD_TEASER') && delivery.lead && !hasActionableLeadContact(contactText(delivery.lead))) {
+    if (delivery.kind.startsWith('LEAD_TEASER') && delivery.lead && !delivery.lead.allowContactless && !hasActionableLeadContact(contactText(delivery.lead))) {
       await markSkipped(delivery.id, 'В лиде отсутствует телефон или ссылка для связи');
       summary.skipped += 1;
       continue;

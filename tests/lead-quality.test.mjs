@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 import { buildLeadTitle } from '../src/lib/lead-title.ts';
+import { buildParserMessageFingerprint, isTechnicalParserMessage } from '../src/lib/parser-message-policy.ts';
 import { hasActionableLeadContact } from '../src/lib/redact-contact.ts';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
@@ -34,14 +35,37 @@ test('призыв написать в личку без адреса не сч�
   assert.equal(hasActionableLeadContact('Почта master@example.ru'), true);
 });
 
-test('контакт обязателен при сохранении, выдаче и отправке лида', () => {
+test('контакт обязателен по умолчанию и отключается только явным opt-in режима Все', () => {
   const parser = read('src/services/max-parser.ts');
   const outbox = read('src/services/bot-outbox.ts');
   const leadsApi = read('src/app/api/leads/route.ts');
+  const schema = read('prisma/schema.prisma');
 
   assert.match(parser, /if \(!hasActionableLeadContact\(cleaned\)\)/);
-  assert.doesNotMatch(parser, /!parseAll\s*&&\s*extractContactInfo/);
+  assert.match(parser, /allowContactless: parseAll/);
+  assert.match(parser, /parserMessageWasProcessed\(fingerprint\)/);
+  assert.match(parser, /rememberFilteredMessage\(fingerprint, chatUrl, message\.id\)/);
+  assert.match(parser, /status: 'NEW'/);
+  assert.doesNotMatch(parser, /status: processed\.isSpam/);
+  assert.match(schema, /allowContactless\s+Boolean\s+@default\(false\)/);
+  assert.match(schema, /model ParserSeenMessage[\s\S]*fingerprint\s+String\s+@id/);
+  assert.match(outbox, /!data\.allowContactless\s*&&\s*!hasActionableLeadContact/);
   assert.match(outbox, /throw new LeadContactRequiredError/);
-  assert.match(outbox, /delivery\.kind\.startsWith\('LEAD_TEASER'\)[\s\S]*hasActionableLeadContact/);
-  assert.match(leadsApi, /\.filter\(\(lead\)[\s\S]*hasActionableLeadContact/);
+  assert.match(outbox, /!delivery\.lead\.allowContactless\s*&&\s*!hasActionableLeadContact/);
+  assert.match(leadsApi, /\.filter\(\(lead\) => lead\.allowContactless[\s\S]*hasActionableLeadContact/);
+});
+
+test('технический фильтр пропускает пользовательский текст и отклоняет только заглушки', () => {
+  assert.equal(isTechnicalParserMessage(''), true);
+  assert.equal(isTechnicalParserMessage('Сообщение удалено'), true);
+  assert.equal(isTechnicalParserMessage('Служебное сообщение'), true);
+  assert.equal(isTechnicalParserMessage('Ищу работу без телефона и любых ссылок'), false);
+  assert.equal(isTechnicalParserMessage('Казино, реклама и любой другой текст'), false);
+});
+
+test('fingerprint защищает от повтора после перезапуска и разделяет чаты', () => {
+  const first = buildParserMessageFingerprint('https://web.max.ru/a/#chat-1', '42', 'Текст');
+  assert.equal(first, buildParserMessageFingerprint('https://web.max.ru/a/#chat-1', '42', 'Другой DOM-текст'));
+  assert.notEqual(first, buildParserMessageFingerprint('https://web.max.ru/a/#chat-2', '42', 'Текст'));
+  assert.notEqual(first, buildParserMessageFingerprint('https://web.max.ru/a/#chat-1', '43', 'Текст'));
 });
