@@ -8,6 +8,8 @@ export const dynamic = 'force-dynamic';
 
 const MAX_WEBHOOK_BYTES = 64 * 1_024;
 
+class BlockedMaxUserError extends Error {}
+
 function asObject(value: unknown): Record<string, unknown> | null {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
     ? value as Record<string, unknown>
@@ -73,14 +75,22 @@ export async function POST(request: Request) {
         || 'Пользователь MAX';
       const startedAt = eventDate(update.timestamp);
 
-      await prisma.$transaction(async (tx) => {
+      const activated = await prisma.$transaction(async (tx) => {
+        const numericMaxId = BigInt(maxId);
+        const blockedBeforeActivation = await tx.blockedMaxUser.findUnique({
+          where: { maxId: numericMaxId },
+          select: { maxId: true },
+        });
+        if (blockedBeforeActivation) return false;
+
         const user = await tx.user.upsert({
-          where: { maxId: BigInt(maxId) },
+          where: { maxId: numericMaxId },
           create: {
-            maxId: BigInt(maxId),
+            maxId: numericMaxId,
             name,
             notifyEnabled: true,
             botStartedAt: startedAt,
+            deletedAt: null,
           },
           update: {
             name,
@@ -89,8 +99,17 @@ export async function POST(request: Request) {
           },
           select: { id: true, maxId: true },
         });
+
+        const blockedAfterActivation = await tx.blockedMaxUser.findUnique({
+          where: { maxId: numericMaxId },
+          select: { maxId: true },
+        });
+        if (blockedAfterActivation) throw new BlockedMaxUserError('Учётная запись заблокирована');
+
         await enqueueWelcomeDelivery(tx, user.id, user.maxId);
+        return true;
       });
+      if (!activated) return NextResponse.json({ ok: true, ignored: true });
     } else if (['bot_stopped', 'dialog_removed', 'dialog_muted'].includes(updateType)) {
       const maxUser = asObject(update.user);
       const maxId = normalizeMaxNumericId(maxUser?.user_id ?? maxUser?.id);
@@ -105,7 +124,7 @@ export async function POST(request: Request) {
       const maxId = normalizeMaxNumericId(maxUser?.user_id ?? maxUser?.id);
       if (maxId) {
         await prisma.user.updateMany({
-          where: { maxId: BigInt(maxId), botStartedAt: { not: null } },
+          where: { maxId: BigInt(maxId), deletedAt: null, botStartedAt: { not: null } },
           data: { notifyEnabled: true },
         });
       }
@@ -143,6 +162,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ ok: true });
   } catch (error) {
+    if (error instanceof BlockedMaxUserError) {
+      return NextResponse.json({ ok: true, ignored: true });
+    }
     console.error('[MAX WEBHOOK]', error instanceof Error ? error.message : 'Ошибка обработки');
     return NextResponse.json({ error: 'Не удалось обработать событие MAX' }, { status: 500 });
   }

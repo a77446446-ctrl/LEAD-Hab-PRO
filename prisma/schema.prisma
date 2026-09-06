@@ -21,6 +21,7 @@ model User {
   onboardingBonusGrantedAt DateTime?
   botStartedAt             DateTime?
   lastLoginAt              DateTime?
+  deletedAt                DateTime?
   createdAt                DateTime                 @default(now())
   updatedAt                DateTime                 @updatedAt
   subscriptions            Subscription[]
@@ -30,6 +31,16 @@ model User {
   botDeliveries            BotDelivery[]
   legalAcceptances         LegalAcceptance[]
   paymentOrders            PaymentOrder[]
+
+  @@index([deletedAt])
+}
+
+model BlockedMaxUser {
+  maxId     BigInt   @id
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
 }
 
 model Category {
@@ -138,27 +149,27 @@ model MaxBotChat {
 }
 
 model Purchase {
-  id           String   @id @default(uuid())
-  userId       String
-  user         User     @relation(fields: [userId], references: [id])
-  leadId       String
-  lead         Lead     @relation(fields: [leadId], references: [id])
-  price        Int      @default(0)
-  deletedAt    DateTime?
-  createdAt    DateTime @default(now())
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  leadId    String
+  lead      Lead      @relation(fields: [leadId], references: [id])
+  price     Int       @default(0)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([userId, deletedAt])
   @@index([leadId])
 }
 
 model Transaction {
-  id            String   @id @default(uuid())
-  userId        String
-  user          User     @relation(fields: [userId], references: [id])
-  type          String
-  amount        Int      @default(0)
-  deletedAt    DateTime?
-  createdAt     DateTime @default(now())
+  id        String    @id @default(uuid())
+  userId    String
+  user      User      @relation(fields: [userId], references: [id])
+  type      String
+  amount    Int       @default(0)
+  deletedAt DateTime?
+  createdAt DateTime  @default(now())
 
   @@index([userId, deletedAt, createdAt])
 }
@@ -173,7 +184,7 @@ model MaksAccount {
   id                  String    @id @default(uuid())
   name                String
   sessionFile         String    @unique
-  sessionData         String?   // AES-256-GCM backup Playwright storage_state
+  sessionData         String? // AES-256-GCM backup Playwright storage_state
   sessionChecksum     String?
   sessionUpdatedAt    DateTime?
   proxyString         String? // Зашифрованный proxy URL; legacy plaintext мигрирует при чтении
@@ -202,6 +213,7 @@ model ParserLease {
   lastResult     String?
   updatedAt      DateTime  @updatedAt
 }
+
 model TargetChat {
   id               String    @id @default(uuid())
   url              String    @unique

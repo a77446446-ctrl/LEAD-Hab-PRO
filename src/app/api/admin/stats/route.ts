@@ -35,7 +35,7 @@ export async function GET(request: Request) {
         where: { createdAt: { gte: today, lt: nextDay } },
       }),
       prisma.user.count({
-        where: { role: 'USER' },
+        where: { role: 'USER', deletedAt: null },
       }),
       prisma.subscription.count({
         where: { expiresAt: { gt: new Date() } },

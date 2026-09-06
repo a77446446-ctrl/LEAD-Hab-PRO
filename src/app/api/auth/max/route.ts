@@ -7,6 +7,7 @@ import { isConfiguredAdminMaxId } from '@/lib/auth/admin-config';
 
 export const runtime = 'nodejs';
 
+class BlockedMaxUserError extends Error {}
 
 
 export async function POST(request: Request) {
@@ -24,6 +25,12 @@ export async function POST(request: Request) {
 
     const maxUser = verifyMaxInitData(body.initData, process.env.MAX_BOT_TOKEN || '');
     const displayName = buildMaxDisplayName(maxUser);
+
+    const blocked = await prisma.blockedMaxUser.findUnique({
+      where: { maxId: maxUser.maxId },
+      select: { maxId: true },
+    });
+    if (blocked) throw new BlockedMaxUserError('Учётная запись заблокирована');
     
     // Read bonus from DB
     const bonusSetting = await prisma.setting.findUnique({ where: { key: 'maks_welcome_bonus_amount' } });
@@ -36,6 +43,12 @@ export async function POST(request: Request) {
     const now = new Date();
 
     const user = await prisma.$transaction(async (tx) => {
+      const blockedBeforeRegistration = await tx.blockedMaxUser.findUnique({
+        where: { maxId: maxUser.maxId },
+        select: { maxId: true },
+      });
+      if (blockedBeforeRegistration) throw new BlockedMaxUserError('Учётная запись заблокирована');
+
       const current = await tx.user.upsert({
         where: { maxId: maxUser.maxId },
         create: {
@@ -50,6 +63,7 @@ export async function POST(request: Request) {
           lastLoginAt: now,
           role: configuredAdmin ? 'ADMIN' : 'USER',
           botStartedAt: now,
+          deletedAt: null,
         },
       });
 
@@ -72,6 +86,13 @@ export async function POST(request: Request) {
           },
         });
       }
+
+      // Повторная проверка закрывает гонку между входом и блокировкой из админки.
+      const blockedAfterRegistration = await tx.blockedMaxUser.findUnique({
+        where: { maxId: maxUser.maxId },
+        select: { maxId: true },
+      });
+      if (blockedAfterRegistration) throw new BlockedMaxUserError('Учётная запись заблокирована');
 
       const result = await tx.user.findUnique({
         where: { id: current.id },
@@ -101,6 +122,9 @@ export async function POST(request: Request) {
     return response;
   } catch (error) {
     const message = error instanceof Error ? error.message : 'Ошибка авторизации';
+    if (error instanceof BlockedMaxUserError) {
+      return NextResponse.json({ error: message, code: 'ACCOUNT_BLOCKED' }, { status: 403 });
+    }
     const configurationError = ['_SECRET', '_TOKEN', 'не настроен', 'ONBOARDING_BONUS'].some((value) => message.includes(value));
     const validationError = [
       'Некорректные данные запуска MAX',

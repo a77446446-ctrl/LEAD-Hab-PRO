@@ -25,6 +25,9 @@ test('профиль доступен обычному пользователю 
   assert.match(middleware, /'\/profile\/:path\*'/);
   assert.match(profile, /if \(!user\) return null/);
   assert.match(profile, /Уведомления от бота/);
+  assert.match(profile, /role="switch"/);
+  assert.match(profile, /setNotifyEnabled\(enabled\)/);
+  assert.match(profile, /setNotifyEnabled\(previousValue\)/);
 });
 
 test('обычный пользователь принимает документы до доступа к приложению, администратор освобождён', () => {

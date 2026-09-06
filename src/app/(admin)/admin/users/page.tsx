@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
-import { AlertCircle, RefreshCw, Search, Shield, UserCheck, Users as UsersIcon } from 'lucide-react';
+import { AlertCircle, Ban, Loader2, RefreshCw, Search, Shield, Trash2, UserCheck, Users as UsersIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface User {
@@ -13,6 +13,7 @@ interface User {
   balance: number;
   rating: number;
   createdAt: string;
+  manageable: boolean;
 }
 
 function formatDate(value: string) {
@@ -43,6 +44,8 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
+  const [actionError, setActionError] = useState('');
+  const [pendingAction, setPendingAction] = useState<string | null>(null);
 
   const fetchUsers = useCallback(async () => {
     setLoading(true);
@@ -71,6 +74,35 @@ export default function UsersPage() {
       setLoading(false);
     }
   }, []);
+
+  const manageUser = useCallback(async (user: User, mode: 'delete' | 'block') => {
+    if (!user.manageable || pendingAction) return;
+
+    const confirmed = window.confirm(mode === 'block'
+      ? `Полностью заблокировать ${user.name}? Пользователь больше не сможет зарегистрироваться.`
+      : `Удалить ${user.name}? Активные подписки завершатся, но пользователь сможет зарегистрироваться заново.`);
+    if (!confirmed) return;
+
+    setPendingAction(`${user.id}:${mode}`);
+    setActionError('');
+    try {
+      const response = await fetch(`/api/admin/users?userId=${encodeURIComponent(user.id)}&mode=${mode}`, {
+        method: 'DELETE',
+      });
+      const data: unknown = await response.json();
+      if (!response.ok) {
+        const message = typeof data === 'object' && data !== null && 'error' in data
+          ? String(data.error)
+          : 'Не удалось изменить доступ пользователя';
+        throw new Error(message);
+      }
+      setUsers((current) => current.filter((item) => item.id !== user.id));
+    } catch (reason) {
+      setActionError(reason instanceof Error ? reason.message : 'Не удалось изменить доступ пользователя');
+    } finally {
+      setPendingAction(null);
+    }
+  }, [pendingAction]);
 
   useEffect(() => {
     void fetchUsers();
@@ -125,6 +157,13 @@ export default function UsersPage() {
         </div>
       )}
 
+      {actionError && (
+        <div className="flex items-center gap-3 rounded-xl border border-red-800 bg-red-950/40 p-4 text-sm font-bold text-red-200">
+          <AlertCircle className="shrink-0" size={18} />
+          <span>{actionError}</span>
+        </div>
+      )}
+
       {loading ? (
         <div className="flex min-h-64 items-center justify-center">
           <RefreshCw className="animate-spin text-accent" size={32} />
@@ -149,6 +188,16 @@ export default function UsersPage() {
                   <div><dt className="text-[9px] font-bold uppercase text-zinc-500">Рейтинг</dt><dd className="mt-1 text-xs sm:text-sm font-bold text-white"><span className="text-accent">★</span> {user.rating.toFixed(1)}</dd></div>
                   <div><dt className="text-[9px] font-bold uppercase text-zinc-500">Регистрация</dt><dd className="mt-1 text-xs font-bold text-zinc-300">{formatDate(user.createdAt)}</dd></div>
                 </dl>
+                {user.manageable && (
+                  <div className="mt-4 grid grid-cols-2 gap-2 border-t border-zinc-800 pt-4">
+                    <button type="button" disabled={Boolean(pendingAction)} onClick={() => void manageUser(user, 'delete')} className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-zinc-700 text-[10px] font-bold uppercase text-zinc-200 hover:border-zinc-500 hover:bg-zinc-800 disabled:opacity-50">
+                      {pendingAction === `${user.id}:delete` ? <Loader2 className="animate-spin" size={14} /> : <Trash2 size={14} />} Удалить
+                    </button>
+                    <button type="button" disabled={Boolean(pendingAction)} onClick={() => void manageUser(user, 'block')} className="flex min-h-11 items-center justify-center gap-2 rounded-lg border border-red-900 text-[10px] font-bold uppercase text-red-400 hover:bg-red-950/50 disabled:opacity-50">
+                      {pendingAction === `${user.id}:block` ? <Loader2 className="animate-spin" size={14} /> : <Ban size={14} />} Полный блок
+                    </button>
+                  </div>
+                )}
               </article>
             ))}
           </div>
@@ -161,10 +210,10 @@ export default function UsersPage() {
                <h3 className="font-bold text-[10px] uppercase tracking-[0.2em] text-zinc-400">СПИСОК ПОЛЬЗОВАТЕЛЕЙ</h3>
             </div>
             <div className="overflow-x-auto overflow-y-auto max-h-[400px] p-0 custom-scrollbar relative">
-              <table className="w-full min-w-[900px] border-collapse text-left">
+              <table className="w-full min-w-[1100px] border-collapse text-left">
                 <thead className="sticky top-0 bg-zinc-900/95 backdrop-blur z-10 shadow-sm">
                   <tr className="border-b border-zinc-800 text-[9px] font-bold uppercase tracking-[0.2em] text-zinc-400">
-                    <th className="px-8 py-5">Пользователь</th><th className="px-6 py-5">Роль</th><th className="px-6 py-5">Баланс</th><th className="px-6 py-5">Рейтинг</th><th className="px-8 py-5">Регистрация</th>
+                    <th className="px-8 py-5">Пользователь</th><th className="px-6 py-5">Роль</th><th className="px-6 py-5">Баланс</th><th className="px-6 py-5">Рейтинг</th><th className="px-6 py-5">Регистрация</th><th className="px-8 py-5 text-right">Действия</th>
                   </tr>
                 </thead>
                 <tbody className="text-sm bg-transparent">
@@ -174,7 +223,21 @@ export default function UsersPage() {
                       <td className="px-6 py-5"><RoleBadge role={user.role} /></td>
                       <td className="px-6 py-5 font-bold text-white">{user.balance} ₽</td>
                       <td className="px-6 py-5 font-bold text-zinc-200"><span className="text-accent">★</span> {user.rating.toFixed(1)}</td>
-                      <td className="px-8 py-5 text-[11px] font-bold uppercase text-zinc-400">{formatDate(user.createdAt)}</td>
+                      <td className="px-6 py-5 text-[11px] font-bold uppercase text-zinc-400">{formatDate(user.createdAt)}</td>
+                      <td className="px-8 py-5">
+                        {user.manageable ? (
+                          <div className="flex justify-end gap-2">
+                            <button type="button" title="Удалить с возможностью новой регистрации" disabled={Boolean(pendingAction)} onClick={() => void manageUser(user, 'delete')} className="flex h-9 items-center gap-2 rounded-lg border border-zinc-700 px-3 text-[9px] font-bold uppercase text-zinc-300 hover:border-zinc-500 hover:bg-zinc-800 disabled:opacity-50">
+                              {pendingAction === `${user.id}:delete` ? <Loader2 className="animate-spin" size={13} /> : <Trash2 size={13} />} Удалить
+                            </button>
+                            <button type="button" title="Удалить и навсегда запретить регистрацию" disabled={Boolean(pendingAction)} onClick={() => void manageUser(user, 'block')} className="flex h-9 items-center gap-2 rounded-lg border border-red-950 px-3 text-[9px] font-bold uppercase text-red-400 hover:bg-red-950/50 disabled:opacity-50">
+                              {pendingAction === `${user.id}:block` ? <Loader2 className="animate-spin" size={13} /> : <Ban size={13} />} Блок
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="text-right text-[9px] font-bold uppercase text-zinc-600">Защищён</div>
+                        )}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

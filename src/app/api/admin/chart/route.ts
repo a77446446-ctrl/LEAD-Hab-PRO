@@ -19,7 +19,7 @@ export async function GET() {
       select: { amount: true, createdAt: true },
     });
     const users = await prisma.user.findMany({
-      where: { createdAt: { gte: startDate } },
+      where: { createdAt: { gte: startDate }, deletedAt: null },
       select: { createdAt: true },
     });
     const leads = await prisma.lead.findMany({

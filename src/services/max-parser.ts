@@ -13,6 +13,7 @@ import {
 import { normalizeMaxChatUrl } from '@/lib/max-chat-url';
 import { parserPythonExecutable, parserPythonSpawnError } from '@/lib/python-runtime';
 import { extractContactInfo } from '@/lib/redact-contact';
+import { hasOnlyExpiredLeadDates } from '@/lib/lead-date';
 import { createLeadWithDeliveries } from './bot-outbox';
 import { aiService } from './ai';
 
@@ -281,6 +282,10 @@ async function processMessage(
   if (original.length <= 15 || original.length >= 2000 || /^\p{L}+$/u.test(original)) return false;
   const cleaned = cleanMessageText(original, chatTitle);
   if (cleaned.length <= 15) return false;
+  if (hasOnlyExpiredLeadDates(cleaned)) {
+    pushLog(logs, 'Сообщение пропущено: все указанные даты уже прошли');
+    return false;
+  }
   // When parseAll is false, require contact info; when true, accept all messages
   if (!parseAll && extractContactInfo(original).length === 0) return false;
 

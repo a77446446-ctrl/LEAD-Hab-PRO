@@ -53,6 +53,8 @@ export default function ProfilePage() {
   };
 
   const changeNotifications = async (enabled: boolean) => {
+    const previousValue = user.notify_enabled;
+    setNotifyEnabled(enabled);
     setSavingNotifications(true);
     try {
       const response = await fetch('/api/profile', {
@@ -65,8 +67,12 @@ export default function ProfilePage() {
         if (data.code === 'BOT_NOT_STARTED' && data.botUrl) window.WebApp?.openMaxLink?.(data.botUrl);
         throw new Error(data.error || 'Не удалось изменить уведомления');
       }
-      setNotifyEnabled(Boolean(data.notify_enabled));
+      if (typeof data.notify_enabled !== 'boolean') {
+        throw new Error('Сервер не подтвердил состояние уведомлений');
+      }
+      setNotifyEnabled(data.notify_enabled);
     } catch (error) {
+      setNotifyEnabled(previousValue);
       alert(error instanceof Error ? error.message : 'Не удалось изменить уведомления');
     } finally {
       setSavingNotifications(false);
@@ -164,18 +170,20 @@ export default function ProfilePage() {
             <div className="border border-black bg-white text-black p-2"><Settings size={18} /></div>
             Уведомления
           </div>
-          <div>
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                className="sr-only peer"
-                checked={user.notify_enabled}
-                disabled={savingNotifications}
-                onChange={(event) => changeNotifications(event.target.checked)}
-              />
-              <div className="w-11 h-6 bg-[#ddd] peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-black after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-black after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-accent border border-black"></div>
-            </label>
-          </div>
+          <button
+            type="button"
+            role="switch"
+            aria-checked={user.notify_enabled}
+            aria-label="Уведомления"
+            disabled={savingNotifications}
+            onClick={() => void changeNotifications(!user.notify_enabled)}
+            className={`relative inline-flex h-6 w-11 shrink-0 items-center rounded-full border border-black p-px transition-colors ${user.notify_enabled ? 'bg-accent' : 'bg-[#ddd]'} ${savingNotifications ? 'cursor-wait opacity-60' : 'cursor-pointer'}`}
+          >
+            <span
+              aria-hidden="true"
+              className={`h-5 w-5 rounded-full border border-black bg-white transition-transform ${user.notify_enabled ? 'translate-x-5' : 'translate-x-0'}`}
+            />
+          </button>
         </div>
 
         {user.role === 'admin' && (

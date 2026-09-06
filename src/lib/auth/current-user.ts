@@ -14,8 +14,8 @@ export async function getCurrentUser() {
   const token = cookieStore.get(sessionCookie.name)?.value;
   const session = await verifySessionToken(token);
   if (!session) return null;
-  return prisma.user.findUnique({
-    where: { id: session.userId },
+  return prisma.user.findFirst({
+    where: { id: session.userId, deletedAt: null },
     select: {
       id: true,
       maxId: true,
