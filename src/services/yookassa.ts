@@ -87,12 +87,19 @@ export async function createPaymentOrder(userId: string, input: {
     if (amount < 100 || amount > 100_000) throw new Error('Сумма пополнения должна быть от 100 до 100 000 ₽');
     description = `Пополнение баланса ПО ДЕЛАМ на ${amountValue(amount)} ₽`;
   } else {
-    if (typeof input.categoryId !== 'string' || !UUID.test(input.categoryId)) throw new Error('Некорректная категория');
-    const category = await prisma.category.findFirst({ where: { id: input.categoryId, active: true } });
-    if (!category || category.subscriptionPrice <= 0 || category.days < 1) throw new Error('PRO-подписка недоступна');
-    categoryId = category.id; subscriptionDays = Math.min(category.days, 3650);
-    amount = category.subscriptionPrice;
-    description = `PRO «${category.name}» на ${subscriptionDays} дней`.slice(0, 128);
+    if (input.categoryId === 'GLOBAL_PRO') {
+      categoryId = 'GLOBAL_PRO';
+      subscriptionDays = 30;
+      amount = 100000; // 1000 RUB in kopecks
+      description = `PRO ПОДПИСКА (ВСЕ ЛИДЫ) на 30 дней`;
+    } else {
+      if (typeof input.categoryId !== 'string' || !UUID.test(input.categoryId)) throw new Error('Некорректная категория');
+      const category = await prisma.category.findFirst({ where: { id: input.categoryId, active: true } });
+      if (!category || category.subscriptionPrice <= 0 || category.days < 1) throw new Error('PRO-подписка недоступна');
+      categoryId = category.id; subscriptionDays = Math.min(category.days, 3650);
+      amount = category.subscriptionPrice;
+      description = `PRO «${category.name}» на ${subscriptionDays} дней`.slice(0, 128);
+    }
   }
 
   const idempotencyKey = randomUUID();

@@ -74,7 +74,7 @@ export async function POST(request: Request) {
       const subscription = await tx.subscription.findFirst({
         where: {
           userId: currentUser.id,
-          categoryId: lead.categoryId,
+          categoryId: { in: [lead.categoryId, 'GLOBAL_PRO'] },
           expiresAt: { gt: new Date() },
         },
         select: { id: true },
