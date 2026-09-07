@@ -220,7 +220,7 @@ def extract_messages(page):
         return elements.map((node) => {
           let text = (node.innerText || node.textContent || '').trim();
           const links = [...new Set(Array.from(node.querySelectorAll('a[href]'))
-            .map((link) => link.href).filter((href) => /^https?:\/\//i.test(href)))];
+            .map((link) => link.href).filter((href) => /^https?:\/\//i.test(href) && !/(?:t\.me\/(?:\+|joinchat|c\/|share)|t\.me\/[a-zA-Z0-9_]+\/\d+)/i.test(href)))];
           if (links.length) text += '\n\nКонтакты (ссылки): ' + links.join(' , ');
           return { text, id: node.getAttribute('data-mid') || node.getAttribute('data-id') || undefined };
         }).filter((item) => {

@@ -222,8 +222,8 @@ ${categoriesList}
           
           return {
             title: buildLeadTitle(rawText, result.title),
-            // Категорию всегда определяют локальные плюс- и минус-правила.
-            category: categoryMatch.categorySlug,
+            // ИИ теперь сам определяет категорию на основе контекста
+            category: result.category && result.category !== 'other' ? result.category : categoryMatch.categorySlug,
             city: result.city || 'НЕ УКАЗАН',
             budget: result.budget || 'По договоренности',
             score: result.score || 70,

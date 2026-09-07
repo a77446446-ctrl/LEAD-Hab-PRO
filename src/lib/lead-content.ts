@@ -1,26 +1,23 @@
 const CONTACT_FOOTER = /^Контакты\s*\(ссылки\):/iu;
-const TIME = /^(?:[01]?\d|2[0-3]):[0-5]\d$/u;
-const COUNTER = /^\d{1,7}(?:[.,]\d+)?\s*(?:[kкmм]|\s*комментари[а-я]*|\s*просмотр[а-я]*)?$/iu;
+const EMOJI_PREFIX = /^(?:[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]|\s)*/;
+const META_LINE = new RegExp(EMOJI_PREFIX.source + '(?:(?:сегодня|вчера|завтра)?\\s*(?:в\\s*)?(?:[01]?\\d|2[0-3]):[0-5]\\d|\\d{1,7}(?:[.,]\\d+)?[kкmм]?|комментари[а-я]*|просмотр[а-я]*|реакци[а-я]*|поделил[а-я]*|переслал[а-я]*|изменен[а-я]*)\\s*$', 'iu');
 const VALUE_LABEL = /(?:оплат\p{L}*|зарплат\p{L}*|оклад|ставк\p{L}*|бюджет|сумм\p{L}*|телефон|контакт|адрес|дом|кв\.?|корпус|начало|окончание|смен\p{L}*|график|время)\s*[:—–-]?$/iu;
-const PROMO_FOOTER = /^(?:подборка вакансий в классных компаниях|больше вакансий|все вакансии тут|подписывайтесь на (?:наш )?канал)[.!\s]*$/iu;
+const PROMO_FOOTER = /^(?:подборка вакансий|больше вакансий|все вакансии|подписывайтесь|подпишись|подписывайся|переходи в|наш канал|telegram канал).*/iu;
 
 /** Удаляет хвост интерфейса, сохраняя числа и время внутри объявления. */
 function cleanBlock(lines: string[]): string[] {
-  const result = lines.filter((line) => !PROMO_FOOTER.test(line));
+  const result = lines.filter((line) => !PROMO_FOOTER.test(line) && !/^[_\-\s=~*]{4,}$/.test(line));
   while (result.length && !result.at(-1)) result.pop();
   
   if (result.length === 0) return result;
 
   let end = result.length - 1;
-  // If the last line is TIME, we definitely want to check the block.
-  // If the last line is COUNTER, we also want to check the block.
-  if (!TIME.test(result[end]) && !COUNTER.test(result[end])) {
+  if (!META_LINE.test(result[end])) {
     return result;
   }
 
   let start = end;
-  // Move start backwards as long as we see TIME or COUNTER
-  while (start > 0 && (TIME.test(result[start - 1]) || COUNTER.test(result[start - 1]))) {
+  while (start > 0 && META_LINE.test(result[start - 1])) {
     start--;
   }
 

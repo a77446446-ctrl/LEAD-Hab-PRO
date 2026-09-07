@@ -5,45 +5,71 @@ const MAX_TITLE_WORDS = 10;
 const MAX_TITLE_LENGTH = 100;
 
 function cleanCandidate(value: string): string {
-  return value
+  let cleaned = value
     .replace(/[\u0000-\u001f\u007f]/g, ' ')
     .replace(/\s+/g, ' ')
-    .replace(/^[\s|•·—–✅☑️🔹🔸📌📣🔥-]+/u, '')
+    .replace(/^[\s|•·—–✅☑️🔹🔸📌📣🔥❌❗️!-]+/u, '')
     .replace(/[\s,;:—–-]+$/g, '')
     .trim();
+
+  // Удаляем мусорные префиксы
+  const stopPrefixes = /^(?:москва|спб|питер|мск|заявка закрыта|стоп|срочно|внимание|работа|подработка|халтура|шабашка|сегодня|завтра|послезавтра|смена|[\d.,:\s]+руб|[\d.,:\s]+р\/ч|на завтра|на сегодня)[!:\s\-|•·—–✅☑️🔹🔸📌📣🔥❌❗️]+/iu;
+  let prev = '';
+  while (cleaned !== prev) {
+    prev = cleaned;
+    cleaned = cleaned.replace(stopPrefixes, '').trim();
+    cleaned = cleaned.replace(/^[\s|•·—–✅☑️🔹🔸📌📣🔥❌❗️!-]+/u, '').trim();
+  }
+  
+  return cleaned;
 }
 
 function titleFromSource(sourceText: string): string {
   const lines = cleanLeadText(sourceText)
     .split(/\r?\n+/)
     .map(cleanCandidate)
-    .filter((line) => line.length >= 4);
+    .filter((line) => line.length >= 4 && !/^(?:заявка закрыта|стоп|не актуально|удалено)/iu.test(line) && !/^(?:ст\.|метро|м\.|г\.|город|ул\.|улица|адрес|район)\s/iu.test(line));
   if (lines.length === 0) return '';
 
-  // Сначала содержательное требование, а не отдельная строка «Требуется:».
+  // Сначала ищем явные маркеры задач
+  const taskMarker = /^(?:задача|что делать|нужно|требуется|ищем|нужны|обязанности|требуются)[\s:-]+/iu;
+  const taskIndex = lines.findIndex((line) => taskMarker.test(line));
+  if (taskIndex >= 0) {
+    const candidate = lines[taskIndex].replace(taskMarker, '').trim();
+    if (candidate.length >= 4) return cleanCandidate(candidate.split(/(?<=[!?])\s|\s[|•]\s|[,;]/)[0]);
+    if (lines.length > taskIndex + 1) return cleanCandidate(lines[taskIndex + 1].split(/(?<=[!?])\s|\s[|•]\s|[,;]/)[0]);
+  }
+
+  // Если нет маркера, ищем содержательное требование
   const intentIndex = lines.findIndex((line) => INTENT_PATTERN.test(line) && !isGenericTitle(line));
   let candidate = intentIndex >= 0 ? lines[intentIndex] : lines[0];
   if (intentIndex >= 0 && lines.length > intentIndex + 1) {
-    // Join with next line if it doesn't look like a new section (e.g. no colon, no uppercase start unless it's short)
     const nextLine = lines[intentIndex + 1];
-    if (nextLine && !/^(?:оплата|график|телефон|контакт|условия|требования|обязанности)/iu.test(nextLine)) {
+    if (nextLine && !/^(?:оплата|график|телефон|контакт|условия|требования|обязанности|адрес)/iu.test(nextLine)) {
       candidate = `${candidate} ${nextLine}`;
     }
   }
 
-  if (intentIndex < 0) {
+  if (intentIndex < 0 && taskIndex < 0) {
     const heading = lines.findIndex((line) => isGenericTitle(line) && INTENT_PATTERN.test(line));
     if (heading >= 0) {
       const details = lines.slice(heading + 1, heading + 3)
-        .filter((line) => !/^(?:оплата|график|телефон|контакт|это удобно)/iu.test(line))
+        .filter((line) => !/^(?:оплата|график|телефон|контакт|это удобно|адрес)/iu.test(line))
         .map((line) => cleanCandidate(line.split(/[,;]|\s[—–]\s/)[0]));
       if (details.length) candidate = `${lines[heading]} ${details.join(' и ')}`;
     }
   }
+
   const intent = candidate.match(INTENT_PATTERN);
   if (intent?.index !== undefined) {
     candidate = candidate.slice(intent.index + intent[1].length);
   }
+  
+  // Если после всего остался адрес - берем следующую строку
+  if (/^адрес[\s:-]/iu.test(candidate) && lines.length > 1) {
+      candidate = lines[1];
+  }
+
   return cleanCandidate(candidate.split(/(?<=[!?])\s|\s[|•]\s/)[0] || candidate);
 }
 

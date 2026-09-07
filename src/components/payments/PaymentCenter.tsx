@@ -50,9 +50,9 @@ export function PaymentCenter() {
           <h2 className="text-2xl font-black uppercase">Подписки</h2>
         </div>
         <div className="border border-black bg-white p-6 shadow-[4px_4px_0_0_#000]">
-          <h3 className="text-xl font-black uppercase mb-4">Всё бесплатно</h3>
+          <h3 className="text-xl font-black uppercase mb-4">Открытый доступ</h3>
           <p className="text-sm font-bold text-gray-700">
-            В данный момент все заказы и получение контактов абсолютно бесплатны. Пополнение баланса и покупка PRO-статуса отключены.
+            В данный момент все заказы и получение контактов абсолютно бесплатны. Пополнение баланса и покупка PRO-статуса не активны.
           </p>
         </div>
       </div>

@@ -351,16 +351,12 @@ async function processMessage(
         await rememberFilteredMessage(fingerprint, chatUrl, message.id);
         return false;
       }
-      if (!processed.categoryMatched) {
-        pushLog(logs, 'Сообщение пропущено: нет совпадений с активными категориями');
-        await rememberFilteredMessage(fingerprint, chatUrl, message.id);
-        return false;
-      }
       if (processed.score < 30) {
         await rememberFilteredMessage(fingerprint, chatUrl, message.id);
         return false;
       }
       stableText = String(processed.cleanedText || cleaned).trim().slice(0, 1500);
+      stableText = stableText.replace(/\n*Контакты\s*\(ссылки\):.*/is, '').trim();
     }
 
     const category = await resolveCategory(processed?.category || 'other');
