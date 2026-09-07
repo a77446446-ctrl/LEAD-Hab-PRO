@@ -1,20 +1,28 @@
-﻿FROM node:22-alpine
+﻿FROM node:22-bookworm
 
 WORKDIR /app
 
-# Устанавливаем необходимые зависимости для работы Prisma на Alpine
-RUN apk add --no-cache openssl curl
+# Устанавливаем Python, pip
+RUN apt-get update && apt-get install -y python3 python3-pip python3-venv && rm -rf /var/lib/apt/lists/*
 
-# Копируем файлы зависимостей
+# Создаем виртуальное окружение Python
+ENV VIRTUAL_ENV=/opt/venv
+RUN python3 -m venv $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
+
+# Копируем requirements.txt и ставим Python пакеты
+COPY requirements.txt ./
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Устанавливаем браузеры для Playwright и системные зависимости
+RUN playwright install --with-deps chromium
+
+# Устанавливаем Node.js пакеты
 COPY package.json package-lock.json ./
-
-# Устанавливаем зависимости
 RUN npm ci
 
-# Копируем весь проект
+# Копируем проект и собираем
 COPY . .
-
-# Генерируем Prisma-клиент и собираем проект
 RUN npx prisma generate
 RUN npm run build
 
@@ -22,5 +30,4 @@ EXPOSE 3000
 ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
-# Запускаем скрипт start, который включает миграции, Next.js и cron
 CMD ["npm", "run", "start"]
