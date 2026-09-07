@@ -431,6 +431,7 @@ export default function SettingsPage() {
       await saveKey('maks_ai_api_key', settings['maks_ai_api_key'] || '');
       await saveKey('maks_ai_enabled', settings['maks_ai_enabled'] || 'false');
       await saveKey('maks_spam_keywords', settings['maks_spam_keywords'] || '');
+      await saveKey('maks_monetization_enabled', settings['maks_monetization_enabled'] || 'true');
       await saveKey('maks_welcome_bonus_enabled', settings['maks_welcome_bonus_enabled'] || 'true');
       await saveKey('maks_welcome_bonus_amount', settings['maks_welcome_bonus_amount'] || '300');
       await saveKey('maks_parsing_chats', JSON.stringify(parsingChats));
@@ -1140,6 +1141,25 @@ export default function SettingsPage() {
             </div>
             
             <div className="pt-4 border-t border-zinc-700">
+              <div className="flex items-center justify-between mb-3">
+                <label className="text-[8px] font-bold text-white uppercase tracking-[0.3em] ml-1">Монетизация (Платежи и баланс)</label>
+                <button 
+                  onClick={() => {
+                    setSettings({ ...settings, maks_monetization_enabled: settings['maks_monetization_enabled'] === 'false' ? 'true' : 'false' });
+                    setHasUnsavedChanges(true);
+                  }}
+                  className={cn(
+                    "w-10 h-5 rounded-full flex items-center transition-colors px-1 shrink-0",
+                    settings['maks_monetization_enabled'] !== 'false' ? "bg-accent" : "bg-zinc-700"
+                  )}
+                >
+                  <div className={cn(
+                    "w-3.5 h-3.5 rounded-full bg-black transition-transform",
+                    settings['maks_monetization_enabled'] !== 'false' ? "translate-x-5" : "translate-x-0"
+                  )} />
+                </button>
+              </div>
+
               <div className="flex items-center justify-between mb-3">
                 <label className="text-[8px] font-bold text-white uppercase tracking-[0.3em] ml-1">Бонус за регистрацию</label>
                 <button 

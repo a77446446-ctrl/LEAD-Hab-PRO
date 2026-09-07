@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { Check, CreditCard, Loader2, Wallet } from 'lucide-react';
+import { useUser } from '@/store/useUser';
 
 type CategoryPlan = { id: string; name: string; subscriptionPrice: number; days: number };
 
@@ -39,6 +40,24 @@ export function PaymentCenter() {
       window.location.assign(data.confirmationUrl);
     } catch (reason) { setError(reason instanceof Error ? reason.message : 'Ошибка оплаты'); setBusy(''); }
   };
+
+  const { user } = useUser();
+
+  if (user && user.monetizationEnabled === false) {
+    return (
+      <div className="space-y-8">
+        <div>
+          <h2 className="text-2xl font-black uppercase">Подписки</h2>
+        </div>
+        <div className="border border-black bg-white p-6 shadow-[4px_4px_0_0_#000]">
+          <h3 className="text-xl font-black uppercase mb-4">Всё бесплатно</h3>
+          <p className="text-sm font-bold text-gray-700">
+            В данный момент все заказы и получение контактов абсолютно бесплатны. Пополнение баланса и покупка PRO-статуса отключены.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return <div className="space-y-8">
     <div><h2 className="text-2xl font-black uppercase">Баланс и PRO</h2><p className="mt-2 text-sm font-bold uppercase text-[#666]">Безопасная оплата на странице ЮKassa</p></div>

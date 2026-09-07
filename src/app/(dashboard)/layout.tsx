@@ -70,10 +70,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="bg-black text-white px-2 py-1 text-xl font-black tracking-tighter leading-none">ПО</div>
           <div className="bg-accent text-black px-2 py-1 text-xl font-black tracking-tighter leading-none">ДЕЛАМ</div>
         </div>
-        <div className="flex items-center gap-2 bg-white px-3 py-1.5 border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
-          <Wallet size={16} className="text-black" />
-          <span className="text-sm font-black">{user.balance} ₽</span>
-        </div>
+        {user.monetizationEnabled !== false && (
+          <div className="flex items-center gap-2 bg-white px-3 py-1.5 border border-black shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]">
+            <Wallet size={16} className="text-black" />
+            <span className="text-sm font-black">{user.balance} ₽</span>
+          </div>
+        )}
       </header>
 
       <main className="px-6 py-6 max-w-2xl mx-auto">{children}</main>

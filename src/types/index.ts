@@ -9,6 +9,7 @@ export interface User {
   rating: number;
   notify_enabled: boolean;
   bot_available: boolean;
+  monetizationEnabled?: boolean;
   created_at: string;
 }
 

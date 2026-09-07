@@ -67,24 +67,29 @@ export async function POST(request: Request) {
         },
       });
 
-      const bonusGrant = await tx.user.updateMany({
-        where: { id: current.id, onboardingBonusGrantedAt: null },
-        data: {
-          onboardingBonusGrantedAt: now,
-          balance: { increment: bonusKopecks },
-          
-        },
-      });
-
-      if (bonusGrant.count === 1 && bonusKopecks > 0) {
-        await tx.transaction.create({
+      const monetizationSetting = await tx.setting.findUnique({ where: { key: 'maks_monetization_enabled' } });
+      const isMonetizationEnabled = monetizationSetting?.value !== 'false';
+      
+      let bonusGrantCount = 0;
+      if (isMonetizationEnabled && bonusKopecks > 0) {
+        const bonusGrant = await tx.user.updateMany({
+          where: { id: current.id, onboardingBonusGrantedAt: null },
           data: {
-            userId: current.id,
-            type: 'ONBOARDING_BONUS',
-            
-            amount: bonusKopecks,
+            onboardingBonusGrantedAt: now,
+            balance: { increment: bonusKopecks },
           },
         });
+        bonusGrantCount = bonusGrant.count;
+
+        if (bonusGrantCount === 1) {
+          await tx.transaction.create({
+            data: {
+              userId: current.id,
+              type: 'ONBOARDING_BONUS',
+              amount: bonusKopecks,
+            },
+          });
+        }
       }
 
       // Повторная проверка закрывает гонку между входом и блокировкой из админки.

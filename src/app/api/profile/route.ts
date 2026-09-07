@@ -7,7 +7,10 @@ export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    return NextResponse.json(serializeCurrentUser(await requireCurrentUser()));
+    const user = serializeCurrentUser(await requireCurrentUser());
+    const monetizationSetting = await prisma.setting.findUnique({ where: { key: 'maks_monetization_enabled' } });
+    const monetizationEnabled = monetizationSetting?.value !== 'false';
+    return NextResponse.json({ ...user, monetizationEnabled });
   } catch (error) {
     if (error instanceof AuthenticationError) {
       return NextResponse.json({ error: error.message }, { status: 401 });

@@ -68,6 +68,9 @@ export async function POST(request: Request) {
       if (!lead) throw new PurchaseError('LEAD_NOT_FOUND', 'Лид не найден', 404);
       if (lead.status !== 'NEW') throw new PurchaseError('LEAD_UNAVAILABLE', 'Лид уже забран или перемещён в архив', 409);
 
+      const monetizationSetting = await tx.setting.findUnique({ where: { key: 'maks_monetization_enabled' } });
+      const isMonetizationEnabled = monetizationSetting?.value !== 'false';
+
       const subscription = await tx.subscription.findFirst({
         where: {
           userId: currentUser.id,
@@ -78,11 +81,11 @@ export async function POST(request: Request) {
       });
 
       const subscriptionOnly = ['SUB', 'SUBSCRIPTION', 'PRO'].includes(lead.category.paymentMode);
-      if (subscriptionOnly && !subscription) {
+      if (isMonetizationEnabled && subscriptionOnly && !subscription) {
         throw new PurchaseError('SUBSCRIPTION_REQUIRED', 'Для этой категории требуется подписка', 402);
       }
 
-      const price = subscription ? 0 : rublesToKopecks(lead.price);
+      const price = (!isMonetizationEnabled || subscription) ? 0 : rublesToKopecks(lead.price);
       const claimed = await tx.lead.updateMany({
         where: { id: lead.id, status: 'NEW' },
         data: { status: 'SOLD' },
