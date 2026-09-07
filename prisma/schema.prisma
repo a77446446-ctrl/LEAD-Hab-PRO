@@ -86,6 +86,10 @@ model Lead {
   category      Category      @relation(fields: [categoryId], references: [id])
   sourceChat    String?
   fingerprint   String?       @unique
+  contentFingerprint String?  @unique
+  duplicateOfId String?
+  duplicateOf   Lead?         @relation("LeadDuplicates", fields: [duplicateOfId], references: [id], onDelete: Restrict)
+  duplicates    Lead[]        @relation("LeadDuplicates")
   score         Int           @default(0)
   price         Int           @default(0)
   status        String        @default("NEW")
@@ -95,6 +99,7 @@ model Lead {
   botDeliveries BotDelivery[]
 
   @@index([categoryId, status, deletedAt, createdAt])
+  @@index([contentFingerprint, duplicateOfId])
   @@index([createdAt])
   @@index([deletedAt])
 }

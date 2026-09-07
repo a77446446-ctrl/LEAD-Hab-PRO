@@ -1,6 +1,9 @@
 import type { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/prisma';
 import { hasActionableLeadContact } from '@/lib/redact-contact';
+import { cleanLeadText } from '@/lib/lead-content';
+import { buildLeadTitle } from '@/lib/lead-title';
+import { buildLeadContentFingerprint, DuplicateLeadError, isUniqueConstraintError } from '@/lib/lead-identity';
 import {
   buildLeadTeaserMessage,
   buildMaxMiniAppLink,
@@ -74,15 +77,43 @@ export async function enqueueLeadDeliveries(
   }
 }
 
-export async function createLeadWithDeliveries(data: Prisma.LeadUncheckedCreateInput) {
+export async function createLeadWithDeliveries(data: Prisma.LeadUncheckedCreateInput, sourceText = data.rawText) {
+  // Очистка и идентичность общие для всех источников, включая режим «Все».
+  const rawText = cleanLeadText(sourceText);
+  data = {
+    ...data,
+    rawText,
+    title: buildLeadTitle(rawText, data.title),
+    contentFingerprint: buildLeadContentFingerprint({ rawText, phone: data.phone }),
+    duplicateOfId: null,
+  };
   if (!data.allowContactless && !hasActionableLeadContact(contactText(data))) {
     throw new LeadContactRequiredError();
   }
-  return prisma.$transaction(async (tx) => {
-    const lead = await tx.lead.create({ data });
-    await enqueueLeadDeliveries(tx, lead.id, lead.categoryId);
-    return lead;
+  const existing = await prisma.lead.findUnique({
+    where: { contentFingerprint: data.contentFingerprint }, select: { id: true },
   });
+  if (existing) throw new DuplicateLeadError(existing.id);
+  try {
+    return await prisma.$transaction(async (tx) => {
+      const lead = await tx.lead.create({ data });
+      await enqueueLeadDeliveries(tx, lead.id, lead.categoryId);
+      return lead;
+    });
+  } catch (error) {
+    // Уникальный индекс закрывает гонку между одновременными запросами.
+    if (isUniqueConstraintError(error)) {
+      const duplicate = await prisma.lead.findFirst({
+        where: { OR: [
+          { contentFingerprint: data.contentFingerprint },
+          ...(data.fingerprint ? [{ fingerprint: data.fingerprint }] : []),
+        ] },
+        select: { id: true },
+      });
+      if (duplicate) throw new DuplicateLeadError(duplicate.id);
+    }
+    throw error;
+  }
 }
 
 export async function enqueuePurchaseDelivery(

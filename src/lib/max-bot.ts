@@ -1,5 +1,6 @@
 import { timingSafeEqual } from 'node:crypto';
 import { extractContactInfo, redactContactInfo } from '@/lib/redact-contact';
+import { cleanLeadText } from '@/lib/lead-content';
 
 const MAX_API_BASE_URL = 'https://platform-api2.max.ru';
 const MAX_MESSAGE_LIMIT = 4_000;
@@ -175,8 +176,9 @@ function formatHiddenContacts(text: string): string {
 }
 
 export function buildLeadTeaserMessage(lead: LeadMessageData): MaxMessagePayload {
-  const mapLinks = Array.from(new Set(lead.rawText.match(MAP_REGEX) || []));
-  const rawWithoutMaps = lead.rawText.replace(MAP_REGEX, '').replace(/\n{3,}/g, '\n\n').trim();
+  const cleanedText = cleanLeadText(lead.rawText);
+  const mapLinks = Array.from(new Set(cleanedText.match(MAP_REGEX) || []));
+  const rawWithoutMaps = cleanedText.replace(MAP_REGEX, '').replace(/\n{3,}/g, '\n\n').trim();
   
   const title = formatHiddenContacts(truncate(redactContactInfo(lead.title, true), 180));
   const description = formatHiddenContacts(truncate(redactContactInfo(rawWithoutMaps, true), 1_200));
@@ -208,9 +210,10 @@ export function buildLeadTeaserMessage(lead: LeadMessageData): MaxMessagePayload
 }
 
 export function buildPurchaseMessage(lead: LeadMessageData): MaxMessagePayload {
-  const contacts = extractContactInfo(`${lead.title}\n${lead.rawText}`);
-  const mapLinks = Array.from(new Set(lead.rawText.match(MAP_REGEX) || []));
-  const rawWithoutMaps = lead.rawText.replace(MAP_REGEX, '').replace(/\n{3,}/g, '\n\n').trim();
+  const cleanedText = cleanLeadText(lead.rawText);
+  const contacts = extractContactInfo(`${lead.title}\n${cleanedText}`);
+  const mapLinks = Array.from(new Set(cleanedText.match(MAP_REGEX) || []));
+  const rawWithoutMaps = cleanedText.replace(MAP_REGEX, '').replace(/\n{3,}/g, '\n\n').trim();
 
   const text = truncate([
     '✅ Контакт получен',

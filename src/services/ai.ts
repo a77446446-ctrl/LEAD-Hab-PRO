@@ -2,6 +2,8 @@ import { redactContactInfo } from '@/lib/redact-contact';
 import { buildLeadTitle } from '@/lib/lead-title';
 import { classifyLeadCategory, type LeadCategoryMatch, type LeadCategoryRule } from '@/lib/lead-category';
 import { prisma } from '@/lib/prisma';
+import { cleanLeadText } from '@/lib/lead-content';
+import { detectLeadSpam, hasVacancyIntent } from '@/lib/lead-moderation';
 
 export interface RawLead {
   text: string;
@@ -21,65 +23,7 @@ export interface ProcessedLead {
 
 // Функция для очистки текста от технического мусора из интерфейса мессенджера
 function cleanRawText(text: string): string {
-  if (!text) return '';
-  // Убираем длинные линии из подчеркиваний, дефисов или звездочек (от 5 штук подряд)
-  const noLinesText = text.replace(/[_*-]{5,}/g, ' ');
-  
-  const lines = noLinesText.split('\n');
-  const cleanedLines = [];
-  let inPromoBlock = false;
-  
-  for (let line of lines) {
-    let trimmed = line.trim();
-    if (trimmed.length === 0) {
-      if (!inPromoBlock) cleanedLines.push(line);
-      continue;
-    }
-    
-    // Проверяем начало рекламного блока
-    if (/^(разместить объявление|подать объявление|опубликовать вакансию|разместить вакансию|размещение рекламы|для размещения|по поводу рекламы|добавить объявление|channel|канал:|наш канал|подписывайтесь)/i.test(trimmed)) {
-      inPromoBlock = true;
-      continue;
-    }
-
-    // Обработка строки контактов от скрапера
-    if (trimmed.startsWith('Контакты (ссылки):')) {
-      inPromoBlock = false; // Сброс рекламного блока
-      
-      // Вырезаем рекламные ссылки (боты, доски объявлений, каналы)
-      const badLinksRegex = /https?:\/\/(t\.me\/[a-zA-Z0-9_]*bot\b|t\.me\/(?:rabota|job|vakans|channel|work|board|doska)[a-zA-Z0-9_]*\b|max\.ru\/(?:channel_|rabota|job|vakans|msk)[a-zA-Z0-9_]*)/gi;
-      let cleanLinks = trimmed.replace(badLinksRegex, '');
-      
-      // Подчищаем висящие запятые после удаления ссылок
-      cleanLinks = cleanLinks.replace(/(\s*,\s*)+/g, ', ').replace(/:\s*,/g, ':').replace(/,\s*$/g, '').trim();
-      
-      if (cleanLinks === 'Контакты (ссылки):') {
-        continue; // Если остались только пустые контакты, полностью убираем строку
-      }
-      trimmed = cleanLinks;
-    } else if (inPromoBlock) {
-      continue; // Пропускаем весь текст внутри рекламного блока
-    }
-    
-    // Ищем строки-мусор (время, просмотры "1K", одиночные цифры-кнопки, "комментарии")
-    const isTime = /^\d{1,2}:\d{2}$/.test(trimmed);
-    const isViewsOrButtons = /^\d+([KkКк]?)$/.test(trimmed);
-    const isComments = /комментари/i.test(trimmed) || /^💬/.test(trimmed);
-    const isUIAction = /^(Скрыть|Меню|Поделиться|Переслать|Подписаться на канал)/i.test(trimmed);
-    
-    // Агрессивная фильтрация рекламы конкурентов и призывов подписаться
-    const isCompetitorPromo = /(больше вакансий|больше заказов|еще вакансии|еще заказы|подписывайтесь|наш канал|смотрите здесь|все вакансии тут)/i.test(trimmed);
-    
-    const hasBotMention = /@\w+bot\b/i.test(trimmed);
-    
-    if (isTime || isViewsOrButtons || isComments || isUIAction || isCompetitorPromo || hasBotMention) {
-      continue; // Пропускаем мусорную строку
-    }
-    
-    cleanedLines.push(trimmed);
-  }
-  
-  return cleanedLines.join('\n').trim();
+  return cleanLeadText(text);
 }
 
 // Вспомогательная функция локального парсинга без ИИ
@@ -161,30 +105,17 @@ function fallbackScriptParse(
 export const aiService = {
   processLead: async (rawText: string): Promise<ProcessedLead> => {
     try {
+      rawText = cleanLeadText(rawText);
       // 0. Глобальный антиспам (проверяется ДО любых ИИ или запасных скриптов)
       const spamSettings = await prisma.setting.findUnique({
         where: { key: 'maks_spam_keywords' }
       });
       const customSpam = spamSettings?.value || '';
       
-      const lowerText = rawText.toLowerCase();
-      
-      // Базовые слова, отсеивающие РЕЗЮМЕ и РЕКЛАМУ УСЛУГ
-      const defaultSpamWords = [
-        'казино', 'ставки на спорт', 'крипта', 'заработок в интернете', 'эскорт', 'интим',
-        'ищу работу', 'ищем работу', 'ищет работу', 'предоставляем услуги', 'оказываем услуги', 
-        'выполним работы', 'выполняем работы', 'бригада ищет', 'предлагаю услуги', 'предлагаем услуги',
-        'звоните в любое время', 'бесплатный выезд', 'качественно и недорого', 'гарантия качества',
-        'раскрутка', 'продвижение', 'накрутка', 'таргет', 'маркетолог', 'помогу с', 'наша бригада'
-      ];
-      
-      const userSpamWords = customSpam.split(',').map(w => w.trim().toLowerCase()).filter(w => w.length > 2);
-      const allSpamWords = [...defaultSpamWords, ...userSpamWords];
-      
-      if (allSpamWords.some(kw => lowerText.includes(kw))) {
-         console.log('Global Anti-Spam triggered. Skipping processing.');
+      if (detectLeadSpam(rawText, customSpam)) {
+         console.log('Антиспам: найдено запрещённое содержание или стоп-фраза.');
          return {
-            title: 'Спам / Реклама / Резюме',
+            title: buildLeadTitle(rawText),
             category: 'other',
             city: 'Не определен',
             budget: '',
@@ -296,7 +227,7 @@ ${categoriesList}
             city: result.city || 'НЕ УКАЗАН',
             budget: result.budget || 'По договоренности',
             score: result.score || 70,
-            isSpam: result.isSpam || false,
+            isSpam: result.isSpam === true && !hasVacancyIntent(rawText),
             categoryMatched: categoryMatch.matched,
             cleanedText: cleanRawText(rawText) // Не тратим токены ИИ на очистку, чистим скриптом
           };

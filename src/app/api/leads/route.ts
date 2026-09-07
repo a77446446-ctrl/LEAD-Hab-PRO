@@ -4,6 +4,7 @@ import { AuthenticationError, requireCurrentUser } from '@/lib/auth/current-user
 import { prisma } from '@/lib/prisma';
 import { hasActionableLeadContact, redactContactInfo } from '@/lib/redact-contact';
 import { buildLeadTitle } from '@/lib/lead-title';
+import { uniqueLeadCards, cleanLeadText } from '@/lib/lead-content';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,22 +76,24 @@ export async function GET(request: Request) {
 
     const visibleLeads = owned
       ? leads
-      : leads
+      : uniqueLeadCards(leads
         .filter((lead) => lead.allowContactless
           || lead.category.slug === 'info'
           || hasActionableLeadContact([lead.title, lead.rawText, lead.phone || ''].join('\n')))
-        .slice(0, take);
+        ).slice(0, take);
 
     return NextResponse.json(visibleLeads.map((lead) => {
       const title = buildLeadTitle(lead.rawText, lead.title);
+      const cleanedText = cleanLeadText(lead.rawText);
       return owned ? {
         ...lead,
         title,
+        rawText: cleanedText,
         isPurchased: true,
       } : {
         ...lead,
         title: redactContactInfo(title, true),
-        rawText: redactContactInfo(lead.rawText, true),
+        rawText: redactContactInfo(cleanedText, true),
         phone: null,
         sourceChat: null,
         isPurchased: false,

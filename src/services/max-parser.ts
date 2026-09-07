@@ -243,7 +243,7 @@ function cleanMessageText(text: string, chatTitle: string): string {
     const escaped = chatTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     result = result.replace(new RegExp(`^${escaped}\\s*\\n*`, 'i'), '').trim();
   }
-  result = result.replace(/^(Переслано от:|Переслано:|Forwarded from:)\s*\n*.+?\n+/i, '').trim();
+  result = result.replace(/^(Пересланное сообщение:|Forwarded message:|Переслано от:|Переслано:|Forwarded from:)\s*\n*.+?\n+/i, '').trim();
   const lines = result.split('\n');
   if (lines.length > 1) {
     const first = lines[0].toLowerCase();

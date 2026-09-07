@@ -3,6 +3,7 @@ import { aiService } from '@/services/ai';
 import { prisma } from '@/lib/prisma';
 import { verifyBearerSecret } from '@/lib/security/api-secret';
 import { createLeadWithDeliveries, LeadContactRequiredError } from '@/services/bot-outbox';
+import { DuplicateLeadError } from '@/lib/lead-identity';
 
 export const dynamic = 'force-dynamic';
 
@@ -47,6 +48,9 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ status: 'success', leadId: lead.id });
   } catch (error) {
+    if (error instanceof DuplicateLeadError) {
+      return NextResponse.json({ status: 'ignored', reason: 'duplicate', leadId: error.leadId });
+    }
     if (error instanceof LeadContactRequiredError) {
       return NextResponse.json({ status: 'ignored', reason: 'contact_not_found' });
     }

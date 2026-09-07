@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { MapPin, Zap, Clock, Phone, Link as LinkIcon } from 'lucide-react';
+import { leadMapLabel } from '@/lib/lead-map-link';
 
 interface LeadCardProps {
   lead: any;
@@ -43,7 +44,8 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
         }
       } else if (part.match(/(https?:\/\/[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/[^\s]*|@[a-zA-Z0-9_]+)/)) {
         charsToAdd = 16; 
-        const isMapLink = /(yandex\.(ru|com)\/maps|maps\.yandex\.(ru|com)|2gis\.(ru|com)|go\.2gis\.com|maps\.google|goo\.gl\/maps)/i.test(part);
+        const mapLabel = leadMapLabel(part);
+        const isMapLink = Boolean(mapLabel);
         
         if (shouldMask && !isMapLink) {
           nodeToAdd = <span key={i} className="m-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-black px-1.5 py-0.5 align-middle text-[11px] font-black text-white"><LinkIcon size={10} /> КОНТАКТ СКРЫТ</span>;
@@ -56,10 +58,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
           let linkClass = "m-1 inline-block break-all rounded border border-black px-1.5 py-0.5 align-middle text-xs font-bold transition-all ";
 
           if (isMapLink) {
-             if (part.includes('yandex')) linkText = '🗺️ Яндекс.Карты';
-             else if (part.includes('2gis')) linkText = '🗺️ 2GIS';
-             else if (part.includes('google') || part.includes('goo.gl')) linkText = '🗺️ Google Карты';
-             else linkText = '🗺️ Карта';
+             linkText = `🗺️ ${mapLabel}`;
              
              linkClass += "bg-white text-black shadow-[2px_2px_0_0_#000] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-none";
           } else {
