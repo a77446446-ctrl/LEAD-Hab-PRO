@@ -1,8 +1,12 @@
 import { cleanLeadText } from './lead-content.ts';
 
-const INTENT_PATTERN = /(^|[^\p{L}\p{N}])(требу(?:ется|ются)|ищем|нуж(?:ен|на|ны|но)|вакансия|заказ|приглашаем)(?=$|[^\p{L}\p{N}])/iu;
+const INTENT_PATTERN = /(?<!не\s)(?:требу(?:ется|ются)|ищем|нуж(?:ен|на|ны|но)|вакансия|заказ|приглашаем)/iu;
 const MAX_TITLE_WORDS = 10;
 const MAX_TITLE_LENGTH = 100;
+
+function isGenericTitle(value: string): boolean {
+  return /^(?:требу(?:ется|ются)|ищем|нуж(?:ен|на|ны|но)|вакансия|работа|новый заказ|новое сообщение|без названия|спам\s*\/\s*реклама\s*\/\s*резюме)[!:.\s]*$/iu.test(value);
+}
 
 function cleanCandidate(value: string): string {
   let cleaned = value
@@ -62,7 +66,7 @@ function titleFromSource(sourceText: string): string {
 
   const intent = candidate.match(INTENT_PATTERN);
   if (intent?.index !== undefined) {
-    candidate = candidate.slice(intent.index + intent[1].length);
+    candidate = candidate.slice(intent.index);
   }
   
   // Если после всего остался адрес - берем следующую строку

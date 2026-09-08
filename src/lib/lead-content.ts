@@ -50,7 +50,11 @@ export function cleanLeadText(value: string): string {
     }
   }
   output.push(...cleanBlock(block));
-  return output.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+  
+  let result = output.join('\n');
+  result = result.replace(/(?:^|\s)(?:[Мм]\.|[Мм]етро)\s+([А-ЯЁ][а-яёА-ЯЁ0-9\s-]+)/gu, ' Ⓜ️ $1').trim();
+  
+  return result.replace(/\n{3,}/g, '\n\n').trim();
 }
 
 /** Точное содержимое, без нечёткого сравнения профессий, адресов или телефонов. */
