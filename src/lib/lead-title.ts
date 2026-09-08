@@ -77,9 +77,6 @@ function titleFromSource(sourceText: string): string {
   return cleanCandidate(candidate.split(/(?<=[!?])\s|\s[|•]\s/)[0] || candidate);
 }
 
-function isGenericTitle(value: string): boolean {
-  return /^(?:требу(?:ется|ются)|ищем|нуж(?:ен|на|ны|но)|вакансия|работа|новый заказ|новое сообщение|без названия|спам\s*\/\s*реклама\s*\/\s*резюме)[!:.\s]*$/iu.test(value);
-}
 
 function limitByWords(value: string): string {
   const words = value.split(/\s+/).filter(Boolean);
