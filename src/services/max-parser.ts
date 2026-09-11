@@ -238,7 +238,7 @@ async function loadAccounts(logs: LogEntry[]): Promise<ParserAccount[]> {
 }
 
 function cleanMessageText(text: string, chatTitle: string): string {
-  let result = text.trim().slice(0, 1500);
+  let result = text.trim();
   if (chatTitle.length > 5) {
     const escaped = chatTitle.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     result = result.replace(new RegExp(`^${escaped}\\s*\\n*`, 'i'), '').trim();
@@ -318,7 +318,7 @@ async function processMessage(
 
     if (parseAll) {
       // В режиме «Все» анализ используется только для метаданных и не может отклонить сообщение.
-      stableText = original.slice(0, 1500);
+      stableText = original;
       try {
         processed = await aiService.processLead(stableText);
       } catch (error) {
@@ -355,8 +355,7 @@ async function processMessage(
         await rememberFilteredMessage(fingerprint, chatUrl, message.id);
         return false;
       }
-      stableText = String(processed.cleanedText || cleaned).trim().slice(0, 1500);
-      stableText = stableText.replace(/\n*Контакты\s*\(ссылки\):.*/is, '').trim();
+      stableText = String(processed.cleanedText || cleaned).trim();
     }
 
     const category = await resolveCategory(processed?.category || 'other');
@@ -365,7 +364,7 @@ async function processMessage(
       where: {
         OR: [
           { fingerprint },
-          { rawText: stableText, sourceChat: chatUrl },
+          { rawText: original, sourceChat: chatUrl },
         ],
       },
       select: { id: true },
@@ -386,7 +385,7 @@ async function processMessage(
       score: parseAll ? 100 : Math.min(100, Math.max(0, processed?.score || 50)),
       price: category.leadPrice ?? 100,
       status: 'NEW',
-    }));
+    }, stableText));
     return true;
   } catch (error) {
     console.error('[PARSER] Ошибка сообщения:', safeParserError(error));

@@ -42,7 +42,13 @@ export async function GET() {
       return s;
     }));
 
-    return NextResponse.json(enrichedSettings.map((setting) =>
+    const activeTargetChats = await prisma.targetChat.findMany({
+      where: { active: true, status: 'ACTIVE' },
+      select: { url: true, parseAll: true },
+    });
+    const displaySettings = enrichedSettings.filter((setting) => setting.key !== 'maks_active_target_chats');
+    displaySettings.push({ id: 'runtime-active-target-chats', key: 'maks_active_target_chats', value: JSON.stringify(activeTargetChats) });
+    return NextResponse.json(displaySettings.map((setting) =>
       isSecretSettingKey(setting.key) ? { ...setting, value: SECRET_MASK } : setting,
     ));
   } catch (error) {

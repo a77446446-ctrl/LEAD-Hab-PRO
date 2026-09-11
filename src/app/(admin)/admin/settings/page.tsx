@@ -1,5 +1,7 @@
 'use client';
 
+import { hasTargetedChats } from '@/lib/lead-filter-mode';
+
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -1206,16 +1208,20 @@ export default function SettingsPage() {
                 <ShieldCheck className="absolute left-4 top-3 text-zinc-500" size={12} />
                 <textarea 
                   value={settings['maks_spam_keywords'] || ''}
+                  disabled={!hasTargetedChats(parsingChats, settings['maks_active_target_chats'])}
+                  aria-describedby="spam-filter-help"
                   onChange={(e) => {
                     setSettings({ ...settings, maks_spam_keywords: e.target.value });
                     setHasUnsavedChanges(true);
                   }}
                   placeholder="накрутка, эскорт, ищу работу..." 
-                  className={cn(inputClasses, "min-h-[60px] h-full py-2.5 resize-y rounded-lg")}
+                  className={cn(inputClasses, "min-h-[60px] h-full py-2.5 resize-y rounded-lg disabled:opacity-50 disabled:cursor-not-allowed")}
                 />
               </div>
               <p className="text-[9px] text-zinc-500 ml-1 leading-relaxed font-bold mt-2 shrink-0">
-                <span className="text-accent">Формат:</span> вводите слова <strong className="text-white">через запятую</strong>.
+                <span id="spam-filter-help">{hasTargetedChats(parsingChats, settings['maks_active_target_chats'])
+                  ? 'Применяется только к чатам в режиме «ЦЕЛЕВЫЕ». Вводите слова через запятую.'
+                  : 'Не применяется: нет чатов в режиме «ЦЕЛЕВЫЕ». Стоп-слова сохранены.'}</span>
               </p>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { timingSafeEqual } from 'node:crypto';
 import { extractContactInfo, redactContactInfo } from '@/lib/redact-contact';
 import { cleanLeadText } from '@/lib/lead-content';
+import { buildLeadTitle } from '@/lib/lead-title';
 
 const MAX_API_BASE_URL = 'https://platform-api2.max.ru';
 const MAX_MESSAGE_LIMIT = 4_000;
@@ -175,26 +176,37 @@ function formatHiddenContacts(text: string): string {
     .replace(/\[контакт скрыт\]/g, '🔒 [КОНТАКТ СКРЫТ]');
 }
 
+
+/** Ограничиваем только сообщение MAX; полный текст остаётся доступен в приложении. */
+function composeLeadMessage(header: string[], body: string, footer: string[]): string {
+  const prefix = truncate(header.join('\n'), 900) + '\n\n';
+  const suffix = '\n\n' + footer.join('\n');
+  if (prefix.length + body.length + suffix.length <= MAX_MESSAGE_LIMIT) return prefix + body + suffix;
+  const notice = '\n\nПоказан фрагмент. Полное объявление — в приложении.';
+  const available = Math.max(0, MAX_MESSAGE_LIMIT - prefix.length - suffix.length - notice.length - 1);
+  let excerpt = body.slice(0, available).replace(/[\uD800-\uDBFF]$/, '');
+  const boundary = excerpt.lastIndexOf('\n');
+  if (boundary > available * 0.65) excerpt = excerpt.slice(0, boundary);
+  return prefix + excerpt.trimEnd() + '…' + notice + suffix;
+}
+
 export function buildLeadTeaserMessage(lead: LeadMessageData): MaxMessagePayload {
   const cleanedText = cleanLeadText(lead.rawText);
   const mapLinks = Array.from(new Set(cleanedText.match(MAP_REGEX) || []));
   const rawWithoutMaps = cleanedText.replace(MAP_REGEX, '').replace(/\n{3,}/g, '\n\n').trim();
   
-  const title = formatHiddenContacts(truncate(redactContactInfo(lead.title, true), 180));
-  const description = formatHiddenContacts(truncate(redactContactInfo(rawWithoutMaps, true), 1_200));
+  const title = formatHiddenContacts(truncate(redactContactInfo(buildLeadTitle(cleanedText, lead.title), true), 180));
+  const description = formatHiddenContacts(redactContactInfo(rawWithoutMaps, true));
   
-  const text = truncate([
-    '🆕 Новый заказ',
-    '',
-    `🗂️ Категория: ${lead.category.name}`,
-    `📍 Город: ${lead.city?.toUpperCase() === 'НЕ УКАЗАН' ? 'в тексте заказа' : lead.city}`,
-    `🏷️ Стоимость: ${priceLabel(lead)}`,
-    '',
+  const text = composeLeadMessage([
     title,
-    description,
     '',
+    '🗂️ Категория: ' + lead.category.name,
+    '📍 Город: ' + (lead.city?.toUpperCase() === 'НЕ УКАЗАН' ? 'в тексте объявления' : lead.city),
+  ], description, [
+    'Доступ к контакту: ' + priceLabel(lead),
     'Контакт скрыт до получения лида.',
-  ].join('\n'), MAX_MESSAGE_LIMIT);
+  ]);
 
   const buttons = [];
   if (mapLinks.length > 0) {
@@ -215,19 +227,17 @@ export function buildPurchaseMessage(lead: LeadMessageData): MaxMessagePayload {
   const mapLinks = Array.from(new Set(cleanedText.match(MAP_REGEX) || []));
   const rawWithoutMaps = cleanedText.replace(MAP_REGEX, '').replace(/\n{3,}/g, '\n\n').trim();
 
-  const text = truncate([
+  const text = composeLeadMessage([
     '✅ Контакт получен',
     '',
-    lead.title,
-    `🗂️ Категория: ${lead.category.name}`,
-    `📍 Город: ${lead.city?.toUpperCase() === 'НЕ УКАЗАН' ? 'в тексте заказа' : lead.city}`,
-    `🏷️ Стоимость: ${priceLabel(lead)}`,
-    ...(contacts.length > 0 ? [`Контакты: ${contacts.join(', ')}`] : []),
-    '',
-    rawWithoutMaps,
-    '',
+    buildLeadTitle(cleanedText, lead.title),
+    '🗂️ Категория: ' + lead.category.name,
+    '📍 Город: ' + (lead.city?.toUpperCase() === 'НЕ УКАЗАН' ? 'в тексте объявления' : lead.city),
+    'Доступ к контакту: ' + priceLabel(lead),
+    ...(contacts.length > 0 ? ['Контакты: ' + contacts.join(', ')] : []),
+  ], rawWithoutMaps, [
     'Лид сохранён в разделе «Мои лиды».',
-  ].join('\n'), MAX_MESSAGE_LIMIT);
+  ]);
 
   const buttons = [];
   if (mapLinks.length > 0) {

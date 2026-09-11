@@ -78,12 +78,12 @@ export async function enqueueLeadDeliveries(
 }
 
 export async function createLeadWithDeliveries(data: Prisma.LeadUncheckedCreateInput, sourceText = data.rawText) {
-  // Очистка и идентичность общие для всех источников, включая режим «Все».
-  const rawText = cleanLeadText(sourceText);
+  // Храним полный исходник; оформление вычисляется отдельно при показе.
+  const rawText = String(sourceText || '').trim();
   data = {
     ...data,
     rawText,
-    title: buildLeadTitle(rawText, data.title),
+    title: buildLeadTitle(cleanLeadText(rawText), data.title),
     contentFingerprint: buildLeadContentFingerprint({ rawText, phone: data.phone }),
     duplicateOfId: null,
   };

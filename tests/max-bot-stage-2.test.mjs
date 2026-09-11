@@ -8,10 +8,7 @@ const read = (path) => readFile(new URL(path, root), 'utf8');
 
 async function loadMaxBotModule() {
   const source = await read('src/lib/max-bot.ts');
-const selfContained = source.replace(
-    "import { extractContactInfo, redactContactInfo } from '@/lib/redact-contact';",
-    "const CONTACT_PATTERN = /(https?:\\/\\/[^\\s]+|(?:[a-zA-Z0-9-]+\\.)+[a-zA-Z]{2,}(?:\\/[^\\s]*)?|[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}|@[a-zA-Z0-9_]+|(?:\\+?7|8)[\\s-]?\\(?\\d{3}\\)?[\\s-]?\\d{3}[\\s-]?\\d{2}[\\s-]?\\d{2}|\\b\\d{10}\\b)/gi; function redactContactInfo(value) { return value.replace(CONTACT_PATTERN, '[контакт скрыт]'); } function extractContactInfo(value) { return Array.from(new Set(value.match(CONTACT_PATTERN) || [])).slice(0, 20); }",
-  );
+  const selfContained = source.replace(/from '\@\/lib\/([^']+)'/g, (_, name) => 'from ' + JSON.stringify(new URL('src/lib/' + name + '.ts', root).href));
   const output = ts.transpileModule(selfContained, {
     compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 },
   }).outputText;
@@ -134,23 +131,23 @@ test('тизер не раскрывает контакты, покупка во
   assert.match(teaser.text, /контакт скрыт/i);
   assert.match(teaser.text, /🗂️ Категория: Грузчики/);
   assert.match(teaser.text, /📍 Город: Москва/);
-  assert.match(teaser.text, /🏷️ Стоимость: 100 ₽/);
+  assert.match(teaser.text, /Доступ к контакту: 100 ₽/);
   assert.match(teaser.attachments[0].payload.buttons[0][0].url, /startapp=lead_/);
 
   const freeTeaser = bot.buildLeadTeaserMessage({ ...lead, price: 0 });
-  assert.match(freeTeaser.text, /🏷️ Стоимость: бесплатно/);
+  assert.match(freeTeaser.text, /Доступ к контакту: бесплатно/);
 
   const subscriptionTeaser = bot.buildLeadTeaserMessage({
     ...lead,
     category: { ...lead.category, paymentMode: 'SUBSCRIPTION' },
   });
-  assert.match(subscriptionTeaser.text, /🏷️ Стоимость: по подписке PRO/);
+  assert.match(subscriptionTeaser.text, /Доступ к контакту: по подписке PRO/);
 
   const purchase = bot.buildPurchaseMessage(lead);
   assert.match(purchase.text, /\+7 999 123-45-67/);
   assert.match(purchase.text, /🗂️ Категория: Грузчики/);
   assert.match(purchase.text, /📍 Город: Москва/);
-  assert.match(purchase.text, /🏷️ Стоимость: 100 ₽/);
+  assert.match(purchase.text, /Доступ к контакту: 100 ₽/);
   assert.match(purchase.attachments[0].payload.buttons[0][0].url, /startapp=purchase_/);
 });
 
@@ -193,4 +190,35 @@ test('этап 2 использует webhook, outbox и транзакцион�
   assert.match(cron, /setInterval\(pollBot, 5_000\)/);
   assert.match(migration, /UNIQUE INDEX "BotDelivery_deduplicationKey_key"/);
   assert.doesNotMatch(migration, /DROP TABLE|DROP COLUMN|TRUNCATE/i);
+});
+
+test('длинное сообщение MAX сохраняет дословный фрагмент и явно ведёт к полному объявлению', async () => {
+  process.env.MAX_BOT_USERNAME = 'PoDelamBot';
+  const bot = await loadMaxBotModule();
+  const lead = {
+    id: 'long-text', title: 'Посторонний старый заголовок', city: 'Подольск', price: 100,
+    category: { name: 'Грузчики', paymentMode: 'SINGLE' },
+    rawText: 'Требуются грузчики.\nОплата 4 500 ₽, ночная смена — 4 800 ₽.\n' +
+      'Проезд не компенсируется. '.repeat(220) + '\nТелефон: +7 999 123-45-67\n67\n14:13\n💬 Комментарии',
+  };
+  for (const payload of [bot.buildLeadTeaserMessage(lead), bot.buildPurchaseMessage(lead)]) {
+    assert(payload.text.length <= 4000);
+    assert.match(payload.text, /Показан фрагмент. Полное объявление — в приложении/);
+    assert.match(payload.text, /Оплата 4 500 ₽, ночная смена — 4 800 ₽/);
+    assert.doesNotMatch(payload.text, /Посторонний старый|💬 Комментарии/);
+  }
+  assert.doesNotMatch(bot.buildLeadTeaserMessage(lead).text, /999 123-45-67/);
+});
+
+test('объявление до лимита MAX передаётся полностью и не сокращается до 1200 символов', async () => {
+  process.env.MAX_BOT_USERNAME = 'PoDelamBot';
+  const bot = await loadMaxBotModule();
+  const rawText = 'Сотрудник на производство одежды.\n' + 'Точные условия. '.repeat(100) + '\nПитание предоставляется.';
+  const payload = bot.buildLeadTeaserMessage({
+    id: 'full-text', title: 'Плохой заголовок', city: 'Москва', price: 0,
+    category: { name: 'Работа', paymentMode: 'SINGLE' }, rawText,
+  });
+  assert(payload.text.includes(rawText));
+  assert.doesNotMatch(payload.text, /Показан фрагмент/);
+  assert.match(payload.text, /Доступ к контакту: бесплатно/);
 });

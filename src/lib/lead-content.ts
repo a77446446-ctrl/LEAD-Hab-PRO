@@ -1,3 +1,6 @@
+import { cleanLeadText } from './lead-display.ts';
+export { cleanLeadText };
+
 const CONTACT_FOOTER = /^Контакты\s*\(ссылки\):/iu;
 const EMOJI_PREFIX = /^(?:[\u2700-\u27BF]|[\uE000-\uF8FF]|\uD83C[\uDC00-\uDFFF]|\uD83D[\uDC00-\uDFFF]|[\u2011-\u26FF]|\uD83E[\uDD10-\uDDFF]|\s)*/;
 const META_LINE = new RegExp(EMOJI_PREFIX.source + '(?:(?:сегодня|вчера|завтра)?\\s*(?:в\\s*)?(?:[01]?\\d|2[0-3]):[0-5]\\d|\\d{1,7}(?:[.,]\\d+)?[kкmм]?|комментари[а-я]*|просмотр[а-я]*|реакци[а-я]*|поделил[а-я]*|переслал[а-я]*|изменен[а-я]*)\\s*$', 'iu');
@@ -31,8 +34,8 @@ function cleanBlock(lines: string[]): string[] {
   return result;
 }
 
-/** Общая очистка для сохранения и показа старых карточек в обоих режимах. */
-export function cleanLeadText(value: string): string {
+/** Зафиксированная нормализация старых отпечатков. Не используется для отображения. */
+function legacyIdentityText(value: string): string {
   const lines = String(value || '')
     .replace(/\r\n?/g, '\n')
     .replace(/🚇/g, 'М')
@@ -59,7 +62,7 @@ export function cleanLeadText(value: string): string {
 
 /** Точное содержимое, без нечёткого сравнения профессий, адресов или телефонов. */
 export function leadContentKey(lead: { rawText: string; phone?: string | null }): string {
-  const text = cleanLeadText(lead.rawText).normalize('NFC').replace(/\s+/g, ' ').trim();
+  const text = legacyIdentityText(lead.rawText).normalize('NFC').replace(/\s+/g, ' ').trim();
   const phone = (lead.phone || '').replace(/[^\d+]/g, '');
   return JSON.stringify([text, phone]);
 }
