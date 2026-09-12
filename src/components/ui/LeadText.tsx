@@ -9,7 +9,7 @@ const LABELS: Record<IconKind, string> = {
 };
 
 const COLORS: Record<IconKind, string> = {
-  metro: '#2563eb', payment: '#a16207', clock: '#475569', location: '#dc2626',
+  metro: '#dc2626', payment: '#a16207', clock: '#475569', location: '#dc2626',
   phone: '#16a34a', link: '#2563eb', calendar: '#7c3aed',
 };
 
@@ -20,10 +20,8 @@ export function LeadIcon({ kind }: { kind: IconKind }) {
       className="mx-0.5 inline-block shrink-0 align-[-4px]" style={{ color: COLORS[kind] }}
       fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       {kind === 'metro' && <>
-        <path d="M3 3h18v9a9 9 0 0 1-18 0Z" fill="#dbeafe" />
-        <rect x="7" y="6" width="10" height="11" rx="3" fill="white" />
-        <path d="M7 11h10M12 6v5M9 17l-1 2m7-2 1 2" />
-        <circle cx="9.5" cy="14" r=".7" fill="currentColor" /><circle cx="14.5" cy="14" r=".7" fill="currentColor" />
+        <path d="M3 21v-9a9 9 0 0 1 18 0v9Z" />
+        <path d="M7 18V9l5 6 5-6v9" strokeWidth="2.3" />
       </>}
       {kind === 'payment' && <>
         <circle cx="15" cy="6" r="4" fill="#facc15" /><path d="M15 4v4m-1-3h2" />

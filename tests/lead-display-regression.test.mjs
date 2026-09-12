@@ -101,7 +101,7 @@ test('булавка добавляется к адресу один раз, э�
     assert.equal((html.match(/aria-label="Адрес"/g) || []).length, 1);
   }
   const html = renderToStaticMarkup(React.createElement(LeadText, { text: '🚇 Комсомольская 💰 4500 📞 Контакты 👉 Обязанности' }));
-  assert.match(html, /#2563eb/);
+  assert.match(html, /#dc2626/);
   assert.match(html, /#facc15/);
   assert.match(html, /#16a34a/);
   assert.match(html, /👉/u);
