@@ -11,6 +11,8 @@ interface LeadCardProps {
   highlighted?: boolean;
 }
 
+const hiddenContactClass = 'm-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-accent px-1.5 py-0.5 align-middle text-[11px] font-black text-black';
+
 export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProps) => {
   const [expanded, setExpanded] = useState(false);
 
@@ -21,7 +23,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
 
   const renderTextWithLinks = (text: string, truncateAt?: number) => {
     if (!text) return null;
-    const combinedRegex = /(\[контакт скрыт(?::(?:phone|link|yandex))?\]|https?:\/\/[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/[^\s]*|@[a-zA-Z0-9_]+|(?:\+?7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}|\b\d{10}\b)/g;
+    const combinedRegex = /(\[(?:контакт скрыт(?::(?:phone|link|yandex))?|ссылка скрыта)\]|https?:\/\/[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/[^\s]*|@[a-zA-Z0-9_]+|(?:\+?7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}|\b\d{10}\b)/gi;
     
     let currentLength = 0;
     const parts = text.split(combinedRegex);
@@ -34,14 +36,14 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
       let nodeToAdd: React.ReactNode = <LeadText text={part} />;
       let charsToAdd = part.length;
       
-      if (part.startsWith('[контакт скрыт')) {
+      if (/^\[(?:контакт скрыт|ссылка скрыта)/iu.test(part)) {
         charsToAdd = 16;
         if (part === '[контакт скрыт:phone]') {
-          nodeToAdd = <span key={i} className="m-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 align-middle text-[11px] font-black text-black"><Phone size={10} /> КОНТАКТ СКРЫТ</span>;
+          nodeToAdd = <span key={i} className={hiddenContactClass}><Phone size={10} /> КОНТАКТ СКРЫТ</span>;
         } else if (part === '[контакт скрыт:yandex]') {
-          nodeToAdd = <span key={i} className="m-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-zinc-100 px-1.5 py-0.5 align-middle text-[11px] font-black text-black"><MapPin size={10} /> КОНТАКТ СКРЫТ</span>;
+          nodeToAdd = <span key={i} className={hiddenContactClass}><MapPin size={10} /> КОНТАКТ СКРЫТ</span>;
         } else {
-          nodeToAdd = <span key={i} className="m-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-black px-1.5 py-0.5 align-middle text-[11px] font-black text-white"><LinkIcon size={10} /> КОНТАКТ СКРЫТ</span>;
+          nodeToAdd = <span key={i} className={hiddenContactClass}><LinkIcon size={10} /> КОНТАКТ СКРЫТ</span>;
         }
       } else if (part.match(/(https?:\/\/[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/[^\s]*|@[a-zA-Z0-9_]+)/)) {
         charsToAdd = 16; 
@@ -49,7 +51,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
         const isMapLink = Boolean(mapLabel);
         
         if (shouldMask && !isMapLink) {
-          nodeToAdd = <span key={i} className="m-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-black px-1.5 py-0.5 align-middle text-[11px] font-black text-white"><LinkIcon size={10} /> КОНТАКТ СКРЫТ</span>;
+          nodeToAdd = <span key={i} className={hiddenContactClass}><LinkIcon size={10} /> КОНТАКТ СКРЫТ</span>;
         } else {
           let href = part;
           if (part.startsWith('@')) href = `https://t.me/${part.substring(1)}`;
@@ -71,7 +73,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
       } else if (part.match(/(?:\+?7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}|\b\d{10}\b/)) {
         charsToAdd = 16;
         if (shouldMask) {
-          nodeToAdd = <span key={i} className="m-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 align-middle text-[11px] font-black text-black"><Phone size={10} /> КОНТАКТ СКРЫТ</span>;
+          nodeToAdd = <span key={i} className={hiddenContactClass}><Phone size={10} /> КОНТАКТ СКРЫТ</span>;
         } else {
           const cleanPhone = part.replace(/[^\d+]/g, '');
           nodeToAdd = <a key={i} href={`tel:${cleanPhone}`} className="m-1 inline-flex rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 align-middle text-xs font-bold text-black transition-colors hover:bg-black hover:text-accent" onClick={(e) => e.stopPropagation()}>{part}</a>;

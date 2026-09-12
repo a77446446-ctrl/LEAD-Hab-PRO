@@ -231,6 +231,12 @@ export async function dispatchBotDeliveries(requestedLimit = 10): Promise<{
       continue;
     }
 
+    if (delivery.kind.startsWith('LEAD_TEASER') && delivery.lead?.duplicateOfId) {
+      await markSkipped(delivery.id, 'Повтор объявления: сохранена основная запись');
+      summary.skipped += 1;
+      continue;
+    }
+
     if (delivery.kind.startsWith('LEAD_TEASER') && delivery.lead && !delivery.lead.allowContactless && !hasActionableLeadContact(contactText(delivery.lead))) {
       await markSkipped(delivery.id, 'В лиде отсутствует телефон или ссылка для связи');
       summary.skipped += 1;

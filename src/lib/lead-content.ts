@@ -67,12 +67,21 @@ export function leadContentKey(lead: { rawText: string; phone?: string | null })
   return JSON.stringify([text, phone]);
 }
 
+/** Общий ключ для записи и ленты: счётчики MAX не создают новое объявление. */
+export function currentLeadContentKey(lead: { rawText: string; phone?: string | null }): string {
+  const text = cleanLeadText(lead.rawText).normalize('NFC')
+    .replace(/[\u200b-\u200f\u2060\ufeff]/g, '')
+    .replace(/\s+/g, ' ').trim();
+  const phone = (lead.phone || '').replace(/[^\d+]/g, '');
+  return JSON.stringify([text, phone]);
+}
+
 /** Старые записи остаются в БД вместе с покупками; в списке показываем одну копию. */
 export function uniqueLeadCards<T extends { rawText: string; phone?: string | null }>(leads: T[]): T[] {
   const seen = new Set<string>();
   return leads.filter((lead) => {
     if (!cleanLeadText(lead.rawText)) return true;
-    const key = leadContentKey(lead);
+    const key = currentLeadContentKey(lead);
     if (seen.has(key)) return false;
     seen.add(key);
     return true;

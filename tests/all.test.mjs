@@ -20,3 +20,4 @@ await import('./legal-stage-5.test.mjs');
 await import('./yookassa-stage-6.test.mjs');
 
 await import('./lead-presentation.test.mjs');
+await import('./lead-display-regression.test.mjs');

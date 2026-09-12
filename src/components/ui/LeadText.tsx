@@ -57,7 +57,7 @@ export function LeadText({ text }: { text: string }) {
     nodes.push(text.slice(offset, index));
     const kind = iconKind(match[0]);
     nodes.push(kind
-      ? <LeadIcon key={index} kind={kind} />
+      ? <React.Fragment key={index}><LeadIcon kind={kind} />{kind === 'metro' && !/метро\s*$/iu.test(text.slice(0, index)) && !/^\s*метро(?:\s|$)/iu.test(text.slice(index + match[0].length)) ? 'метро' : null}</React.Fragment>
       : <span key={index} className="inline-block grayscale" style={{ filter: 'grayscale(1)' }}>{match[0]}</span>);
     offset = index + match[0].length;
   }

@@ -48,6 +48,8 @@ export async function GET(request: Request) {
       where.status = requestedStatus === 'ARCHIVED' ? 'ARCHIVED' : { not: 'ARCHIVED' };
     } else {
       where.status = 'NEW';
+      // После пересчёта ключей копии не занимают лимит выдачи. Прямые ссылки остаются рабочими.
+      if (!leadId) where.duplicateOfId = null;
     }
 
     const databaseTake = owned ? take : Math.min(take * 3, 600);

@@ -1,9 +1,9 @@
 import { createHash } from 'node:crypto';
-import { leadContentKey } from './lead-content.ts';
+import { currentLeadContentKey } from './lead-content.ts';
 
 /** Сравниваем весь текст: разные зарплаты, адреса и контакты не объединяются. */
 export function buildLeadContentFingerprint(lead: { rawText: string; phone?: string | null }): string {
-  return createHash('sha256').update(leadContentKey(lead)).digest('hex');
+  return createHash('sha256').update(currentLeadContentKey(lead)).digest('hex');
 }
 
 export class DuplicateLeadError extends Error {
