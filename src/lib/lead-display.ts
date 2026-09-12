@@ -7,28 +7,30 @@ const LABEL = String.raw`(?:комментари[а-я]*|просмотр[а-я]
 // Только значки интерфейса. Мешочек с суммой и часы начала смены — данные объявления.
 const EXPLICIT = new RegExp(`^(?:${LABEL}|(?:👁|👀|💬|🗨)[\\uFE0F\\u200D]*|(?:👍|👎|❤|🔥|👏|🙏|😁|🤔|🤩|🎉|💯)[\\uFE0F\\u200D\\p{Emoji_Modifier}]*(?=\\s*\\d))`, 'iu');
 const FOOTER_LABEL = /^(?:вакансии|оставить комментарий|написать комментарий)$/iu;
+const PROMOTION = /^(?:подписывайтесь|подпишитесь|подписывайся)\s+на\s+(?:наш\s+)?(?:канал|чат)|^(?:больше|все|ещ[её]\s+больше)\s+(?:вакансий|объявлений)(?!\p{L})|^(?:смотрите|найд[её]те)\s+(?:ещ[её]\s+)?больше\s+(?:вакансий|объявлений)(?!\p{L})|^(?:переходите|перейдите)\s+в\s+(?:наш\s+)?(?:канал|чат).*(?:больше|ваканси|объявлен)/iu;
+const PROMOTION_LINK = /^(?:https?:\/\/\S+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/\S*)?|@[a-z0-9_]+)$/iu;
 const VALUE_LABEL = /(?:оплат\p{L}*|зарплат\p{L}*|оклад|ставк\p{L}*|бюджет|сумм\p{L}*|телефон|контакт|адрес|дом|кв\.?|корпус|начало|окончание|смен\p{L}*|график|время|человек|количество|нужно|требуется)\s*[:—–-]?$/iu;
 
-function metadata(line: string): { candidate: boolean; explicit: boolean; clock: boolean; counter: boolean } {
+function metadata(line: string): { candidate: boolean; explicit: boolean; clock: boolean; counter: boolean; atoms: number } {
   let rest = line.replace(/[\u200b-\u200f\u2060\ufeff]/g, '').trim();
   let explicit = false;
   let clock = false;
   let atoms = 0;
   let counter = false;
-  if (FOOTER_LABEL.test(rest)) return { candidate: true, explicit: false, clock: false, counter: false };
+  if (FOOTER_LABEL.test(rest)) return { candidate: true, explicit: false, clock: false, counter: false, atoms: 0 };
   while (rest) {
     const time = rest.match(CLOCK);
     const known = time ? null : rest.match(EXPLICIT);
     const count = time || known ? null : rest.match(COUNTER_PREFIX);
     const token = time || known || count;
-    if (!token) return { candidate: false, explicit: false, clock: false, counter: false };
+    if (!token) return { candidate: false, explicit: false, clock: false, counter: false, atoms: 0 };
     clock ||= Boolean(time);
     explicit ||= Boolean(known);
     counter ||= Boolean(count);
     atoms++;
     rest = rest.slice(token[0].length).replace(/^[\s|·•,;:]+/u, '');
   }
-  return { candidate: atoms > 0, explicit, clock, counter };
+  return { candidate: atoms > 0, explicit, clock, counter, atoms };
 }
 
 function cleanBlock(lines: string[]): string[] {
@@ -38,7 +40,9 @@ function cleanBlock(lines: string[]): string[] {
   while (start && (!lines[start - 1].trim() || metadata(lines[start - 1].trim()).candidate)) start--;
   const tail = lines.slice(start, end).filter((line) => line.trim()).map((line) => metadata(line.trim()));
   // Одинокое число или время неоднозначно: удаляем только подтверждённый хвост интерфейса.
-  if (!tail.some((item) => item.explicit) && !(tail.some((item) => item.counter) && tail.some((item) => item.clock))) return lines.slice(0, end);
+  if (!tail.some((item) => item.explicit)
+    && !(tail.some((item) => item.counter) && tail.some((item) => item.clock))
+    && !tail.some((item) => item.clock && item.atoms > 1)) return lines.slice(0, end);
   if (start > 0 && VALUE_LABEL.test(lines[start - 1].trim())) {
     // Значение после «Оплата:» или «Начало смены:» сохраняем, даже перед счётчиками.
     while (start < end && !metadata(lines[start].trim()).explicit) start++;
@@ -56,7 +60,24 @@ function cleanBlock(lines: string[]): string[] {
 }
 
 export function cleanLeadText(value: string): string {
-  const lines = String(value || '').replace(/\r\n?/g, '\n').replace(/\u0000/g, '').split('\n');
+  const sourceLines = String(value || '').replace(/\r\n?/g, '\n').replace(/\u0000/g, '').split('\n');
+  const lines: string[] = [];
+  let removeNextLink = false;
+  for (const line of sourceLines) {
+    const plain = line.replace(/^[\s\p{Extended_Pictographic}\uFE0F\u200D]+/u, '').trim();
+    if (PROMOTION.test(plain)) {
+      while (lines.length && !lines.at(-1)?.trim()) lines.pop();
+      if (lines.length && PROMOTION_LINK.test(lines.at(-1)!.trim())) lines.pop();
+      removeNextLink = true;
+      continue;
+    }
+    if (removeNextLink && PROMOTION_LINK.test(plain)) {
+      removeNextLink = false;
+      continue;
+    }
+    if (plain) removeNextLink = false;
+    lines.push(line);
+  }
   const output: string[] = [];
   let block: string[] = [];
   for (const line of lines) {

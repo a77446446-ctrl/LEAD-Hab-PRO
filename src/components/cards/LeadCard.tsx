@@ -12,7 +12,16 @@ interface LeadCardProps {
   highlighted?: boolean;
 }
 
-const hiddenContactClass = 'm-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-accent px-1.5 py-0.5 align-middle text-[11px] font-black text-black [&_.lucide-phone]:text-green-700 [&_.lucide-link]:text-blue-700 [&_.lucide-map-pin]:text-red-600';
+const phoneContactClass = 'm-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-green-800 bg-green-500 px-1.5 py-0.5 align-middle text-[11px] font-black text-black';
+const linkContactClass = 'm-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-black px-1.5 py-0.5 align-middle text-[11px] font-black text-white';
+
+function formatLeadCreatedAt(value: unknown): string {
+  const date = new Date(String(value || ''));
+  if (!Number.isFinite(date.getTime())) return 'Время не указано';
+  const time = date.toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' });
+  const day = date.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
+  return `${time}, ${day}`;
+}
 
 export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProps) => {
   const [expanded, setExpanded] = useState(false);
@@ -32,7 +41,14 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
     const result: React.ReactNode[] = [];
     
     for (let i = 0; i < parts.length; i++) {
-      const part = parts[i];
+      let part = parts[i];
+      if (!part) continue;
+      const nextPart = parts[i + 1] || '';
+      if (/^\[контакт скрыт:phone\]$/iu.test(nextPart) || /^(?:\+?7|8)[\s-]?\(?\d{3}\)?/u.test(nextPart)) {
+        part = part.replace(/[☎📞📱][\uFE0F\u200D]*\s*$/u, '');
+      } else if (/^\[(?:контакт скрыт:link|ссылка скрыта)\]$/iu.test(nextPart) || /^(?:https?:\/\/|@)/iu.test(nextPart)) {
+        part = part.replace(/[🔗][\uFE0F\u200D]*\s*$/u, '');
+      }
       if (!part) continue;
       
       let nodeToAdd: React.ReactNode = <LeadText text={part} markAddresses={markAddresses} />;
@@ -40,12 +56,12 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
       
       if (/^\[(?:контакт скрыт|ссылка скрыта)/iu.test(part)) {
         charsToAdd = 16;
-        if (part === '[контакт скрыт:phone]') {
-          nodeToAdd = <span key={i} className={hiddenContactClass}><Phone size={10} /> КОНТАКТ СКРЫТ</span>;
-        } else if (part === '[контакт скрыт:yandex]') {
-          nodeToAdd = <span key={i} className={hiddenContactClass}><MapPin size={10} /> КОНТАКТ СКРЫТ</span>;
+        if (/^\[контакт скрыт:phone\]$/iu.test(part)) {
+          nodeToAdd = <span key={i} className={phoneContactClass}><Phone size={10} /> КОНТАКТ СКРЫТ</span>;
+        } else if (/^\[контакт скрыт:yandex\]$/iu.test(part)) {
+          nodeToAdd = <span key={i} className={linkContactClass}><MapPin size={10} /> КОНТАКТ СКРЫТ</span>;
         } else {
-          nodeToAdd = <span key={i} className={hiddenContactClass}><LinkIcon size={10} /> КОНТАКТ СКРЫТ</span>;
+          nodeToAdd = <span key={i} className={linkContactClass}><LinkIcon size={10} /> КОНТАКТ СКРЫТ</span>;
         }
       } else if (part.match(/(https?:\/\/[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/[^\s]*|@[a-zA-Z0-9_]+)/)) {
         charsToAdd = 16; 
@@ -53,32 +69,32 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
         const isMapLink = Boolean(mapLabel);
         
         if (shouldMask && !isMapLink) {
-          nodeToAdd = <span key={i} className={hiddenContactClass}><LinkIcon size={10} /> КОНТАКТ СКРЫТ</span>;
+          nodeToAdd = <span key={i} className={linkContactClass}><LinkIcon size={10} /> КОНТАКТ СКРЫТ</span>;
         } else {
           let href = part;
           if (part.startsWith('@')) href = `https://t.me/${part.substring(1)}`;
           else if (!part.startsWith('http')) href = `https://${part}`;
           
           let linkText = part;
-          let linkClass = "m-1 inline-block break-all rounded border border-black px-1.5 py-0.5 align-middle text-xs font-bold transition-all ";
+          let linkClass = "m-1 inline-flex items-center gap-1 break-all rounded border border-black px-1.5 py-0.5 align-middle text-xs font-bold transition-all ";
 
           if (isMapLink) {
              linkText = mapLabel || part;
              
              linkClass += "bg-white text-black shadow-[2px_2px_0_0_#000] hover:translate-y-[2px] hover:translate-x-[2px] hover:shadow-none";
           } else {
-             linkClass += "bg-accent text-black hover:bg-black hover:text-white";
+             linkClass += "bg-black text-white hover:bg-zinc-800";
           }
           
-          nodeToAdd = <a key={i} href={href} target="_blank" rel="noopener noreferrer" className={linkClass} onClick={(e) => e.stopPropagation()}>{isMapLink && <LeadIcon kind="location" />}<LeadText text={linkText} /></a>;
+          nodeToAdd = <a key={i} href={href} target="_blank" rel="noopener noreferrer" className={linkClass} onClick={(e) => e.stopPropagation()}>{isMapLink ? <LeadIcon kind="location" /> : <LinkIcon size={11} />}<LeadText text={linkText} /></a>;
         }
       } else if (part.match(/(?:\+?7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}|\b\d{10}\b/)) {
         charsToAdd = 16;
         if (shouldMask) {
-          nodeToAdd = <span key={i} className={hiddenContactClass}><Phone size={10} /> КОНТАКТ СКРЫТ</span>;
+          nodeToAdd = <span key={i} className={phoneContactClass}><Phone size={10} /> КОНТАКТ СКРЫТ</span>;
         } else {
           const cleanPhone = part.replace(/[^\d+]/g, '');
-          nodeToAdd = <a key={i} href={`tel:${cleanPhone}`} className="m-1 inline-flex rounded border border-zinc-300 bg-zinc-100 px-1.5 py-0.5 align-middle text-xs font-bold text-black transition-colors hover:bg-black hover:text-accent" onClick={(e) => e.stopPropagation()}>{part}</a>;
+          nodeToAdd = <a key={i} href={`tel:${cleanPhone}`} className={phoneContactClass} onClick={(e) => e.stopPropagation()}><Phone size={10} />{part}</a>;
         }
       } else {
         if (truncateAt && currentLength + charsToAdd > truncateAt) {
@@ -126,7 +142,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
           </div>
           <div title="Добавлено в приложение" className="flex items-center text-[#666] text-[11px] font-medium gap-1 ml-2 shrink-0">
             <Clock size={12} aria-hidden="true" />
-            {lead.createdAt && Number.isFinite(new Date(lead.createdAt).getTime()) ? new Date(lead.createdAt).toLocaleString('ru-RU', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : 'Дата не указана'}
+            {formatLeadCreatedAt(lead.createdAt)}
           </div>
         </div>
 
@@ -153,7 +169,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
       
       <div className="flex flex-wrap items-start justify-between gap-3 mt-auto pt-4 border-t border-[#ddd] relative">
         {locationLabel && <div className="flex min-w-0 flex-1 items-start gap-1.5 text-[#666] text-xs font-bold z-10 relative">
-          <LeadIcon kind="location" />
+          <LeadIcon kind={/^метро\s/iu.test(locationLabel) ? 'metro' : 'location'} />
           <span className="min-w-0 whitespace-pre-wrap break-words">{renderTextWithLinks(locationLabel, undefined, false)}</span>
         </div>}
         {!isInfo && (
