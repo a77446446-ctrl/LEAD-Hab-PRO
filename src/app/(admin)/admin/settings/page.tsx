@@ -69,7 +69,7 @@ interface Chat {
   name: string;
   url: string;
   parseAll?: boolean;
-  count?: number;
+  lastRunLeadsCount?: number | null;
   lastParsedAt?: string | null;
 }
 
@@ -234,16 +234,14 @@ export default function SettingsPage() {
       const settingsMap: Record<string, string> = {};
       data.forEach(s => settingsMap[s.key] = s.value);
       
-      // If we are auto-refreshing and user has unsaved changes, DON'T update local state 
-      // except maybe we want to update the counts. For safety, just skip if hasUnsavedChanges.
+      // Фоновое обновление меняет только статистику, сохраняя редактируемые настройки.
       if (silent) {
-          // If silent, we only update the counts on parsingChats to not interrupt typing
           setParsingChats(prev => {
               try {
                   const dbChats = JSON.parse(settingsMap['maks_parsing_chats'] || '[]');
                   return prev.map(c => {
                       const dbC = dbChats.find((dc:any) => dc.url === c.url);
-                      if (dbC) return { ...c, count: dbC.count, lastParsedAt: dbC.lastParsedAt };
+                      if (dbC) return { ...c, lastRunLeadsCount: dbC.lastRunLeadsCount ?? null, lastParsedAt: dbC.lastParsedAt };
                       return c;
                   });
               } catch(e) { return prev; }
@@ -297,12 +295,12 @@ export default function SettingsPage() {
                     }
                     changed = true;
                 }
-                if (typeof c === 'string') return { name, url, parseAll: true, count: 0, lastParsedAt: null };
+                if (typeof c === 'string') return { name, url, parseAll: true, lastRunLeadsCount: null, lastParsedAt: null };
                 return {
                   name,
                   url,
                   parseAll: typeof c.parseAll === 'boolean' ? c.parseAll : true,
-                  count: typeof c.count === 'number' ? c.count : 0,
+                  lastRunLeadsCount: typeof c.lastRunLeadsCount === 'number' && Number.isInteger(c.lastRunLeadsCount) && c.lastRunLeadsCount >= 0 ? c.lastRunLeadsCount : null,
                   lastParsedAt: c.lastParsedAt || null,
                 };
             });
@@ -776,7 +774,7 @@ export default function SettingsPage() {
       chatName = 'Новый чат';
     }
 
-    setParsingChats([...parsingChats, { name: chatName, url: finalUrl, parseAll: true, count: 0 }]);
+    setParsingChats([...parsingChats, { name: chatName, url: finalUrl, parseAll: true, lastRunLeadsCount: null }]);
     setNewChat('');
     setHasUnsavedChanges(true);
     addLog(`Добавлен чат: ${chatName}`, 'success');
@@ -1397,9 +1395,12 @@ export default function SettingsPage() {
                   >
                     <Activity size={14}/>
                   </button>
-                  {chat.count !== undefined && (
-                    <span className="w-11 whitespace-nowrap text-right text-[7px] font-bold uppercase tracking-tight text-zinc-500 sm:w-14 sm:text-[8px]">{chat.count} лидов</span>
-                  )}
+                  <span
+                    className="w-14 whitespace-nowrap text-right text-[7px] font-bold uppercase tracking-tight text-zinc-500 sm:w-16 sm:text-[8px]"
+                    title={chat.lastRunLeadsCount == null ? 'Количество новых лидов появится после следующего завершённого прохода' : 'Новые лиды, добавленные из этого чата за последний завершённый проход'}
+                  >
+                    {chat.lastRunLeadsCount == null ? '— за проход' : `+${chat.lastRunLeadsCount} за проход`}
+                  </span>
                   <button onClick={() => removeChat(chat.url)} className="shrink-0 p-2 text-zinc-500 transition-colors hover:text-red-500"><Trash2 size={12}/></button>
                 </div>
               </div>

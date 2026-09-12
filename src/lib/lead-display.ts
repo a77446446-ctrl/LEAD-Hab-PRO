@@ -3,12 +3,14 @@ const CONTACT_FOOTER = /^Контакты\s*\(ссылки\):/iu;
 const NUMBER = String.raw`\d{1,7}(?:[.,]\d+)?(?:\s*[кkмm](?!\p{L}))?`;
 const CLOCK = /^(?:(?:сегодня|вчера)\s*(?:в\s*)?)?(?:[01]?\d|2[0-3]):[0-5]\d/iu;
 const COUNTER_PREFIX = new RegExp(`^${NUMBER}(?![\\d:])`, 'iu');
-const LABEL = String.raw`(?:комментари[а-я]*|просмотр[а-я]*|реакци[а-я]*|пересыл[а-я]*)`;
+const LABEL = String.raw`(?:комментари[а-я]*|просмотр[а-я]*|реакци[а-я]*|пересыл[а-я]*)(?:\s*[:—–-]?\s*\(?\d+\)?)?`;
 // Только значки интерфейса. Мешочек с суммой и часы начала смены — данные объявления.
 const EXPLICIT = new RegExp(`^(?:${LABEL}|(?:👁|👀|💬|🗨)[\\uFE0F\\u200D]*|(?:👍|👎|❤|🔥|👏|🙏|😁|🤔|🤩|🎉|💯)[\\uFE0F\\u200D\\p{Emoji_Modifier}]*(?=\\s*\\d))`, 'iu');
 const FOOTER_LABEL = /^(?:вакансии|оставить комментарий|написать комментарий)$/iu;
 const PROMOTION = /^(?:подписывайтесь|подпишитесь|подписывайся)\s+на\s+(?:наш\s+)?(?:канал|чат)|^(?:больше|все|ещ[её]\s+больше)\s+(?:вакансий|объявлений)(?!\p{L})|^(?:смотрите|найд[её]те)\s+(?:ещ[её]\s+)?больше\s+(?:вакансий|объявлений)(?!\p{L})|^(?:переходите|перейдите)\s+в\s+(?:наш\s+)?(?:канал|чат).*(?:больше|ваканси|объявлен)/iu;
 const PROMOTION_LINK = /^(?:https?:\/\/\S+|(?:[a-z0-9-]+\.)+[a-z]{2,}(?:\/\S*)?|@[a-z0-9_]+)$/iu;
+// Подписи предпросмотра ссылок MAX. Это не текст объявления и не контакт заказчика.
+const LINK_PREVIEW_UI = /^(?:join\s+group\s+chat\s+on\s+telegram|telegram|telegram\s*[–—-]\s*a\s+new\s+era\s+of\s+messaging|fast\.\s*secure\.\s*powerful\.?|whatsapp|vk)$/iu;
 const VALUE_LABEL = /(?:оплат\p{L}*|зарплат\p{L}*|оклад|ставк\p{L}*|бюджет|сумм\p{L}*|телефон|контакт|адрес|дом|кв\.?|корпус|начало|окончание|смен\p{L}*|график|время|человек|количество|нужно|требуется)\s*[:—–-]?$/iu;
 
 function metadata(line: string): { candidate: boolean; explicit: boolean; clock: boolean; counter: boolean; atoms: number } {
@@ -65,7 +67,7 @@ export function cleanLeadText(value: string): string {
   let removeNextLink = false;
   for (const line of sourceLines) {
     const plain = line.replace(/^[\s\p{Extended_Pictographic}\uFE0F\u200D]+/u, '').trim();
-    if (PROMOTION.test(plain)) {
+    if (PROMOTION.test(plain) || LINK_PREVIEW_UI.test(plain)) {
       while (lines.length && !lines.at(-1)?.trim()) lines.pop();
       if (lines.length && PROMOTION_LINK.test(lines.at(-1)!.trim())) lines.pop();
       removeNextLink = true;

@@ -10,43 +10,11 @@ export async function GET() {
   if (denied) return denied;
   try {
     const settings = await prisma.setting.findMany();
-    const leadCounts = await prisma.lead.groupBy({
-      by: ['sourceChat'],
-      _count: { _all: true },
-      where: { sourceChat: { not: null } },
-    });
-    const countMap = new Map<string, number>(
-      leadCounts
-        .filter((row) => !!row.sourceChat)
-        .map((row) => [row.sourceChat as string, row._count._all])
-    );
-    
-    // Enrich parsing chats with lead counts
-    const enrichedSettings = await Promise.all(settings.map(async (s) => {
-      if (s.key === 'maks_parsing_chats') {
-        try {
-          const chats = JSON.parse(s.value);
-          const richChats = chats.map((chat: any) => {
-            const url = typeof chat === 'string' ? chat : chat.url;
-            const count = countMap.get(url) ?? 0;
-            if (typeof chat === 'string') {
-              return { name: 'Новый чат', url: chat, parseAll: true, count };
-            }
-            return { ...chat, count };
-          });
-          return { ...s, value: JSON.stringify(richChats) };
-        } catch (e) {
-          return s;
-        }
-      }
-      return s;
-    }));
-
     const activeTargetChats = await prisma.targetChat.findMany({
       where: { active: true, status: 'ACTIVE' },
       select: { url: true, parseAll: true },
     });
-    const displaySettings = enrichedSettings.filter((setting) => setting.key !== 'maks_active_target_chats');
+    const displaySettings = settings.filter((setting) => setting.key !== 'maks_active_target_chats');
     displaySettings.push({ id: 'runtime-active-target-chats', key: 'maks_active_target_chats', value: JSON.stringify(activeTargetChats) });
     return NextResponse.json(displaySettings.map((setting) =>
       isSecretSettingKey(setting.key) ? { ...setting, value: SECRET_MASK } : setting,

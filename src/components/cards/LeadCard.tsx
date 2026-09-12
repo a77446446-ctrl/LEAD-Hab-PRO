@@ -34,7 +34,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
 
   const renderTextWithLinks = (text: string, truncateAt?: number, markAddresses = true) => {
     if (!text) return null;
-    const combinedRegex = /(\[(?:контакт скрыт(?::(?:phone|link|yandex))?|ссылка скрыта)\]|https?:\/\/[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/[^\s]*|@[a-zA-Z0-9_]+|(?:\+?7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}|\b\d{10}\b)/gi;
+    const combinedRegex = /(\[(?:контакт скрыт(?::(?:phone|link|yandex))?|ссылка скрыта)\]|контакт\s+скрыт|https?:\/\/[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/[^\s]*|@[a-zA-Z0-9_]+|(?:\+?7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}|\b\d{10}\b)/gi;
     
     let currentLength = 0;
     const parts = text.split(combinedRegex);
@@ -44,9 +44,16 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
       let part = parts[i];
       if (!part) continue;
       const nextPart = parts[i + 1] || '';
-      if (/^\[контакт скрыт:phone\]$/iu.test(nextPart) || /^(?:\+?7|8)[\s-]?\(?\d{3}\)?/u.test(nextPart)) {
+      const literalHidden = /^контакт\s+скрыт$/iu.test(nextPart);
+      const phoneContext = /(?:номер\s+телефона|телефон|phone)\s*[:—–-]?\s*$/iu.test(part)
+        || /[☎📞📱]\s*$/u.test(part);
+      const partLiteralHidden = /^контакт\s+скрыт$/iu.test(part);
+      const partPhoneContext = /(?:номер\s+телефона|телефон|phone)\s*[:—–-]?\s*$/iu.test(parts[i - 1] || '')
+        || /[☎📞📱]\s*$/u.test(parts[i - 1] || '');
+      if (/^\[контакт скрыт:phone\]$/iu.test(nextPart) || /^(?:\+?7|8)[\s-]?\(?\d{3}\)?/u.test(nextPart)
+        || (literalHidden && phoneContext)) {
         part = part.replace(/[☎📞📱][\uFE0F\u200D]*\s*$/u, '');
-      } else if (/^\[(?:контакт скрыт:link|ссылка скрыта)\]$/iu.test(nextPart) || /^(?:https?:\/\/|@)/iu.test(nextPart)) {
+      } else if (literalHidden || /^\[(?:контакт скрыт:link|ссылка скрыта)\]$/iu.test(nextPart) || /^(?:https?:\/\/|@)/iu.test(nextPart)) {
         part = part.replace(/[🔗][\uFE0F\u200D]*\s*$/u, '');
       }
       if (!part) continue;
@@ -54,9 +61,9 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
       let nodeToAdd: React.ReactNode = <LeadText text={part} markAddresses={markAddresses} />;
       let charsToAdd = part.length;
       
-      if (/^\[(?:контакт скрыт|ссылка скрыта)/iu.test(part)) {
+      if (/^(?:\[(?:контакт скрыт|ссылка скрыта)|контакт\s+скрыт)/iu.test(part)) {
         charsToAdd = 16;
-        if (/^\[контакт скрыт:phone\]$/iu.test(part)) {
+        if (/^\[контакт скрыт:phone\]$/iu.test(part) || (partLiteralHidden && partPhoneContext)) {
           nodeToAdd = <span key={i} className={phoneContactClass}><Phone size={10} /> КОНТАКТ СКРЫТ</span>;
         } else if (/^\[контакт скрыт:yandex\]$/iu.test(part)) {
           nodeToAdd = <span key={i} className={linkContactClass}><MapPin size={10} /> КОНТАКТ СКРЫТ</span>;

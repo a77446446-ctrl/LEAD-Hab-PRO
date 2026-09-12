@@ -32,7 +32,7 @@ type ParserChat = {
   name: string;
   url: string;
   parseAll: boolean;
-  count: number;
+  lastRunLeadsCount: number | null;
   lastParsedAt: string | null;
 };
 
@@ -163,9 +163,9 @@ function parseChats(value: string | undefined): ParserChat[] {
         : 'Новый чат',
       url,
       parseAll: typeof candidate.parseAll === 'boolean' ? candidate.parseAll : true,
-      count: typeof candidate.count === 'number' && Number.isFinite(candidate.count)
-        ? Math.max(0, Math.floor(candidate.count))
-        : 0,
+      lastRunLeadsCount: typeof candidate.lastRunLeadsCount === 'number' && Number.isInteger(candidate.lastRunLeadsCount) && candidate.lastRunLeadsCount >= 0
+        ? candidate.lastRunLeadsCount
+        : null,
       lastParsedAt: typeof candidate.lastParsedAt === 'string' ? candidate.lastParsedAt : null,
     }];
   });
@@ -188,7 +188,7 @@ function mergeTargetChats(
         name: target.name || previous?.name || 'Новый чат',
         url,
         parseAll: target.parseAll,
-        count: previous?.count || 0,
+        lastRunLeadsCount: previous?.lastRunLeadsCount ?? null,
         lastParsedAt: previous?.lastParsedAt || null,
       });
     } catch {
@@ -523,7 +523,7 @@ async function saveChats(chats: ParserChat[]): Promise<void> {
     name: chat.name,
     url: chat.url,
     parseAll: chat.parseAll,
-    count: chat.count,
+    lastRunLeadsCount: chat.lastRunLeadsCount,
     lastParsedAt: chat.lastParsedAt,
   }));
   await prisma.setting.upsert({
@@ -633,7 +633,7 @@ async function syncWithoutLease(leaseToken: string): Promise<SyncResult> {
         }
       }
       item.chat.name = title.slice(0, 100);
-      item.chat.count = await withDbRetry(() => prisma.lead.count({ where: { sourceChat: chatUrl } }));
+      item.chat.lastRunLeadsCount = chatLeads;
       item.chat.lastParsedAt = new Date().toISOString();
       if (item.chat.targetId) {
         await prisma.targetChat.update({

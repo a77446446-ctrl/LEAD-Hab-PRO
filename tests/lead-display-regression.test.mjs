@@ -28,6 +28,8 @@ test('единая строка просмотров, времени и подп
     const footer = '\nКонтакты (ссылки): https://example.com/employer';
     assert.equal(cleanLeadText(body + '\n' + tail + footer), body + footer, tail);
   }
+  assert.equal(cleanLeadText('Писать в мессенджер TG или MAX\nTelegram\nJoin group chat on Telegram\nTelegram – a new era of messaging\nFast. Secure. Powerful.\n189\n07:18\n💬 Комментарии (1)\nКонтакты (ссылки): [контакт скрыт:link]'),
+    'Писать в мессенджер TG или MAX\nКонтакты (ссылки): [контакт скрыт:link]');
 });
 
 test('очистка сохраняет ставки со значками, ночные смены и инструкции работодателя', () => {
@@ -206,6 +208,11 @@ test('телефон зелёный, ссылка чёрная, а внешни�
     assert.equal((html.match(/lucide-link/g) || []).length, 1);
     assert.doesNotMatch(html, /example\.com/u);
   }
+  const literal = renderToStaticMarkup(React.createElement(LeadCard, {
+    lead: { id: 'test', title: 'Требуется сварщик', rawText: 'Номер телефона: КОНТАКТ СКРЫТ\nТелеграм: КОНТАКТ СКРЫТ', category: { slug: 'work' } }, onBuy() {},
+  }));
+  assert.match(literal, /bg-green-500[^"]*"[^>]*>[\s\S]*КОНТАКТ СКРЫТ/u);
+  assert.match(literal, /bg-black[^"]*"[^>]*>[\s\S]*КОНТАКТ СКРЫТ/u);
 });
 
 test('купленные телефон и ссылка используют те же зелёный и чёрный блоки', () => {
