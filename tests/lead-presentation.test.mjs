@@ -6,6 +6,7 @@ import { cleanLeadText } from '../src/lib/lead-display.ts';
 import { leadContentKey } from '../src/lib/lead-content.ts';
 import { buildLeadTitle } from '../src/lib/lead-title.ts';
 import { hasTargetedChats } from '../src/lib/lead-filter-mode.ts';
+import { removeSourceChatLinks } from '../src/lib/lead-source-link.ts';
 import { detectLeadSpam } from '../src/lib/lead-moderation.ts';
 
 const read = (path) => readFileSync(new URL('../' + path, import.meta.url), 'utf8');
@@ -81,6 +82,7 @@ function parserHarness() {
     parserMessageWasProcessed: async () => false,
     rememberFilteredMessage: async () => {},
     hasOnlyExpiredLeadDates: () => false,
+    removeSourceChatLinks,
     hasActionableLeadContact: () => true,
     aiService: { processLead: async (text) => ({
       isSpam: detectLeadSpam(text, 'реклама'), score: 80, category: 'other',

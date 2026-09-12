@@ -196,7 +196,7 @@ test('телефон зелёный, ссылка чёрная, а внешни�
     const html = renderToStaticMarkup(React.createElement(LeadCard, {
       lead: { id: 'test', title: 'Требуется сварщик', rawText, category: { slug: 'work' } }, onBuy() {},
     }));
-    assert.match(html, /<span[^>]*class="[^"]*bg-green-500[^"]*"[^>]*>[\s\S]*?КОНТАКТ СКРЫТ<\/span>/u);
+    assert.match(html, /<span[^>]*class="[^"]*bg-accent[^"]*"[^>]*>[\s\S]*?КОНТАКТ СКРЫТ<\/span>/u);
     assert.equal((html.match(/lucide-phone/g) || []).length, 1);
     assert.doesNotMatch(html, /79991234567/u);
   }
@@ -211,7 +211,7 @@ test('телефон зелёный, ссылка чёрная, а внешни�
   const literal = renderToStaticMarkup(React.createElement(LeadCard, {
     lead: { id: 'test', title: 'Требуется сварщик', rawText: 'Номер телефона: КОНТАКТ СКРЫТ\nТелеграм: КОНТАКТ СКРЫТ', category: { slug: 'work' } }, onBuy() {},
   }));
-  assert.match(literal, /bg-green-500[^"]*"[^>]*>[\s\S]*КОНТАКТ СКРЫТ/u);
+  assert.match(literal, /bg-accent[^"]*"[^>]*>[\s\S]*КОНТАКТ СКРЫТ/u);
   assert.match(literal, /bg-black[^"]*"[^>]*>[\s\S]*КОНТАКТ СКРЫТ/u);
 });
 
@@ -219,7 +219,7 @@ test('купленные телефон и ссылка используют т�
   const html = renderToStaticMarkup(React.createElement(LeadCard, {
     lead: { id: 'test', title: 'Работа', rawText: '+79991234567\nhttps://example.com/employer', category: { slug: 'work' } }, isPurchased: true,
   }));
-  assert.match(html, /<a[^>]*href="tel:\+79991234567"[^>]*class="[^"]*bg-green-500/u);
+  assert.match(html, /<a[^>]*href="tel:\+79991234567"[^>]*class="[^"]*bg-accent/u);
   assert.match(html, /<a[^>]*href="https:\/\/example\.com\/employer"[^>]*class="[^"]*bg-black[^"]*text-white/u);
   assert.match(html, /lucide-phone/u);
   assert.match(html, /lucide-link/u);

@@ -5,6 +5,7 @@ import test from 'node:test';
 import { buildLeadTitle } from '../src/lib/lead-title.ts';
 import { buildParserMessageFingerprint, isTechnicalParserMessage } from '../src/lib/parser-message-policy.ts';
 import { hasActionableLeadContact } from '../src/lib/redact-contact.ts';
+import { removeSourceChatLinks } from '../src/lib/lead-source-link.ts';
 
 const read = (path) => readFileSync(new URL(`../${path}`, import.meta.url), 'utf8');
 
@@ -33,6 +34,16 @@ test('призыв написать в личку без адреса не сч�
   assert.equal(hasActionableLeadContact('Профиль https://max.ru/example'), true);
   assert.equal(hasActionableLeadContact('Пишите @master'), true);
   assert.equal(hasActionableLeadContact('Почта master@example.ru'), true);
+});
+
+test('целевой лид не содержит ссылку возврата в исходный чат', () => {
+  const sourceChat = 'https://web.max.ru/workers/#chat-42';
+  const text = 'Нужен грузчик\nКонтакты (ссылки): https://max.ru/workers/#chat-42';
+  assert.equal(removeSourceChatLinks(text, sourceChat), 'Нужен грузчик');
+  assert.equal(
+    removeSourceChatLinks('Нужен грузчик\nКонтакты (ссылки): https://max.ru/workers/#chat-42, https://employer.example/apply', sourceChat),
+    'Нужен грузчик\nКонтакты (ссылки): https://employer.example/apply',
+  );
 });
 
 test('контакт обязателен по умолчанию и отключается только явным opt-in режима Все', () => {

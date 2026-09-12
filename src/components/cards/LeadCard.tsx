@@ -12,7 +12,7 @@ interface LeadCardProps {
   highlighted?: boolean;
 }
 
-const phoneContactClass = 'm-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-green-800 bg-green-500 px-1.5 py-0.5 align-middle text-[11px] font-black text-black';
+const phoneContactClass = 'm-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-accent px-1.5 py-0.5 align-middle text-[11px] font-black text-black';
 const linkContactClass = 'm-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-black px-1.5 py-0.5 align-middle text-[11px] font-black text-white';
 
 function formatLeadCreatedAt(value: unknown): string {

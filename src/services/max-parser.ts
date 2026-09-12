@@ -16,6 +16,7 @@ import { buildParserMessageFingerprint, isTechnicalParserMessage } from '@/lib/p
 import { parserPythonExecutable, parserPythonSpawnError } from '@/lib/python-runtime';
 import { hasActionableLeadContact } from '@/lib/redact-contact';
 import { hasOnlyExpiredLeadDates } from '@/lib/lead-date';
+import { removeSourceChatLinks } from '@/lib/lead-source-link';
 import { createLeadWithDeliveries } from './bot-outbox';
 import { aiService, type ProcessedLead } from './ai';
 
@@ -330,7 +331,7 @@ async function processMessage(
         await rememberFilteredMessage(fingerprint, chatUrl, message.id);
         return false;
       }
-      const cleaned = cleanMessageText(original, chatTitle);
+      const cleaned = removeSourceChatLinks(cleanMessageText(original, chatTitle), chatUrl);
       if (cleaned.length <= 15) {
         await rememberFilteredMessage(fingerprint, chatUrl, message.id);
         return false;
@@ -355,7 +356,7 @@ async function processMessage(
         await rememberFilteredMessage(fingerprint, chatUrl, message.id);
         return false;
       }
-      stableText = String(processed.cleanedText || cleaned).trim();
+      stableText = removeSourceChatLinks(String(processed.cleanedText || cleaned).trim(), chatUrl);
     }
 
     const category = await resolveCategory(processed?.category || 'other');
