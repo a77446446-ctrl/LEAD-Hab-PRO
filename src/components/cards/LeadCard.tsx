@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { MapPin, Clock, Phone, Link as LinkIcon } from 'lucide-react';
 import { LeadText, LeadIcon } from '@/components/ui/LeadText';
 import { leadMapLabel } from '@/lib/lead-map-link';
+import { leadLocationLabel } from '@/lib/lead-location';
 
 interface LeadCardProps {
   lead: any;
@@ -11,7 +12,7 @@ interface LeadCardProps {
   highlighted?: boolean;
 }
 
-const hiddenContactClass = 'm-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-accent px-1.5 py-0.5 align-middle text-[11px] font-black text-black';
+const hiddenContactClass = 'm-1 inline-flex items-center gap-1 whitespace-nowrap rounded border border-black bg-accent px-1.5 py-0.5 align-middle text-[11px] font-black text-black [&_.lucide-phone]:text-green-700 [&_.lucide-link]:text-blue-700 [&_.lucide-map-pin]:text-red-600';
 
 export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProps) => {
   const [expanded, setExpanded] = useState(false);
@@ -20,8 +21,9 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
 
   // Mask contacts if it's not purchased yet, regardless of price
   const shouldMask = !isPurchased && !isInfo;
+  const locationLabel = leadLocationLabel(lead.rawText, lead.city);
 
-  const renderTextWithLinks = (text: string, truncateAt?: number) => {
+  const renderTextWithLinks = (text: string, truncateAt?: number, markAddresses = true) => {
     if (!text) return null;
     const combinedRegex = /(\[(?:контакт скрыт(?::(?:phone|link|yandex))?|ссылка скрыта)\]|https?:\/\/[^\s]+|[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}\/[^\s]*|@[a-zA-Z0-9_]+|(?:\+?7|8)[\s-]?\(?\d{3}\)?[\s-]?\d{3}[\s-]?\d{2}[\s-]?\d{2}|\b\d{10}\b)/gi;
     
@@ -33,7 +35,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
       const part = parts[i];
       if (!part) continue;
       
-      let nodeToAdd: React.ReactNode = <LeadText text={part} />;
+      let nodeToAdd: React.ReactNode = <LeadText text={part} markAddresses={markAddresses} />;
       let charsToAdd = part.length;
       
       if (/^\[(?:контакт скрыт|ссылка скрыта)/iu.test(part)) {
@@ -80,7 +82,7 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
         }
       } else {
         if (truncateAt && currentLength + charsToAdd > truncateAt) {
-           nodeToAdd = <LeadText text={Array.from(part.substring(0, truncateAt - currentLength)).join('').replace(/[\uD800-\uDBFF]$/, '') + '…'} />;
+           nodeToAdd = <LeadText markAddresses={markAddresses} text={Array.from(part.substring(0, truncateAt - currentLength)).join('').replace(/[\uD800-\uDBFF]$/, '') + '…'} />;
            result.push(<React.Fragment key={i}>{nodeToAdd}</React.Fragment>);
            break;
         }
@@ -149,14 +151,14 @@ export const LeadCard = ({ lead, onBuy, isPurchased, highlighted }: LeadCardProp
         )}
       </div>
       
-      <div className="flex items-center justify-between mt-auto pt-4 border-t border-[#ddd] relative">
-        <div className="flex items-center gap-1.5 text-[#666] text-xs font-bold uppercase z-10 relative">
-          <MapPin size={14} className="text-zinc-700" />
-          {lead.city?.toUpperCase() === 'НЕ УКАЗАН' ? 'АДРЕС В ТЕКСТЕ' : lead.city}
-        </div>
+      <div className="flex flex-wrap items-start justify-between gap-3 mt-auto pt-4 border-t border-[#ddd] relative">
+        {locationLabel && <div className="flex min-w-0 flex-1 items-start gap-1.5 text-[#666] text-xs font-bold z-10 relative">
+          <LeadIcon kind="location" />
+          <span className="min-w-0 whitespace-pre-wrap break-words">{renderTextWithLinks(locationLabel, undefined, false)}</span>
+        </div>}
         {!isInfo && (
-          <div className="text-[11px] font-black uppercase bg-white text-black px-2 py-1 border border-black shadow-[2px_2px_0_0_#F2FF00] z-10 relative">
-            Доступ: {lead.category?.paymentMode === 'SUBSCRIPTION' || lead.category?.paymentMode === 'PRO' 
+          <div className="ml-auto shrink-0 text-[11px] font-black uppercase bg-white text-black px-2 py-1 border border-black shadow-[2px_2px_0_0_#F2FF00] z-10 relative">
+            {lead.category?.paymentMode === 'SUBSCRIPTION' || lead.category?.paymentMode === 'PRO'
               ? 'ПО ПОДПИСКЕ' 
               : lead.price > 0 ? `${lead.price} ₽` : 'БЕСПЛАТНО'}
           </div>

@@ -12,6 +12,7 @@ import { buildLeadTitle } from '../src/lib/lead-title.ts';
 import { uniqueLeadCards } from '../src/lib/lead-content.ts';
 import { buildLeadContentFingerprint } from '../src/lib/lead-identity.ts';
 import { backfillLeadIdentities } from '../src/lib/lead-identity-backfill.ts';
+import { isLeadAddressLine, leadLocationLabel } from '../src/lib/lead-location.ts';
 
 const body = 'Требуется сварщик\nАдрес: метро Комсомольская\nОплата 4 500 ₽ за смену\nТелефон +79991234567';
 
@@ -79,6 +80,56 @@ function loadComponent(relative, overrides = {}) {
 
 const { LeadText } = loadComponent('src/components/ui/LeadText.tsx');
 const { LeadCard } = loadComponent('src/components/cards/LeadCard.tsx');
+
+test('адрес берётся из объявления, неизвестное местоположение не выдумывается', () => {
+  for (const address of ['улица Лукьянова, дом 5', 'Москва, Волочаевская улица, 12АС1А',
+    'Адрес: Москва, Комсомольская площадь, 3', '📍 ул. Парковая, д. 5']) {
+    assert.equal(isLeadAddressLine(address), true);
+    assert.equal(leadLocationLabel('Требуется кассир\n' + address, 'Не указан'), address.replace(/^📍\s*|^Адрес:\s*/u, ''));
+  }
+  for (const empty of ['Не указан', 'Не указано', '', null]) {
+    assert.equal(leadLocationLabel('Требуется кассир\nАдрес: не указан', empty), null);
+  }
+  assert.equal(leadLocationLabel('Адрес не указан', 'Москва'), 'Москва');
+  assert.equal(isLeadAddressLine('🚇 Комсомольская'), false);
+  assert.equal(isLeadAddressLine('Работа на улице'), false);
+});
+
+test('булавка добавляется к адресу один раз, эмодзи и пиктограммы цветные', () => {
+  for (const address of ['улица Лукьянова, дом 5', '📍 улица Лукьянова, дом 5']) {
+    const html = renderToStaticMarkup(React.createElement(LeadText, { text: address, markAddresses: true }));
+    assert.equal((html.match(/aria-label="Адрес"/g) || []).length, 1);
+  }
+  const html = renderToStaticMarkup(React.createElement(LeadText, { text: '🚇 Комсомольская 💰 4500 📞 Контакты 👉 Обязанности' }));
+  assert.match(html, /#2563eb/);
+  assert.match(html, /#facc15/);
+  assert.match(html, /#16a34a/);
+  assert.match(html, /👉/u);
+  assert.doesNotMatch(html, /grayscale/u);
+});
+
+test('карточка повторяет адрес внизу и показывает цену без слова Доступ', () => {
+  for (const price of [0, 150]) {
+    const html = renderToStaticMarkup(React.createElement(LeadCard, {
+      lead: { id: 'test', title: 'Требуется кассир', rawText: 'улица Лукьянова, дом 5', city: 'Москва', price, category: { slug: 'work' } },
+    }));
+    assert.equal((html.match(/улица Лукьянова, дом 5/g) || []).length, 2);
+    assert.match(html, price ? /150 ₽/u : /БЕСПЛАТНО/u);
+    assert.doesNotMatch(html, /Доступ:|АДРЕС В ТЕКСТЕ/u);
+  }
+  const html = renderToStaticMarkup(React.createElement(LeadCard, {
+    lead: { id: 'test', title: 'Требуется кассир', rawText: 'Оплата 4500', city: 'Не указан', category: { slug: 'work' } },
+  }));
+  assert.doesNotMatch(html, /АДРЕС В ТЕКСТЕ|Не указан|aria-label="Адрес"/u);
+});
+
+test('повтор адреса внизу карточки не раскрывает контакт до покупки', () => {
+  const html = renderToStaticMarkup(React.createElement(LeadCard, {
+    lead: { id: 'test', title: 'Кассир', rawText: 'Адрес: улица Лукьянова, дом 5, телефон +79991234567', category: { slug: 'work' } },
+  }));
+  assert.doesNotMatch(html, /79991234567/u);
+  assert.equal((html.match(/КОНТАКТ СКРЫТ/g) || []).length, 2);
+});
 test('очередь MAX пропускает копию объявления, но доставляет купленный контакт', async () => {
   const deliveries = [
     { id: 'copy', kind: 'LEAD_TEASER_CHANNEL', lead: { status: 'NEW', duplicateOfId: 'main', allowContactless: true } },
