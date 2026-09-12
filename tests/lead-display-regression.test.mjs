@@ -85,10 +85,12 @@ test('адрес берётся из объявления, неизвестно�
   for (const address of ['улица Лукьянова, дом 5', 'Москва, Волочаевская улица, 12АС1А',
     'Адрес: Москва, Комсомольская площадь, 3', '📍 ул. Парковая, д. 5']) {
     assert.equal(isLeadAddressLine(address), true);
-    assert.equal(leadLocationLabel('Требуется кассир\n' + address, 'Не указан'), address.replace(/^📍\s*|^Адрес:\s*/u, ''));
+    assert.equal(leadLocationLabel('Требуется кассир\n' + address, 'Москва'), address.replace(/^📍\s*|^Адрес:\s*/u, ''));
   }
   for (const empty of ['Не указан', 'Не указано', '', null]) {
     assert.equal(leadLocationLabel('Требуется кассир\nАдрес: не указан', empty), null);
+    assert.equal(leadLocationLabel('Требуется кассир\nулица Войкова, дом 5', empty), 'Адрес в тексте');
+    assert.equal(leadLocationLabel('Требуется кассир\nулица Войкова', empty), 'Адрес в тексте');
   }
   assert.equal(leadLocationLabel('Адрес не указан', 'Москва'), 'Москва');
   assert.equal(isLeadAddressLine('🚇 Комсомольская'), false);
@@ -125,7 +127,7 @@ test('карточка повторяет адрес внизу и показы�
 
 test('повтор адреса внизу карточки не раскрывает контакт до покупки', () => {
   const html = renderToStaticMarkup(React.createElement(LeadCard, {
-    lead: { id: 'test', title: 'Кассир', rawText: 'Адрес: улица Лукьянова, дом 5, телефон +79991234567', category: { slug: 'work' } },
+    lead: { id: 'test', title: 'Кассир', rawText: 'Адрес: улица Лукьянова, дом 5, телефон +79991234567', city: 'Москва', category: { slug: 'work' } },
   }));
   assert.doesNotMatch(html, /79991234567/u);
   assert.equal((html.match(/КОНТАКТ СКРЫТ/g) || []).length, 2);
